@@ -18,7 +18,7 @@
 
       baseConfiguration = ./configuration.nix;
 
-      makeConfig = { name, extraConfig, ... }: pkgs.nixosConfigurations.${name} = {
+      makeConfig = { name, extraConfig }: {
         imports = [ baseConfiguration ];
         networking.hostName = name;
         ... extraConfig ...
