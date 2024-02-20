@@ -11,9 +11,9 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, ... }: {
-    packages = flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
+    nixosConfigurations =
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs { };
         baseConfiguration = ./configuration.nix;
 
         makeConfig = { name, extraConfig }: 
@@ -26,19 +26,16 @@
           } // extraConfig;
       in
       {
-        nixosConfigurations = with pkgs.nixos.lib; {
-          gavin-laptop-nixos-1 = nixosSystem {
-            inherit system;
-            modules = [
-              (makeConfig {
-                name = "gavin-laptop-nixos-1";
-                extraConfig = {
-                };
-              })
-            ];
-          };
+        gavin-laptop-nixos-1 = pkgs.nixos.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            (makeConfig {
+              name = "gavin-laptop-nixos-1";
+              extraConfig = {
+              };
+            })
+          ];
         };
-      }
-    );
+      };
   };
 }
