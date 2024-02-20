@@ -10,7 +10,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:  flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
+  outputs = { self, nixpkgs, flake-utils, ... }: 
     let
       pkgs = import nixpkgs { inherit system; };
       baseConfiguration = ./configuration.nix;
@@ -38,5 +38,4 @@
         };
       };
     }
-  );
 }
