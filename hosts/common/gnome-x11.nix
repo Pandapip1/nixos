@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, nix-software-center, nixos-conf-editor, ... }:
 
 {
   # Enable the X11 windowing system.
@@ -38,18 +38,8 @@
     thunderbird
     nextcloud-client
     keepassxc
-    import (fetchFromGitHub {
-      owner = "snowfallorg";
-      repo = "nix-software-center";
-      rev = "0.1.2";
-      sha256 = "xiqF1mP8wFubdsAQ1BmfjzCgOD3YZf7EGWl9i69FTls=";
-    }) {}
-    import (fetchFromGitHub {
-      owner = "snowfallorg";
-      repo = "nixos-conf-editor";
-      rev = "0.1.2";
-      sha256 = "sha256-/ktLbmF1pU3vFHeGooDYswJipNE2YINm0WpF9Wd1gw8=";
-    }) {}
+    nix-software-center.packages.${system}.nix-software-center
+    nixos-conf-editor.packages.${system}.nixos-conf-editor
     (vscode-with-extensions.override {
       vscode = vscodium;
       vscodeExtensions = with vscode-extensions; [
