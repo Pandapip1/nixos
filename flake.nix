@@ -14,7 +14,7 @@
           config = {};
         };
         hostsDir = ./hosts;
-        hosts = builtins.readDir hostsDir;
+        hosts = [ "gavin-laptop-nixos-1.nix" ];
         mkHost = hostname:
           { config, lib, ... }: {
             imports = [
@@ -26,6 +26,7 @@
           };
       in
       {
+        hosts = hosts;
         nixosConfigurations = builtins.mapAttrs' (name: path: nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [ (mkHost name) ];
