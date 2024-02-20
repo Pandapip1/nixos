@@ -1,5 +1,5 @@
 {
-  description = "flake for gavin-laptop-nixos-1";
+  description = "Unified flake";
 
   inputs = {
     nixpkgs = {
@@ -10,32 +10,30 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }: {
-    nixosConfigurations =
-      let
-        pkgs = import nixpkgs { };
+  outputs = { self, nixpkgs, flake-utils, ... }@inputs:
+    {
+      nixosConfigurations = let
         baseConfiguration = ./configuration.nix;
-
-        makeConfig = { name, extraConfig }: 
+        makeConfig = { system, name, extraConfig }: 
           let
+            pkgs = import nixpkgs { inherit system; };
             config = import baseConfiguration { inherit pkgs; };
           in
-          {
-            imports = [ baseConfiguration ];
-            networking.hostName = name;
-          } // extraConfig;
-      in
-      {
-        gavin-laptop-nixos-1 = pkgs.nixos.lib.nixosSystem {
+            pkgs.nixos.lib.nixosSystem {
+              inherit system;
+              modules = [
+                ({
+                  imports = [ baseConfiguration ];
+                  networking.hostName = name;
+                } // extraConfig)
+              ];
+            };
+      in {
+        "gavin-laptop-nixos-1" = makeConfig {
           system = "x86_64-linux";
-          modules = [
-            (makeConfig {
-              name = "gavin-laptop-nixos-1";
-              extraConfig = {
-              };
-            })
-          ];
+          name = "gavin-laptop-nixos-1";
+          extraConfig = { };
         };
       };
-  };
+    };
 }
