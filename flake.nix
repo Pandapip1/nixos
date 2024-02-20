@@ -6,7 +6,7 @@
       url = "github:NixOS/nixpkgs/nixos-23.11";
     };
     flake-utils = {
-      url = "github:numtide/flake-utils"
+      url = "github:numtide/flake-utils";
     };
   };
 
