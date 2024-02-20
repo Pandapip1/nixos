@@ -6,31 +6,27 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }: 
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
-      let
-        pkgs = import nixpkgs {
+  outputs = { self, nixpkgs, flake-utils, ... }:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+        config = {};
+      };
+      hostsDir = ./hosts;
+      hosts = builtins.map (x: builtins.head (builtins.match "([^.]+)\\..*" x)) (builtins.attrNames (builtins.readDir hostsDir));
+    in {
+      nixosConfigurations = builtins.listToAttrs (map (hostname: {
+        name = hostname;
+        value = nixpkgs.lib.nixosSystem {
           inherit system;
-          config = {};
+          modules = [
+            ./hardware-configuration.nix
+            ./common.nix
+            "${hostsDir}/${hostname}.nix"
+          ];
+          specialArgs.networking.hostName = hostname;
         };
-        hostsDir = ./hosts;
-        hosts = [ "gavin-laptop-nixos-1.nix" ];
-        mkHost = hostname:
-          { config, lib, ... }: {
-            imports = [
-              ./hardware-configuration.nix
-              ./common.nix
-              "${hostsDir}/${hostname}.nix"
-            ];
-            networking.hostName = hostname;
-          };
-      in
-      {
-        hosts = hosts;
-        nixosConfigurations = builtins.mapAttrs' (name: path: nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = [ (mkHost name) ];
-        }) hosts;
-      }
-    );
+      }) hosts);
+    };
 }
