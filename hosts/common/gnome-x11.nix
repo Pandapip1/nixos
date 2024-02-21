@@ -34,7 +34,11 @@
 
   # Configure installed packages
   environment.systemPackages = with pkgs; [
-    ungoogled-chromium
+    (ungoogled-chromium.override {
+      postInstall = ''
+        wrapProgram $out/bin/chromium --extension-mime-request-handling=always-prompt-for-install
+      '';
+    })
     thunderbird
     nextcloud-client
     keepassxc
@@ -89,20 +93,25 @@
         "DefaultSearchProviderName": "DuckDuckGo",
         "DefaultSearchProviderSearchURL": "https://duckduckgo.com/?q={searchTerms}&ie={inputEncoding}",
         "DefaultSearchProviderSuggestURL": "https://ac.duckduckgo.com/ac/?q={searchTerms}",
+        "BlockExternalExtensions": true,
+        "ExtensionInstallSources": [
+          "https://clients2.google.com/*",
+          "https://clients2.googleusercontent.com/*"
+        ],
         "ExtensionInstallForcelist": [
-          "ddkjiahejlhfcafbddmgiahcphecmpfh",
-          "oboonakemofpalcgghocfoadofidjkkk",
-          "nfcdcdoegfnidkeldipgmhbabmndlhbf",
-          "mpbjkejclgfgadiemmefgebjfooflfhl",
-          "icallnadddjmdinamnolclfjanhfoafe",
-          "pfldomphmndnmmhhlbekfbafifkkpnbc",
-          "nakplnnackehceedgkgkokbgbmfghain",
-          "mhfjchmiaocbleapojmgnmjfcmanihio",
-          "enamippconapkdmgfgjchkhakpfinmaj",
-          "omkfmpieigblcllmkgbflkikinpkodlk",
-          "gebbhagfogifgggkldgodflihgfeippi",
-          "mnjggcdmjocbbbhaepdhchncahnbgone",
-          "khncfooichmfjbepaaaebmommgaepoid"
+          "ddkjiahejlhfcafbddmgiahcphecmpfh;https://clients2.google.com/service/update2/crx",
+          "oboonakemofpalcgghocfoadofidjkkk;https://clients2.google.com/service/update2/crx",
+          "nfcdcdoegfnidkeldipgmhbabmndlhbf;https://clients2.google.com/service/update2/crx",
+          "mpbjkejclgfgadiemmefgebjfooflfhl;https://clients2.google.com/service/update2/crx",
+          "icallnadddjmdinamnolclfjanhfoafe;https://clients2.google.com/service/update2/crx",
+          "pfldomphmndnmmhhlbekfbafifkkpnbc;https://clients2.google.com/service/update2/crx",
+          "nakplnnackehceedgkgkokbgbmfghain;https://clients2.google.com/service/update2/crx",
+          "mhfjchmiaocbleapojmgnmjfcmanihio;https://clients2.google.com/service/update2/crx",
+          "enamippconapkdmgfgjchkhakpfinmaj;https://clients2.google.com/service/update2/crx",
+          "omkfmpieigblcllmkgbflkikinpkodlk;https://clients2.google.com/service/update2/crx",
+          "gebbhagfogifgggkldgodflihgfeippi;https://clients2.google.com/service/update2/crx",
+          "mnjggcdmjocbbbhaepdhchncahnbgone;https://clients2.google.com/service/update2/crx",
+          "khncfooichmfjbepaaaebmommgaepoid;https://clients2.google.com/service/update2/crx"
         ]
       }
     '';
