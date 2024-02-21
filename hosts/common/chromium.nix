@@ -12,7 +12,7 @@
   # Configure Chromium
   environment.etc."chromium/policies/managed/gnome_x11.json" = {
     text = builtins.toJSON {
-      "ShowHomeButton" = true;
+      "ShowHomeButton" = false;
       "DefaultSearchProviderEnabled" = true;
       "DefaultSearchProviderName" = "DuckDuckGo";
       "DefaultSearchProviderSearchURL" = "https://duckduckgo.com/?q={searchTerms}&ie={inputEncoding}";
@@ -27,6 +27,32 @@
       "AutofillCreditCardEnabled" = false;
       "AutofillAddressEnabled" = false;
       "ImportAutofillFormData" = false;
+      "ImportBookmarks" = false;
+      "ImportHistory" = false;
+      "ImportSavedPasswords" = false;
+      "ImportSearchEngine" = false;
+      "ImportHomepage" = false;
+      "BrowserAddPersonEnabled" = false;
+      "KerberosEnabled" = true;
+      "BlockThirdPartyCookies" = true;
+      "BookmarkBarEnabled" = true;
+      "BrowserGuestModeEnabled" = false;
+      "BrowserSignin" = false;
+      "CredentialProviderPromoEnabled" = false;
+      "DefaultBrowserSettingEnabled" = false; # Configured in NixOS
+      "DesktopSharingHubEnabled" = false;
+      "MetricsReportingEnabled" = false;
+      "HistoryClustersVisible" = true;
+      "InstantTetheringAllowed" = true;
+      "NearbyShareAllowed" = false;
+      "ParcelTrackingEnabled" = false;
+      "PaymentMethodQueryEnabled" = false;
+      "PdfAnnotationsEnabled" = true;
+      "PostQuantumKeyAgreementEnabled" = true;
+      "PromotionalTabsEnabled" = false;
+      "PrivacyScreenEnabled" = false;
+      "QuickAnswersEnabled" = false;
+      "SafeBrowsingSurveysEnabled" = false;
       "ManagedAccountsSigninRestriction" = "primary_account_strict";
       "BrowsingDataLifetime" = [
         {
@@ -36,7 +62,7 @@
             "password_signin"
             "autofill"
           ];
-          "time_to_live_in_hours" = 24;
+          "time_to_live_in_hours" = 24 * 7;
         }
       ];
       "HttpsOnlyMode" = "force_enabled";
