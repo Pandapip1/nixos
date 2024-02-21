@@ -49,6 +49,9 @@
     git
     wget
     vim
+    killall
+    htop
+    jq
     home-manager
   ];
 

@@ -34,16 +34,12 @@
 
   # Configure installed packages
   environment.systemPackages = with pkgs; [
-    (ungoogled-chromium.overrideAttrs (old: {
-      postInstall = ''
-        wrapProgram $out/bin/chromium --extension-mime-request-handling=always-prompt-for-install
-      '';
-    }))
     thunderbird
     nextcloud-client
     keepassxc
     nix-software-center.packages.${system}.nix-software-center
     nixos-conf-editor.packages.${system}.nixos-conf-editor
+    gnomeExtensions.remove-alttab-delay-v2
     (vscode-with-extensions.override {
       vscode = vscodium;
       vscodeExtensions = with vscode-extensions; [
@@ -51,6 +47,13 @@
         ms-python.python
         ms-azuretools.vscode-docker
         ms-vscode-remote.remote-ssh
+        vscode-extensions.james-yu.latex-workshop
+        github.vscode-pull-request-github
+        github.vscode-github-actions
+        github.copilot
+        github.copilot-chat
+        github.codespaces
+        gitlab.gitlab-workflow
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "remote-ssh-edit";
@@ -68,7 +71,6 @@
     baobab      # disk usage analyzer
     cheese      # photo booth
     eog         # image viewer
-    epiphany    # web browser
     gedit       # text editor
     simple-scan # document scanner
     totem       # video player
@@ -84,37 +86,13 @@
     gnome-connections gnome-photos gnome-text-editor gnome-tour
   ];
 
-  # Configure chromium
-  environment.etc."chromium/policies/managed/gnome_x11.json" = {
-    text = ''
-      {
-        "ShowHomeButton": true,
-        "DefaultSearchProviderEnabled": true,
-        "DefaultSearchProviderName": "DuckDuckGo",
-        "DefaultSearchProviderSearchURL": "https://duckduckgo.com/?q={searchTerms}&ie={inputEncoding}",
-        "DefaultSearchProviderSuggestURL": "https://ac.duckduckgo.com/ac/?q={searchTerms}",
-        "BlockExternalExtensions": true,
-        "ExtensionInstallSources": [
-          "https://clients2.google.com/*",
-          "https://clients2.googleusercontent.com/*"
-        ],
-        "ExtensionInstallForcelist": [
-          "ddkjiahejlhfcafbddmgiahcphecmpfh;https://clients2.google.com/service/update2/crx",
-          "oboonakemofpalcgghocfoadofidjkkk;https://clients2.google.com/service/update2/crx",
-          "nfcdcdoegfnidkeldipgmhbabmndlhbf;https://clients2.google.com/service/update2/crx",
-          "mpbjkejclgfgadiemmefgebjfooflfhl;https://clients2.google.com/service/update2/crx",
-          "icallnadddjmdinamnolclfjanhfoafe;https://clients2.google.com/service/update2/crx",
-          "pfldomphmndnmmhhlbekfbafifkkpnbc;https://clients2.google.com/service/update2/crx",
-          "nakplnnackehceedgkgkokbgbmfghain;https://clients2.google.com/service/update2/crx",
-          "mhfjchmiaocbleapojmgnmjfcmanihio;https://clients2.google.com/service/update2/crx",
-          "enamippconapkdmgfgjchkhakpfinmaj;https://clients2.google.com/service/update2/crx",
-          "omkfmpieigblcllmkgbflkikinpkodlk;https://clients2.google.com/service/update2/crx",
-          "gebbhagfogifgggkldgodflihgfeippi;https://clients2.google.com/service/update2/crx",
-          "mnjggcdmjocbbbhaepdhchncahnbgone;https://clients2.google.com/service/update2/crx",
-          "khncfooichmfjbepaaaebmommgaepoid;https://clients2.google.com/service/update2/crx"
-        ]
-      }
-    '';
-    mode = "0444";
+  # GNOME Extensions
+  programs.dconf.profiles = {
+    user.databases = [{
+      settings = with lib.gvariant; {
+        "org/gnome/shell".enabled-extensions = [
+        ];
+      };
+    }]
   };
 }
