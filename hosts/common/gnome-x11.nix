@@ -81,7 +81,7 @@
   ];
 
   # Configure chromium
-  environment.etc."chromium/policies/managed/gnome_x11.json".source = {
+  environment.etc."chromium/policies/managed/gnome_x11.json" = {
     text = ''
       {
         "ShowHomeButton": true,
