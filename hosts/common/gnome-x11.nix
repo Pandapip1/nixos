@@ -34,9 +34,7 @@
 
   # Configure installed packages
   environment.systemPackages = with pkgs; [
-    (chromium.override {
-      ungoogled = true;
-    })
+    ungoogled-chromium
     thunderbird
     nextcloud-client
     keepassxc
@@ -85,6 +83,6 @@
   # Configure chromium
   programs.chromium = {
     enable = true;
-    extensions = [ "cjpalhdlnbpafiamejdnhcphjbkeiagm" # ublock origin ];
+    extensions = [ "cjpalhdlnbpafiamejdnhcphjbkeiagm" ];
   };
 }
