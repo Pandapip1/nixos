@@ -69,5 +69,6 @@ in
       echo -E '{"external_crx": "/usr/share/chromium/extensions/${ext}.crx", "external_version": "$(jq -r ".version" ${ext}/manifest.json)"}' > "/usr/share/chromium/extensions/${ext}.json"
       rm -rf /usr/share/chromium/extensions/${ext}
     '') extensionInstallForcelist));
+    serviceConfig.Restart="on-failure";
   };
 }
