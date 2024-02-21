@@ -53,6 +53,7 @@
     htop
     jq
     home-manager
+    unzip
   ];
 
   # This value determines the NixOS release from which the default
