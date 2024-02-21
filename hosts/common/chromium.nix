@@ -60,6 +60,7 @@ in
   systemd.services.installChromeExtensions = {
     enable = true;
     description = "Automatically fetch Chrome extensions";
+    after = [ "network.target" ];
     wantedBy = [ "multi-user.target" ];
     path = with pkgs; [ curl unzip jq ];
     script = builtins.concatStringsSep "\n" ([ "rm -rf /usr/share/chromium/extensions || true" "mkdir -p /usr/share/chromium/extensions" ] ++ (map (ext: ''
