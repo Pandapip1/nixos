@@ -34,11 +34,11 @@
 
   # Configure installed packages
   environment.systemPackages = with pkgs; [
-    (ungoogled-chromium.override {
+    (ungoogled-chromium.overrideAttrs (old: {
       postInstall = ''
         wrapProgram $out/bin/chromium --extension-mime-request-handling=always-prompt-for-install
       '';
-    })
+    }))
     thunderbird
     nextcloud-client
     keepassxc
