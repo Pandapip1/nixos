@@ -24,6 +24,21 @@
       "PrivacySandboxPromptEnabled" = false;
       "UserAgentReduction" = true;
       "HttpsUpgradesEnabled" = true;
+      "AutofillCreditCardEnabled" = false;
+      "AutofillAddressEnabled" = false;
+      "ImportAutofillFormData" = false;
+      "ManagedAccountsSigninRestriction" = "primary_account_strict";
+      "BrowsingDataLifetime" = [
+        {
+          "data_types" = [
+            "browsing_history"
+            "download_history"
+            "password_signin"
+            "autofill"
+          ];
+          "time_to_live_in_hours" = 24;
+        }
+      ];
       "HttpsOnlyMode" = "force_enabled";
       "HttpAllowlist" = [
         "gstatic.com"
