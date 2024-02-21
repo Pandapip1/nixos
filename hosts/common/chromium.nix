@@ -61,7 +61,7 @@ in
     enable = true;
     description = "Automatically fetch Chrome extensions";
     wantedBy = [ "multi-user.target" ];
-    path = with pkgs; [ wget unzip jq ];
+    path = with pkgs; [ curl unzip jq ];
     script = builtins.concatStringsSep "\n" ([ "rm -rf /usr/share/chromium/extensions" "mkdir -p /usr/share/chromium/extensions" ] ++ (map (ext: ''
       mkdir -p /usr/share/chromium/extensions/${ext}
       curl -L -o "/usr/share/chromium/extensions/${ext}.crx" "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=121.0.6167.184&acceptformat=crx2,crx3&x=id%3D${ext}%26uc"
