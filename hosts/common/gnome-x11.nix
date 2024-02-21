@@ -91,8 +91,9 @@
     user.databases = [{
       settings = with lib.gvariant; {
         "org/gnome/shell".enabled-extensions = [
+          "TEMP"
         ];
       };
-    }]
+    }];
   };
 }

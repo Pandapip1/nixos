@@ -15,7 +15,8 @@ let
     "gebbhagfogifgggkldgodflihgfeippi"
     "mnjggcdmjocbbbhaepdhchncahnbgone"
     "khncfooichmfjbepaaaebmommgaepoid"
-  ]
+  ];
+in
 {
   # Configure installed packages
   environment.systemPackages = with pkgs; [
@@ -27,7 +28,7 @@ let
 
   # Configure Chromium
   environment.etc."chromium/policies/managed/gnome_x11.json" = {
-    text = toJSON {
+    text = builtins.toJSON {
       "ShowHomeButton" = true;
       "DefaultSearchProviderEnabled" = true;
       "DefaultSearchProviderName" = "DuckDuckGo";
@@ -61,7 +62,7 @@ let
     description = "Automatically fetch Chrome extensions";
     wantedBy = [ "multi-user.target" ];
     path = with pkgs; [ wget unzip jq ];
-    script = builtins.concatStringsSep "\n" ([ "mkdir -p /usr/share/chromium/extensions" ] ++ map (ext: ''
+    script = builtins.concatStringsSep "\n" ([ "mkdir -p /usr/share/chromium/extensions" ] ++ (map (ext: ''
       rm /usr/share/chromium/extensions/${ext}.crx
       rm /usr/share/chromium/extensions/${ext}.json
       mkdir -p /usr/share/chromium/extensions/${ext}
@@ -69,6 +70,6 @@ let
       unzip /usr/share/chromium/extensions/${ext}.crx -d /usr/share/chromium/extensions/${ext}
       echo -E '{"external_crx": "/usr/share/chromium/extensions/${ext}.crx", "external_version": "$(jq -r ".version" ${ext}/manifest.json)"}' > "/usr/share/chromium/extensions/${ext}.json"
       rm -rf /usr/share/chromium/extensions/${ext}
-    '') extensionInstallForcelist)
+    '') extensionInstallForcelist));
   };
 }
