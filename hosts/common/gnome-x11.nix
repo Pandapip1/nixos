@@ -81,28 +81,31 @@
   ];
 
   # Configure chromium
-  environment.etc.chromium.policies.managed."gnome_x11.json".source = pkgs.writeText "gnome_x11.json" ''
-  {
-    "ShowHomeButton": true,
-    "DefaultSearchProviderEnabled": true,
-    "DefaultSearchProviderName": "DuckDuckGo",
-    "DefaultSearchProviderSearchURL": "https://duckduckgo.com/?q={searchTerms}&ie={inputEncoding}",
-    "DefaultSearchProviderSuggestURL": "https://ac.duckduckgo.com/ac/?q={searchTerms}",
-    "ExtensionInstallForcelist": [
-      "ddkjiahejlhfcafbddmgiahcphecmpfh",
-      "oboonakemofpalcgghocfoadofidjkkk",
-      "nfcdcdoegfnidkeldipgmhbabmndlhbf",
-      "mpbjkejclgfgadiemmefgebjfooflfhl",
-      "icallnadddjmdinamnolclfjanhfoafe",
-      "pfldomphmndnmmhhlbekfbafifkkpnbc",
-      "nakplnnackehceedgkgkokbgbmfghain",
-      "mhfjchmiaocbleapojmgnmjfcmanihio",
-      "enamippconapkdmgfgjchkhakpfinmaj",
-      "omkfmpieigblcllmkgbflkikinpkodlk",
-      "gebbhagfogifgggkldgodflihgfeippi",
-      "mnjggcdmjocbbbhaepdhchncahnbgone",
-      "khncfooichmfjbepaaaebmommgaepoid"
-    ]
-  }
-  '';
+  environment.etc."chromium/policies/managed/gnome_x11.json".source = {
+    text = ''
+      {
+        "ShowHomeButton": true,
+        "DefaultSearchProviderEnabled": true,
+        "DefaultSearchProviderName": "DuckDuckGo",
+        "DefaultSearchProviderSearchURL": "https://duckduckgo.com/?q={searchTerms}&ie={inputEncoding}",
+        "DefaultSearchProviderSuggestURL": "https://ac.duckduckgo.com/ac/?q={searchTerms}",
+        "ExtensionInstallForcelist": [
+          "ddkjiahejlhfcafbddmgiahcphecmpfh",
+          "oboonakemofpalcgghocfoadofidjkkk",
+          "nfcdcdoegfnidkeldipgmhbabmndlhbf",
+          "mpbjkejclgfgadiemmefgebjfooflfhl",
+          "icallnadddjmdinamnolclfjanhfoafe",
+          "pfldomphmndnmmhhlbekfbafifkkpnbc",
+          "nakplnnackehceedgkgkokbgbmfghain",
+          "mhfjchmiaocbleapojmgnmjfcmanihio",
+          "enamippconapkdmgfgjchkhakpfinmaj",
+          "omkfmpieigblcllmkgbflkikinpkodlk",
+          "gebbhagfogifgggkldgodflihgfeippi",
+          "mnjggcdmjocbbbhaepdhchncahnbgone",
+          "khncfooichmfjbepaaaebmommgaepoid"
+        ]
+      }
+    '';
+    mode = "0440";
+  };
 }
