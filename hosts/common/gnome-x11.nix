@@ -87,13 +87,16 @@
   ];
 
   # GNOME Extensions
-  programs.dconf.profiles = {
-    user.databases = [{
-      settings = with lib.gvariant; {
-        "org/gnome/shell".enabled-extensions = [
-          "TEMP"
-        ];
-      };
-    }];
+  programs.dconf = {
+    enable = true;
+    profiles = {
+      user.databases = [{
+        settings = with lib.gvariant; {
+          "org/gnome/shell".enabled-extensions = [
+            "TEMP"
+          ];
+        };
+      }];
+    };
   };
 }
