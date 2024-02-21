@@ -66,7 +66,7 @@ in
       mkdir -p /usr/share/chromium/extensions/${ext}
       curl -L -o "/usr/share/chromium/extensions/${ext}.crx" "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=121.0.6167.184&acceptformat=crx2,crx3&x=id%3D${ext}%26uc"
       unzip /usr/share/chromium/extensions/${ext}.crx -d /usr/share/chromium/extensions/${ext}
-      echo -E '{"external_crx": "/usr/share/chromium/extensions/${ext}.crx", "external_version": "$(jq -r ".version" ${ext}/manifest.json)"}' > "/usr/share/chromium/extensions/${ext}.json"
+      echo -E '{"external_crx": "/usr/share/chromium/extensions/${ext}.crx", "external_version": "$(jq -r ".version" /usr/share/chromium/extensions/${ext}/manifest.json)"}' > "/usr/share/chromium/extensions/${ext}.json"
       rm -rf /usr/share/chromium/extensions/${ext}
     '') extensionInstallForcelist));
     serviceConfig.Restart="on-failure";
