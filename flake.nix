@@ -22,7 +22,7 @@
         name = hostname;
         value = nixpkgs.lib.nixosSystem {
           inherit system;
-          specialArgs = args;
+          specialArgs = args // { hostname = hostname };
           modules = [
             ./hosts/common/common.nix
             "${hostsDir}/${hostname}/hardware-configuration.nix"

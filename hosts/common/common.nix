@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, hostname, ... }:
 
 {
   nix = {
@@ -33,6 +33,7 @@
   };
 
   networking = {
+    hostName = hostname;
     networkmanager.enable = true;
     firewall.enable = true;
   };
