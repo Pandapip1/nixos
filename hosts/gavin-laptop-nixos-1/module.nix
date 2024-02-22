@@ -11,6 +11,7 @@
     libreoffice-qt
     wl-clipboard
     waydroid
+    immersed-vr
   ];
   virtualisation.waydroid.enable = true;
   virtualisation.lxd.enable = true;
