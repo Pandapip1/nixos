@@ -72,7 +72,7 @@
       "BuiltInDnsClientEnabled" = false;
       "DnsOverHttpsMode" = "off";
       "ExtensionInstallForcelist" = [
-        "ddkjiahejlhfcafbddmgiahcphecmpfh"
+        "cjpalhdlnbpafiamejdnhcphjbkeiagm"
         "oboonakemofpalcgghocfoadofidjkkk"
         "nfcdcdoegfnidkeldipgmhbabmndlhbf"
         "mpbjkejclgfgadiemmefgebjfooflfhl"
