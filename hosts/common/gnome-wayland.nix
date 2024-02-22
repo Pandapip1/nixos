@@ -7,14 +7,16 @@
   services.xserver = {
     enable = true;
     libinput.enable = true;
-    layout = user.services.xserver.layout;
-    xkbVariant = user.services.xserver.xkbVariant;
+    layout = "us";
+    xkbVariant = "";
     displayManager = {
-      defaultSession = "gnome-wayland";
+      defaultSession = "gnome";
       gdm = {
         enable = true;
         wayland = true;
       };
+    };
+    desktopManager = {
       gnome.enable = true;
     };
   };
