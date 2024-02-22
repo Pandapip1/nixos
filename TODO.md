@@ -10,4 +10,3 @@
   - Extensions
   - Dark Mode
   - Accessibility (Large text)
-- Move to Wayland

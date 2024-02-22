@@ -13,7 +13,7 @@
     waydroid
   ];
   virtualisation.waydroid.enable = true;
-  config.system.activationScripts.waydroidMemfd = lib.stringAfter [ "var" ] ''
+  system.activationScripts.waydroidMemfd = lib.stringAfter [ "var" ] ''
     mkdir -p /var/lib/waydroid
     echo -E "sys.use_memfd=true" > /var/lib/waydroid/waydroid_base.prop
   '';
