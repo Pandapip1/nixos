@@ -42,6 +42,7 @@
     nix-software-center.packages.${system}.nix-software-center
     nixos-conf-editor.packages.${system}.nixos-conf-editor
     gnomeExtensions.remove-alttab-delay-v2
+    gnomeExtensions.appindicator
   ];
   services.xserver.excludePackages = with pkgs; [
     xterm
@@ -78,4 +79,21 @@
       }];
     };
   };
+
+  # GNOME Performance patch
+  nixpkgs.overlays = [
+    (final: prev: {
+      gnome = prev.gnome.overrideScope' (gnomeFinal: gnomePrev: {
+        mutter = gnomePrev.mutter.overrideAttrs ( old: {
+          src = pkgs.fetchgit {
+            url = "https://gitlab.gnome.org/vanvugt/mutter.git";
+            # GNOME 45: triple-buffering-v4-45
+            rev = "0b896518b2028d9c4d6ea44806d093fd33793689";
+            sha256 = "sha256-mzNy5GPlB2qkI2KEAErJQzO//uo8yO0kPQUwvGDwR4w=";
+          };
+        } );
+      });
+    })
+  ];
+  nixpkgs.config.allowAliases = false;
 }
