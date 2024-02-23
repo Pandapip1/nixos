@@ -8,7 +8,6 @@
     python3
     vulkan-loader
     vulkan-headers
-    # libeigen3-dev but it's not in nixpkgs
     glslang
     libusb1
     libudev-zero
