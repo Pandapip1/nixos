@@ -18,6 +18,7 @@
     ../common/applications/gimp.nix
     ../common/applications/obs-studio.nix
     ../common/applications/libreoffice.nix
+    ../common/applications/ninja.nix
     # Users
     ../common/users/gavin.nix
   ];
