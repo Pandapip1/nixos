@@ -38,13 +38,6 @@
     firewall.enable = true;
   };
 
-  users.users.gavin = {
-    isNormalUser = true;
-    description = "gavin";
-    extraGroups = [ "networkmanager" "wheel" ];
-    packages = with pkgs; [ ];
-  };
-
   environment.systemPackages = with pkgs; [
     git
     wget

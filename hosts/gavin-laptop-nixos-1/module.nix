@@ -1,18 +1,24 @@
 { config, lib, pkgs, ... }:
 
 {
-  imports = [ ../common/gnome-wayland.nix ../common/syncthing.nix ../common/chromium.nix ../common/codium.nix ];
-  environment.systemPackages = with pkgs; [
-    vlc
-    libsForQt5.kdenlive
-    gimp
-    obs-studio
-    glaxnimate
-    libreoffice-qt
-    wl-clipboard
-    waydroid
-    immersed-vr
+  imports = [
+    # GNOME Desktop Environment
+    ../common/environments/gnome.nix
+    # Services
+    ../common/services/syncthing.nix
+    ../common/services/nextcloud.nix
+    ../common/services/immersed-vr.nix
+    ../common/services/waydroid.nix
+    # Applications
+    ../common/applications/chromium.nix
+    ../common/applications/codium.nix
+    ../common/applications/godot.nix
+    ../common/applications/vlc.nix
+    ../common/applications/kdenlive.nix
+    ../common/applications/gimp.nix
+    ../common/applications/obs-studio.nix
+    ../common/applications/libreoffice.nix
+    # Users
+    ../common/users/gavin.nix
   ];
-  virtualisation.waydroid.enable = true;
-  virtualisation.lxd.enable = true;
 }
