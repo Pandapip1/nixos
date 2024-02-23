@@ -3,6 +3,9 @@
 {
   environment.systemPackages = with pkgs; [
     cmake
+    eigen
+    gcc
+    python3
     vulkan-loader
     vulkan-headers
     # libeigen3-dev but it's not in nixpkgs
