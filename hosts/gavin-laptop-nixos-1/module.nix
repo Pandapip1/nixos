@@ -9,6 +9,7 @@
     ../common/services/nextcloud.nix
     ../common/services/immersed-vr.nix
     ../common/services/waydroid.nix
+    ../common/services/gpg.nix
     # Applications
     ../common/applications/chromium.nix
     ../common/applications/codium.nix
@@ -19,6 +20,7 @@
     ../common/applications/obs-studio.nix
     ../common/applications/libreoffice.nix
     ../common/applications/ninja.nix
+    ../common/applications/pmbootstrap.nix
     # Users
     ../common/users/gavin.nix
   ];

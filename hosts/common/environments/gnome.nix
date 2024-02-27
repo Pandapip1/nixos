@@ -95,4 +95,9 @@
       });
     })
   ];
+
+  # Pinentry
+  programs.gnupg.agent = {
+    pinentryFlavor = "gnome3";
+  };
 }
