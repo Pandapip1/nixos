@@ -53,7 +53,7 @@
     geary                 # email client
     seahorse              # password manager
     gnome.gnome-terminal  # terminal
-    gnome.gnome-console   # terminal
+    gnome-console   # terminal
 
     gnome-calculator gnome-calendar gnome-characters gnome-clocks gnome-contacts
     gnome-font-viewer gnome-logs gnome-maps gnome-music gnome-screenshot
