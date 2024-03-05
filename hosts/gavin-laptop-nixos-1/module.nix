@@ -3,7 +3,7 @@
 {
   imports = [
     # GNOME Desktop Environment
-    ../common/environments/gnome-unstable.nix
+    ../common/environments/gnome.nix
     # Services
     ../common/services/syncthing.nix
     ../common/services/nextcloud.nix
