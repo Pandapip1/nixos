@@ -1,8 +1,11 @@
 { config, lib, pkgs, nix-software-center, nixos-conf-editor, ... }:
 
 {
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
+  # Enable dependencies
+  imports = [
+    ../services/pipewire.nix
+    ../services/cups.nix
+  ];
 
   services.xserver = {
     enable = true;
@@ -20,28 +23,16 @@
       gnome.enable = true;
     };
   };
-  services.udev.packages = with pkgs; [ gnome.gnome-settings-daemon ];
-
-  # Enable sound with pipewire.
-  sound.enable = true;
-  hardware.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    #jack.enable = true;
-  };
+  services.udev.packages = with pkgs; [ gnome.gnome-settings-daemon gnome2.GConf ];
 
   # Configure installed packages
   environment.systemPackages = with pkgs; [
+    gnome.adwaita-icon-theme
     thunderbird
     nextcloud-client
     keepassxc
     nix-software-center.packages.${system}.nix-software-center
     nixos-conf-editor.packages.${system}.nixos-conf-editor
-    gnomeExtensions.remove-alttab-delay-v2
     gnomeExtensions.appindicator
   ];
   services.xserver.excludePackages = with pkgs; [
@@ -95,6 +86,7 @@
       });
     })
   ];
+  nixpkgs.config.allowAliases = false;
 
   # Pinentry
   programs.gnupg.agent = {
