@@ -27,6 +27,7 @@
 
   # Configure installed packages
   environment.systemPackages = with pkgs; [
+    blackbox-terminal
     gnome.adwaita-icon-theme
     thunderbird
     nextcloud-client
@@ -39,17 +40,18 @@
     xterm
   ];
   environment.gnome.excludePackages = with pkgs; with pkgs.gnome; [
-    baobab      # disk usage analyzer
-    cheese      # photo booth
-    eog         # image viewer
-    gedit       # text editor
-    simple-scan # document scanner
-    totem       # video player
-    yelp        # help viewer
-    evince      # document viewer
-    file-roller # archive manager
-    geary       # email client
-    seahorse    # password manager
+    baobab                # disk usage analyzer
+    cheese                # photo booth
+  eog                     # image viewer
+    gedit                 # text editor
+    simple-scan           # document scanner
+    totem                 # video player
+    yelp                  # help viewer
+    evince                # document viewer
+    file-roller           # archive manager
+    geary                 # email client
+    seahorse              # password manager
+    gnome.gnome-terminal  # terminal
 
     gnome-calculator gnome-calendar gnome-characters gnome-clocks gnome-contacts
     gnome-font-viewer gnome-logs gnome-maps gnome-music gnome-screenshot
