@@ -43,8 +43,8 @@
   environment.gnome.excludePackages = with pkgs; with pkgs.gnome; [
     baobab                # disk usage analyzer
     cheese                # photo booth
-  eog                     # image viewer
-    gedit                 # text editor
+    eog                   # image viewer
+    pkgs.gedit            # text editor (have to specify pkgs. because of deprecation warning)
     simple-scan           # document scanner
     totem                 # video player
     yelp                  # help viewer
