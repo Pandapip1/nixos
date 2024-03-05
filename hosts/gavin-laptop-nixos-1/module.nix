@@ -19,33 +19,8 @@
     ../common/applications/gimp.nix
     ../common/applications/obs-studio.nix
     ../common/applications/libreoffice.nix
-    ../common/applications/ninja.nix
     ../common/applications/pmbootstrap.nix
     # Users
     ../common/users/gavin.nix
-  ];
-
-
-  environment.systemPackages = with pkgs; [
-    cmake
-    eigen
-    gcc
-    python3
-    vulkan-loader
-    vulkan-headers
-    glslang
-    libusb1
-    libudev-zero
-    libv4l
-    xorg.libxcb
-    xorg.xrandr
-    openhmd
-    doxygen
-    wayland-protocols
-    hidapi
-    opencv
-    libuvc
-    libjpeg
-    SDL2
   ];
 }
