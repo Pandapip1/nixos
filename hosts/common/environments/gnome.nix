@@ -5,6 +5,7 @@
   imports = [
     ../services/pipewire.nix
     ../services/cups.nix
+    ../services/mesa-unstable.nix
   ];
 
   services.xserver = {
