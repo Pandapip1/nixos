@@ -1,4 +1,4 @@
-{ hostname, config, lib, pkgs, ... }:
+{ self, hostname, config, lib, pkgs, ... }:
 
 {
   environment.systemPackages = with pkgs; [
@@ -7,8 +7,34 @@
   services.nebula.networks.nebula0 = {
     enable = true;
     isLighthouse = false;
-    cert = builtins.readFile "../../../config/nebula/${hostname}.crt";
+    cert = builtins.toFile "nebula-${hostname}.crt" (builtins.readFile "${self}/config/nebula/${hostname}.crt");
     key = "/etc/secrets/nebula/${hostname}.key";
-    ca = builtins.readFile "../../../config/nebula/ca.crt";
+    ca = builtins.toFile "nebula-ca.crt" (builtins.readFile "${self}/config/nebula/ca.crt");
+    lighthouses = [
+      "10.0.0.1"
+    ];
+    staticHostMap = {
+      "10.0.0.1" = [
+        "64.23.155.119:4242"
+        # TODO: IPv6
+        "lighthouse.3webs.org:4242"
+      ];
+    };
+    tun = {
+      disable = false;
+      device = "nebula0";
+    };
+    firewall = {
+      inbound = [ 
+        # No rules yet
+      ];
+      outbound = [
+        { # Allow all outbound traffic
+          host = "any";
+          port = "any";
+          proto = "any";
+        }
+      ];
+    };
   };
 }
