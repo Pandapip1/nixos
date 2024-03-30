@@ -6,6 +6,7 @@
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     agenix.url = "github:ryantm/agenix";
+    agenix.inputs.nixpkgs.follows = "nixpkgs";
     nix-software-center.url = "github:snowfallorg/nix-software-center";
     nixos-conf-editor.url = "github:snowfallorg/nixos-conf-editor";
   };
@@ -28,10 +29,10 @@
             pkgs-unstable = pkgs-unstable;
           };
           modules = [
-            agenix.nixosModules.default
             ./hosts/common/common.nix
             "${hostsDir}/${hostname}/hardware-configuration.nix"
             "${hostsDir}/${hostname}/module.nix"
+            agenix.nixosModules.default
           ];
         };
       }) hosts);
