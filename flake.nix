@@ -5,11 +5,12 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    agenix.url = "github:ryantm/agenix";
     nix-software-center.url = "github:snowfallorg/nix-software-center";
     nixos-conf-editor.url = "github:snowfallorg/nixos-conf-editor";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils, ... }@args:
+  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils, agenix, ... }@args:
     let
       pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
       pkgs-unstable = import nixpkgs-unstable { inherit system; config.allowUnfree = true; };
@@ -27,6 +28,7 @@
             pkgs-unstable = pkgs-unstable;
           };
           modules = [
+            agenix.nixosModules.default
             ./hosts/common/common.nix
             "${hostsDir}/${hostname}/hardware-configuration.nix"
             "${hostsDir}/${hostname}/module.nix"
