@@ -10,6 +10,7 @@ rec {
     wants = [ "basic.target" "network-online.target" "nss-lookup.target" "time-sync.target" ];
     after = [ "basic.target" "network.target" "network-online.target" ];
     before = [ "sshd.service" ];
+    wantedBy = [ "multi-user.target" ];
     serviceConfig = let ExecStart = systemd.services."nebula@nebula0".serviceConfig.ExecStart; in {
       Type = "notify";
       NotifyAccess = "main";
