@@ -7,8 +7,8 @@
   services.nebula.networks.mesh = {
     enable = false;
     isLighthouse = true;
-    cert = builtins.readFile "../../../config/${hostname}.crt";
-    key = "/etc/secrets/${hostname}.key";
-    ca = builtins.readFile "../../../config/ca.crt";
+    cert = builtins.readFile "../../../config/nebula/${hostname}.crt";
+    key = "/etc/secrets/nebula/${hostname}.key";
+    ca = builtins.readFile "../../../config/nebula/ca.crt";
   };
 }
