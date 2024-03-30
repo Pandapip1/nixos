@@ -37,4 +37,8 @@
       ];
     };
   };
+  systemd.services."nebula@nebula-nebula0".serviceConfig = {
+    User = "root";
+    Group = "root";
+  };
 }
