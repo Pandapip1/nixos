@@ -37,8 +37,21 @@
       ];
     };
   };
-  systemd.services."nebula@nebula-nebula0".serviceConfig = {
-    User = "root";
-    Group = "root";
+  systemd.services."nebula@nebula0".serviceConfig = lib.mkForce {
+    User = lib.mkForce "root";
+    Group = lib.mkForce "root";
+    LockPersonality = lib.mkForce false;
+    NoNewPrivileges = lib.mkForce false;
+    ProtectClock = lib.mkForce false;
+    ProtectControlGroups = lib.mkForce false;
+    ProtectHome = lib.mkForce false;
+    ProtectHostname = lib.mkForce false;
+    ProtectKernelLogs = lib.mkForce false;
+    ProtectKernelModules = lib.mkForce false;
+    ProtectKernelTunables = lib.mkForce false;
+    ProtectProc = lib.mkForce "default";
+    ProtectSystem = lib.mkForce "off";
+    RestrictNamespaces = lib.mkForce false;
+    RestrictSUIDSGID = lib.mkForce false;
   };
 }
