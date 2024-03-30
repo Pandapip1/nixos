@@ -50,7 +50,7 @@
     ProtectKernelModules = lib.mkForce false;
     ProtectKernelTunables = lib.mkForce false;
     ProtectProc = lib.mkForce "default";
-    ProtectSystem = lib.mkForce "off";
+    ProtectSystem = lib.mkForce false;
     RestrictNamespaces = lib.mkForce false;
     RestrictSUIDSGID = lib.mkForce false;
   };
