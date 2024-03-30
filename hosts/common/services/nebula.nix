@@ -37,7 +37,7 @@
       ];
     };
   };
-  systemd.services."nebula@nebula0".serviceConfig = lib.mkForce {
+  systemd.services."nebula@nebula0".serviceConfig = {
     User = lib.mkForce "root";
     Group = lib.mkForce "root";
     LockPersonality = lib.mkForce false;
