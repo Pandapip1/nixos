@@ -1,6 +1,6 @@
-{ config, lib, pkgs, inputs, pkgs-unstable, ... }:
+{ config, lib, pkgs, inputs, ... }:
 {
-  environment.systemPackages = with pkgs-unstable; [
+  environment.systemPackages = with pkgs; [
     pmbootstrap
   ];
 }

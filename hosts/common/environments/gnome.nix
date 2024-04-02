@@ -10,8 +10,10 @@
   services.xserver = {
     enable = true;
     libinput.enable = true;
-    layout = "us";
-    xkbVariant = "";
+    xkb = {
+      layout = "us";
+      variant = "";
+    };
     displayManager = {
       defaultSession = "gnome";
       gdm = {
@@ -43,7 +45,7 @@
     baobab                # disk usage analyzer
     cheese                # photo booth
   eog                     # image viewer
-    gedit                 # text editor
+    pkgs.gedit                 # text editor
     simple-scan           # document scanner
     totem                 # video player
     yelp                  # help viewer
@@ -76,6 +78,6 @@
 
   # Pinentry
   programs.gnupg.agent = {
-    pinentryFlavor = "gnome3";
+    pinentryPackage = pkgs.pinentry-gnome3;
   };
 }
