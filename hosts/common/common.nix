@@ -38,13 +38,8 @@
 
   environment.systemPackages = with pkgs; [
     git
-    wget
     vim
-    killall
-    htop
-    jq
     home-manager
-    unzip
   ];
 
   fonts.packages = with pkgs; [
