@@ -14,13 +14,6 @@
     # Applications
     ../common/applications/chromium.nix
     ../common/applications/codium.nix
-    ../common/applications/godot.nix
-    ../common/applications/vlc.nix
-    ../common/applications/kdenlive.nix
-    ../common/applications/gimp.nix
-    ../common/applications/obs-studio.nix
-    ../common/applications/libreoffice.nix
-    ../common/applications/pmbootstrap.nix
     # Users
     ../common/users/gavin.nix
   ];
