@@ -17,7 +17,8 @@ punchy:
   punch: true
 
 relay:
-  am_relay: false
+  relays:
+    - 10.0.0.1
   use_relays: true
 
 tun:
