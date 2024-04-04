@@ -99,13 +99,14 @@
     ];
   in {
     enable = true;
-    description = "Forces Ungoogled Chromium to use certain flags";
+    description = "Forces Chromium to use certain flags";
     wantedBy = [ "multi-user.target" ];
     path = with pkgs; [ jq ];
     script = ''
       for userdir in /home/*; do
         user=$(basename "$userdir")
         local_state="/home/$user/.config/chromium/Local State"
+        mkdir -p $(dirname "$local_state")
         if [ -f /home/$user/.config/chromium/Local\ State ]; then
           echo -E "$(jq '.browser.enabled_labs_experiments |= (${forceEnableFlags} + . | unique)' "$local_state")" > "$local_state"
         else
