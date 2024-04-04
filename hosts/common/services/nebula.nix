@@ -29,6 +29,4 @@ rec {
     };
     unitConfig.StartLimitIntervalSec = 0;
   };
-  # TODO: IPv6
-  networking.nameservers = [ "10.0.0.1" "1.1.1.1" "1.0.0.1" ];
 }
