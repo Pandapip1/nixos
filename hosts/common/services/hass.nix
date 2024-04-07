@@ -12,6 +12,8 @@
       "esphome"
       "met"
       "radio_browser"
+      "google_translate"
+      "zha"
     ];
     config = {
       default_config = {};
