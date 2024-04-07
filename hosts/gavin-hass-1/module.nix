@@ -4,7 +4,7 @@
   imports = [
     # Services
     ../common/services/nebula.nix
-    ../common/services/homeassistant.nix
+    ../common/services/hass.nix
     # Users
     ../common/users/gavin.nix
   ];
