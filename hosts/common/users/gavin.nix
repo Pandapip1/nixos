@@ -4,7 +4,7 @@
   users.users.gavin = {
     isNormalUser = true;
     description = "gavin";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "disk" ];
     packages = with pkgs; [ ];
     openssh = {
       authorizedKeys.keys = [
