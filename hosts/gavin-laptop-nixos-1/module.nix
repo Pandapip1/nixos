@@ -14,6 +14,7 @@
     # Applications
     ../common/applications/chromium.nix
     ../common/applications/codium.nix
+    ../common/applications/s3fs.nix
     # Users
     ../common/users/gavin.nix
   ];
