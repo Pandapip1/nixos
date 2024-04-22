@@ -8,9 +8,17 @@
     '';
   };
 
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
+  
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
+    kernelModules = [ "v4l2loopback" "snd-aloop" ];
+    extraModulePackages = with config.boot.kernelPackages; [ pkgs.linuxPackages.v4l2loopback ];
+    extraModprobeConfig = ''
+      options v4l2loopback exclusive_caps=1 card_label="v4l2loopback Virtual Camera"
+    '';
   };
 
   time.timeZone = "America/Chicago";
@@ -40,6 +48,13 @@
     git
     vim
     home-manager
+    libva
+    libdrm
+    pavucontrol
+    linuxPackages.v4l2loopback
+    v4l-utils
+    xr-hardware
+    android-udev-rules
   ];
 
   fonts.packages = with pkgs; [

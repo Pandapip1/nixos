@@ -7,7 +7,7 @@
     # Services
     ../common/services/syncthing.nix
     ../common/services/nextcloud.nix
-    ../common/services/immersed-vr.nix
+    ../common/services/vr.nix
     ../common/services/nebula.nix
     ../common/services/waydroid.nix
     ../common/services/gpg.nix
