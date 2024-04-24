@@ -11,6 +11,7 @@
     ../common/services/nebula.nix
     ../common/services/waydroid.nix
     ../common/services/gpg.nix
+    ../common/services/podman.nix
     # Applications
     ../common/applications/chromium.nix
     ../common/applications/codium.nix
