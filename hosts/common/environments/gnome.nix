@@ -7,6 +7,11 @@
     ../services/cups.nix
   ];
 
+  services.displayManager = {
+    enable = true;
+    defaultSession = "gnome";
+  };
+
   services.xserver = {
     enable = true;
     libinput.enable = true;
