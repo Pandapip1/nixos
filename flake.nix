@@ -23,6 +23,7 @@
         value = nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = args // {
+            inherit system;
             hostname = hostname;
             pkgs = pkgs;
           };
