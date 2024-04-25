@@ -65,8 +65,8 @@
         installPhase = ''
           mkdir -p $out/share/cups/model
           mkdir -p $out/lib/cups/filter
-          rsync -a $src/filter/${system} $out/lib/cups/filter
-          rsync -a $src/model $out/share/cups/model
+          rsync -a $src/filter/${system}/ $out/lib/cups/filter
+          rsync -a $src/model/ $out/share/cups/model
         '';
       })
     ];
