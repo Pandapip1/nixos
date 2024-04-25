@@ -29,7 +29,6 @@
       gnome.enable = true;
     };
   };
-  services.displayManager.defaultSession = "gnome";
   services.udev.packages = with pkgs; [ gnome.gnome-settings-daemon gnome2.GConf ];
 
   # Configure installed packages
