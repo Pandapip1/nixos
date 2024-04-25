@@ -5,6 +5,7 @@
     # GNOME Desktop Environment
     ../common/environments/gnome.nix
     # Services
+    ../common/services/avahi.nix
     ../common/services/syncthing.nix
     ../common/services/nextcloud.nix
     ../common/services/vr.nix

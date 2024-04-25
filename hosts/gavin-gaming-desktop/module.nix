@@ -5,6 +5,7 @@
     # GNOME Desktop Environment
     ../common/environments/gnome.nix
     # Services
+    ../common/services/avahi.nix
     ../common/services/vr.nix
     # Applications
     ../common/applications/chromium.nix
