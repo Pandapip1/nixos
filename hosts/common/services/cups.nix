@@ -58,11 +58,11 @@
       # Lexmark
       pkgs.lexmark-aex
     ]
-    ++ (builtins.map (ppd: (pkgs.writeTextDir "/share/cups/model/${ppd}" (builtins.readFile "${self}/config/cups_drivers/ppd/${ppd}"))) (builtins.attrNames (builtins.readDir "${self}/config/cups_drivers/ppd")))
+    ++ (builtins.map (ppd: (pkgs.writeTextDir "share/cups/model/${ppd}" (builtins.readFile "${self}/config/cups_drivers/ppd/${ppd}"))) (builtins.attrNames (builtins.readDir "${self}/config/cups_drivers/ppd")))
     ++ (builtins.map (filter: (pkgs.writeTextFile {
       name = filter;
       executable = true;
-      destination = "/lib/cups/filter/${filter}";
+      destination = "lib/cups/filter/${filter}";
       text = ''
         #!/bin/sh
         "${self}/config/cups_drivers/filter/${system}/${filter}" "$@"
