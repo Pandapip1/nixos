@@ -57,17 +57,19 @@
       pkgs.splix
       # Lexmark
       pkgs.lexmark-aex
-    ]
-    ++ (builtins.map (ppd: (pkgs.writeTextDir "share/cups/model/${ppd}" (builtins.readFile "${self}/config/cups_drivers/ppd/${ppd}"))) (builtins.attrNames (builtins.readDir "${self}/config/cups_drivers/ppd")))
-    ++ (builtins.map (filter: (pkgs.writeTextFile {
-      name = filter;
-      executable = true;
-      destination = "lib/cups/filter/${filter}";
-      text = ''
-        #!/bin/sh
-        "${self}/config/cups_drivers/filter/${system}/${filter}" "$@"
-      '';
-    })) (builtins.attrNames (builtins.readDir "${self}/config/cups_drivers/filter/${system}")));
+      # Custom drivers
+      (pkgs.stdenv.mkDerivation {
+        name = "custom-cups-drivers";
+        src = "${self}/config/cups_drivers";
+        nativeBuildInputs = [ pkgs.rsync ];
+        installPhase = ''
+          mkdir -p $out/share/cups/model
+          mkdir -p $out/lib/cups/filter
+          rsync -a $src/filter/${system} $out/lib/cups/filter
+          rsync -a $src/ppd $out/share/cups/model
+        '';
+      })
+    ];
   };
   programs.nix-ld = {
     enable = true;
