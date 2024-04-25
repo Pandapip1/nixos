@@ -61,18 +61,26 @@
       (pkgs.stdenv.mkDerivation {
         name = "custom-cups-drivers";
         src = "${self}/config/cups_drivers";
-        nativeBuildInputs = [ pkgs.rsync ];
+        sourceRoot = ".";
+        buildInputs = with pkgs; [
+          cups
+        ]; 
+        nativeBuildInputs = with pkgs; [
+          rsync
+          autoPatchelfHook
+        ];
+        preBuild = ''
+          addAutoPatchelfSearchPath ${pkgs.cups}/lib
+        '';
         installPhase = ''
+          runHook preInstall
           mkdir -p $out/share/cups/model
           mkdir -p $out/lib/cups/filter
           rsync -a $src/filter/${system}/ $out/lib/cups/filter
           rsync -a $src/model/ $out/share/cups/model
+          runHook postInstall
         '';
       })
     ];
-  };
-  programs.nix-ld = {
-    enable = true;
-    libraries = with pkgs; [];
   };
 }
