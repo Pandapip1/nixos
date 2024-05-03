@@ -36,9 +36,10 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, agenix, ... }@args:
+  outputs = { self, nixpkgs, nixpkgs-pr-308317, flake-utils, agenix, ... }@args:
     let
       pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
+      pkgs-pr-308317 = import nixpkgs-pr-308317 { inherit system; config.allowUnfree = true; };
       system = "x86_64-linux";
       hostsDir = ./hosts;
       hosts = builtins.attrNames (builtins.readDir hostsDir);
@@ -51,6 +52,7 @@
             inherit system;
             hostname = hostname;
             pkgs = pkgs;
+            pkgs-pr-308317 = pkgs-pr-308317;
           };
           modules = [
             ./hosts/common/common.nix
