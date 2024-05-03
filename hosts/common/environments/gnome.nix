@@ -12,9 +12,10 @@
     defaultSession = "gnome";
   };
 
+  services.libinput.enable = true;
+
   services.xserver = {
     enable = true;
-    libinput.enable = true;
     xkb = {
       layout = "us";
       variant = "";
