@@ -4,14 +4,36 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
     nixpkgs-pr-308317.url = "github:Pandapip1/nixpkgs/init-cups-idprt";
-    nixos-hardware.url = "github:NixOS/nixos-hardware/master";
-    flake-utils.url = "github:numtide/flake-utils";
-    agenix.url = "github:ryantm/agenix";
-    agenix.inputs.nixpkgs.follows = "nixpkgs";
-    nix-software-center.url = "github:snowfallorg/nix-software-center";
-    nixos-conf-editor.url = "github:snowfallorg/nixos-conf-editor";
-    envision.url = "gitlab:Scrumplex/envision/nix";
-    telescope.url = "github:StardustXR/telescope";
+    nixos-hardware = {
+      url = "github:NixOS/nixos-hardware/master";
+    };
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+    };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-software-center = {
+      url = "github:snowfallorg/nix-software-center";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nixos-conf-editor = {
+      url = "github:snowfallorg/nixos-conf-editor";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    envision = {
+      url = "gitlab:Scrumplex/envision/nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    telescope = {
+      url = "github:StardustXR/telescope";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    vector = {
+      url = "github:3webs-org/vector";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, flake-utils, agenix, ... }@args:
