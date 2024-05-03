@@ -10,6 +10,7 @@
     ../common/applications/codium.nix
     ../common/applications/steam.nix
     ../common/applications/envision.nix
+    ../common/applications/telescope.nix
     # Users
     ../common/users/gavin.nix
   ];

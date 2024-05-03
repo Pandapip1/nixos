@@ -15,6 +15,7 @@
     ../common/applications/vector.nix
     ../common/applications/codium.nix
     ../common/applications/envision.nix
+    ../common/applications/telescope.nix
     # Users
     ../common/users/gavin.nix
   ];

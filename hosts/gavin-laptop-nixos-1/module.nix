@@ -5,7 +5,6 @@
     # GNOME Desktop Environment
     ../common/environments/gnome.nix
     # Services
-    ../common/services/avahi.nix
     ../common/services/syncthing.nix
     ../common/services/nextcloud.nix
     ../common/services/nebula.nix
@@ -18,6 +17,7 @@
     ../common/applications/codium.nix
     ../common/applications/s3fs.nix
     ../common/applications/envision.nix
+    ../common/applications/telescope.nix
     # Users
     ../common/users/gavin.nix
   ];
