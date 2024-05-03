@@ -4,13 +4,11 @@
   imports = [
     # GNOME Desktop Environment
     ../common/environments/gnome.nix
-    # Services
-    ../common/services/avahi.nix
-    ../common/services/vr.nix
     # Applications
     ../common/applications/chromium.nix
     ../common/applications/codium.nix
     ../common/applications/steam.nix
+    ../common/applications/envision.nix
     # Users
     ../common/users/gavin.nix
   ];

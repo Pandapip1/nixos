@@ -8,7 +8,6 @@
     ../common/services/avahi.nix
     ../common/services/syncthing.nix
     ../common/services/nextcloud.nix
-    ../common/services/vr.nix
     ../common/services/nebula.nix
     ../common/services/waydroid.nix
     ../common/services/gpg.nix
@@ -17,6 +16,7 @@
     ../common/applications/chromium.nix
     ../common/applications/codium.nix
     ../common/applications/s3fs.nix
+    ../common/applications/envision.nix
     # Users
     ../common/users/gavin.nix
   ];
