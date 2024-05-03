@@ -8,6 +8,7 @@
 
   environment.systemPackages = with pkgs; [
     envision.packages.${system}.default
+    android-tools
   ];
   networking.firewall = {
     allowedTCPPorts = [
