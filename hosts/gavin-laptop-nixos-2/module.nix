@@ -12,6 +12,7 @@
     ../common/services/gpg.nix
     # Applications
     ../common/applications/chromium.nix
+    ../common/applications/vector.nix
     ../common/applications/codium.nix
     ../common/applications/envision.nix
     # Users

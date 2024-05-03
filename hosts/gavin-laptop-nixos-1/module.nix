@@ -14,6 +14,7 @@
     ../common/services/podman.nix
     # Applications
     ../common/applications/chromium.nix
+    ../common/applications/vector.nix
     ../common/applications/codium.nix
     ../common/applications/s3fs.nix
     ../common/applications/envision.nix
