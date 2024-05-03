@@ -2,7 +2,7 @@
 
 {
   environment.systemPackages = with pkgs; [
-    telescope.apps.${system}.default
-    telescope.apps.${system}.flatscreen
+    telescope.packages.${system}.default
+    telescope.packages.${system}.flatscreen
   ];
 }
