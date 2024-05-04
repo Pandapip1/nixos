@@ -11,6 +11,7 @@
     ../common/applications/steam.nix
     ../common/applications/envision.nix
     ../common/applications/telescope.nix
+    ../common/applications/localsend.nix
     # Users
     ../common/users/gavin.nix
   ];
