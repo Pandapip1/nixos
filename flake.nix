@@ -27,7 +27,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     telescope = {
-      url = "github:StardustXR/telescope";
+      url = "github:Pandapip1/telescope/nixgl";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     vector = {
