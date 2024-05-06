@@ -3,24 +3,24 @@
 {
   imports = [
     # GNOME Desktop Environment
-    ../common/environments/gnome.nix
+    ./environments/gnome.nix
     # Services
-    ../common/services/syncthing.nix
-    ../common/services/nextcloud.nix
-    ../common/services/nebula.nix
-    ../common/services/waydroid.nix
-    ../common/services/gpg.nix
-    ../common/services/podman.nix
+    ../services/syncthing.nix
+    ../services/nextcloud.nix
+    ../services/nebula.nix
+    ../services/waydroid.nix
+    ../services/gpg.nix
+    ../services/podman.nix
     # Applications
-    ../common/applications/chromium.nix
-    ../common/applications/vector.nix
-    ../common/applications/codium.nix
-    ../common/applications/s3fs.nix
-    ../common/applications/envision.nix
-    ../common/applications/telescope.nix
-    ../common/applications/localsend.nix
+    ../applications/chromium.nix
+    ../applications/vector.nix
+    ../applications/codium.nix
+    ../applications/s3fs.nix
+    ../applications/envision.nix
+    ../applications/telescope.nix
+    ../applications/localsend.nix
     # Users
-    ../common/users/gavin.nix
+    ../users/gavin.nix
   ];
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "sd_mod" ];

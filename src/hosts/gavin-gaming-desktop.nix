@@ -3,17 +3,17 @@
 {
   imports = [
     # GNOME Desktop Environment
-    ../common/environments/gnome.nix
+    ../environments/gnome.nix
     # Applications
-    ../common/applications/chromium.nix
-    ../common/applications/vector.nix
-    ../common/applications/codium.nix
-    ../common/applications/steam.nix
-    ../common/applications/envision.nix
-    ../common/applications/telescope.nix
-    ../common/applications/localsend.nix
+    ../applications/chromium.nix
+    ../applications/vector.nix
+    ../applications/codium.nix
+    ../applications/steam.nix
+    ../applications/envision.nix
+    ../applications/telescope.nix
+    ../applications/localsend.nix
     # Users
-    ../common/users/gavin.nix
+    ../users/gavin.nix
   ];
 
   hardware.opengl = {
