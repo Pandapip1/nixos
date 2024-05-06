@@ -42,7 +42,7 @@
       pkgs-pr-308317 = import nixpkgs-pr-308317 { inherit system; config.allowUnfree = true; };
       system = "x86_64-linux";
       hostsDir = ./hosts;
-      hosts = builtins.attrNames (builtins.readDir hostsDir);
+      hosts = map (s: builtins.substring 0 (builtins.stringLength s - 4) s) (builtins.attrNames (builtins.readDir hostsDir));
     in {
       nixosConfigurations = builtins.listToAttrs (map (hostname: {
         name = hostname;
@@ -55,9 +55,8 @@
             pkgs-pr-308317 = pkgs-pr-308317;
           };
           modules = [
-            ./hosts/common/common.nix
-            "${hostsDir}/${hostname}/hardware-configuration.nix"
-            "${hostsDir}/${hostname}/module.nix"
+            ./common/common.nix
+            "${hostsDir}/${hostname}.nix"
             agenix.nixosModules.default
           ];
         };
