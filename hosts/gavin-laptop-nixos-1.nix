@@ -9,7 +9,6 @@
     ../services/nextcloud.nix
     ../services/nebula.nix
     ../services/waydroid.nix
-    ../services/gpg.nix
     ../services/podman.nix
     # Applications
     ../applications/chromium.nix

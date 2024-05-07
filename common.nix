@@ -46,6 +46,7 @@
 
   environment.systemPackages = with pkgs; [
     git
+    gnupg
     vim
     home-manager
     libva
@@ -57,11 +58,23 @@
     android-udev-rules
   ];
 
+  services.pcscd.enable = true;
+  
+  programs.gnupg.agent = {
+    enable = true;
+    enableSSHSupport = true;
+  };
+
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk
     noto-fonts-emoji
   ];
+
+  programs.git = {
+    enable = true;
+    lfs.enable = true;
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
