@@ -10,11 +10,11 @@
         "systems": "systems"
       },
       "locked": {
-        "lastModified": 1714136352,
-        "narHash": "sha256-BtWQ2Th/jamO1SlD+2ASSW5Jaf7JhA/JLpQHk0Goqpg=",
+        "lastModified": 1715290355,
+        "narHash": "sha256-2T7CHTqBXJJ3ZC6R/4TXTcKoXWHcvubKNj9SfomURnw=",
         "owner": "ryantm",
         "repo": "agenix",
-        "rev": "24a7ea390564ccd5b39b7884f597cfc8d7f6f44e",
+        "rev": "8d37c5bdeade12b6479c85acd133063ab53187a0",
         "type": "github"
       },
       "original": {
@@ -630,11 +630,11 @@
     },
     "nixos-hardware": {
       "locked": {
-        "lastModified": 1715010655,
-        "narHash": "sha256-FmdhvR/hgBkPDvIv/HOEIQsSMaVXh8wvTrnep8dF3Jc=",
+        "lastModified": 1715148395,
+        "narHash": "sha256-lRxjTxY3103LGMjWdVqntKZHhlmMX12QUjeFrQMmGaE=",
         "owner": "NixOS",
         "repo": "nixos-hardware",
-        "rev": "d1659c9eb8af718118fb4bbe2c86797c8b8623eb",
+        "rev": "a4e2b7909fc1bdf30c30ef21d388fde0b5cdde4a",
         "type": "github"
       },
       "original": {
@@ -648,7 +648,7 @@
       "locked": {
         "lastModified": 1715010189,
         "narHash": "sha256-VG/ax2TLmsF0G8M3Q/lE0P7U/pzky8NScim8ZGmIfAY=",
-        "owner": "NixOS",
+        "owner": "nixos",
         "repo": "nixpkgs",
         "rev": "95269ee8dbc9daacad586e8ad87567369a7e1042",
         "type": "github"
@@ -692,11 +692,11 @@
     },
     "nixpkgs-pr-308317": {
       "locked": {
-        "lastModified": 1715015326,
-        "narHash": "sha256-grm4YpKzQm0BO2915tiIs99a+pRyG0+cO3ESDsFfB1E=",
+        "lastModified": 1715288454,
+        "narHash": "sha256-N3ptGkL1se7tu6RKSX4MRnJ2lJKh7auqyg+7/r4o6KU=",
         "owner": "Pandapip1",
         "repo": "nixpkgs",
-        "rev": "47bfa22c854d58f7a49bb1f21f998613beafab20",
+        "rev": "e4081cbd7029e14964dad221a8802531c17fbbfe",
         "type": "github"
       },
       "original": {
@@ -1098,11 +1098,11 @@
         "parts": "parts_2"
       },
       "locked": {
-        "lastModified": 1714593579,
-        "narHash": "sha256-wXKJjHVOSXVxY2qE/8AQwR8XVNOSUXin3lyVgP34Xq4=",
+        "lastModified": 1715268930,
+        "narHash": "sha256-2S59jsux75KTrnbhlUyK7y55jh75oPp4Rq0Z6B6iVzI=",
         "owner": "3webs-org",
         "repo": "vector",
-        "rev": "7d39d054bde27baacb4d7ac2c65ce0e77c84f88f",
+        "rev": "8dff52d889849b7e6cd1dba0562438d9b44e29c3",
         "type": "github"
       },
       "original": {
