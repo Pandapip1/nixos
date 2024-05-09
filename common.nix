@@ -21,6 +21,8 @@
     '';
   };
 
+  hardware.enableAllFirmware = true;
+
   time.timeZone = "America/Chicago";
 
   i18n = {
