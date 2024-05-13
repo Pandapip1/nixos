@@ -58,6 +58,7 @@
     v4l-utils
     xr-hardware
     android-udev-rules
+    fastfetch
   ];
 
   services.pcscd.enable = true;
