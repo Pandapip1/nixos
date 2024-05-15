@@ -2,7 +2,7 @@
   description = "A NixOS configuration with per-hostname modifications";
 
   inputs = {
-    nixpkgs.url = "github:Pandapip1/nixpkgs/kernel-hardening";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
     nixpkgs-pr-308317.url = "github:Pandapip1/nixpkgs/init-cups-idprt";
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware/master";
