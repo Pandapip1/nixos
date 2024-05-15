@@ -3,62 +3,66 @@
 {
   services.printing = {
     enable = true;
-    drivers = [
+    drivers = with pkgs; [
       # Generic
-      pkgs.cups-pdf-to-pdf
-      pkgs.gutenprint
-      pkgs.cups-filters
+      cups-pdf-to-pdf
+      gutenprint
+      cups-filters
+      lprint
       # Dymo
-      pkgs.cups-dymo
+      cups-dymo
       # Zijang ZJ-58
-      pkgs.cups-zj-58
+      cups-zj-58
       # Kyocera
-      pkgs.cups-kyocera
-      pkgs.cups-kyodialog
-      pkgs.cups-kyocera-ecosys-m552x-p502x
-      pkgs.cups-kyocera-ecosys-m2x35-40-p2x35-40dnw
-      pkgs.cups-toshiba-estudio
-      pkgs.cups-brother-hl1110
-      pkgs.cups-brother-hl2260d
-      pkgs.cups-brother-hl1210w
-      pkgs.cups-brother-hl3140cw
-      pkgs.cups-brother-hll2375dw
-      pkgs.cups-brother-hll2350dw
-      pkgs.cups-brother-hll2340dw
-      pkgs.cups-brother-mfcl2750dw
-      pkgs.cups-brother-hll3230cdw
-      pkgs.brgenml1cupswrapper
-      pkgs.mfc465cncupswrapper
-      pkgs.mfcj880dwcupswrapper
-      pkgs.mfcj470dw-cupswrapper
-      pkgs.mfcl3770cdwcupswrapper
-      pkgs.mfcl2740dwcupswrapper
-      pkgs.mfcl2720dwcupswrapper
-      pkgs.mfcl2700dncupswrapper
-      pkgs.mfcj6510dw-cupswrapper
-      pkgs.mfc9140cdncupswrapper
-      pkgs.mfc5890cncupswrapper
-      pkgs.mfcl8690cdwcupswrapper
-      pkgs.dcp375cw-cupswrapper
-      pkgs.dcp9020cdw-cupswrapper
-      pkgs.brlaser
-      pkgs.gutenprintBin
-      pkgs.hll2390dw-cups
+      cups-kyocera
+      cups-kyodialog
+      cups-kyocera-ecosys-m552x-p502x
+      cups-kyocera-ecosys-m2x35-40-p2x35-40dnw
+      cups-toshiba-estudio
+      cups-brother-hl1110
+      cups-brother-hl2260d
+      cups-brother-hl1210w
+      cups-brother-hl3140cw
+      cups-brother-hll2375dw
+      cups-brother-hll2350dw
+      cups-brother-hll2340dw
+      cups-brother-mfcl2750dw
+      cups-brother-hll3230cdw
+      brgenml1cupswrapper
+      mfc465cncupswrapper
+      mfcj880dwcupswrapper
+      mfcj470dw-cupswrapper
+      mfcl3770cdwcupswrapper
+      mfcl2740dwcupswrapper
+      mfcl2720dwcupswrapper
+      mfcl2700dncupswrapper
+      mfcj6510dw-cupswrapper
+      mfc9140cdncupswrapper
+      mfc5890cncupswrapper
+      mfcl8690cdwcupswrapper
+      dcp375cw-cupswrapper
+      dcp9020cdw-cupswrapper
+      brlaser
+      gutenprintBin
+      hll2390dw-cups
       # Ricoh
-      pkgs.cups-drv-rastertosag-gdi
+      cups-drv-rastertosag-gdi
       # Canon
-      pkgs.cups-bjnp
-      pkgs.carps-cups
-      pkgs.canon-cups-ufr2
+      cups-bjnp
+      carps-cups
+      canon-cups-ufr2
       # Epson
-      pkgs.epson-workforce-635-nx625-series
-      pkgs.epson-escpr
+      epson-workforce-635-nx625-series
+      epson-escpr
       # Samsung
-      pkgs.splix
+      splix
       # Lexmark
-      pkgs.lexmark-aex
+      lexmark-aex
       # Custom drivers
       pkgs-pr-308317.cups-idprt
     ];
   };
+  environment.systemPackages = with pkgs; [
+    lprint
+  ];
 }
