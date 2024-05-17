@@ -7,4 +7,21 @@
   ];
   programs.niri.enable = true;
   programs.niri.package = pkgs.niri;
+
+  services.displayManager = {
+    enable = true;
+  };
+  services.xserver = {
+    enable = true;
+    xkb = {
+      layout = "us";
+      variant = "";
+    };
+    displayManager = {
+      gdm = {
+        enable = true;
+        wayland = true;
+      };
+    };
+  };
 }
