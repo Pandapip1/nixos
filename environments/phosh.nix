@@ -29,7 +29,6 @@
     desktopManager = {
       phosh = {
         enable = true;
-        user = "root";
         group = "users";
       };
     };

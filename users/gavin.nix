@@ -12,4 +12,5 @@
       ];
     };
   };
+  services.xserver.desktopManager.phosh.user = "gavin";
 }
