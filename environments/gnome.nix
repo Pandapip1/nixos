@@ -36,11 +36,6 @@
   environment.systemPackages = with pkgs; [
     blackbox-terminal
     gnome.adwaita-icon-theme
-    thunderbird
-    nextcloud-client
-    keepassxc
-    nix-software-center.packages.${system}.nix-software-center
-    nixos-conf-editor.packages.${system}.nixos-conf-editor
     gnomeExtensions.appindicator
   ];
   services.xserver.excludePackages = with pkgs; [
