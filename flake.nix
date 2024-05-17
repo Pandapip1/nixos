@@ -34,6 +34,10 @@
       url = "github:3webs-org/vector";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    niri-flake = {
+      url = "github:sodiboo/niri-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, nixpkgs-pr-308317, flake-utils, agenix, ... }@args:
