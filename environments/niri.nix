@@ -3,6 +3,8 @@
 {
   imports = [
     niri-flake.nixosModules.niri
+    ../services/pipewire.nix
+    ../services/cups.nix
   ];
 
   programs.niri = {
