@@ -40,7 +40,7 @@
       {
         programs.niri = {
           settings.binds = {
-            "Mod+Shift+Slash".action."show-hotkey-overlay" = true;
+            "Mod+Shift+Slash".action."show-hotkey-overlay" = [];
 
             "XF86AudioRaiseVolume".action.spawn = [ "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1+" ];
             "XF86AudioLowerVolume".action.spawn = [ "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1-" ];
