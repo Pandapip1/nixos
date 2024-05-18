@@ -1,4 +1,4 @@
-{ config, lib, pkgs, niri-flake, ... }:
+{ config, lib, system, pkgs, niri, niri-flake, ... }:
 
 {
   imports = [
@@ -7,7 +7,7 @@
 
   programs.niri = {
     enable = true;
-    package = pkgs.niri;
+    package = niri-flake.packages."${system}".niri-stable;
   };
 
   services.displayManager = {
@@ -39,19 +39,19 @@
     sharedModules = [
       {
         programs.niri = {
-          settings.binds = with config.lib.niri.actions; {
-            "Mod+Shift+Slash".action = show-hotkey-overlay;
+          settings.binds = {
+            "Mod+Shift+Slash".action."show-hotkey-overlay" = true;
 
-            "XF86AudioRaiseVolume".action = spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1+";
-            "XF86AudioLowerVolume".action = spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1-";
+            "XF86AudioRaiseVolume".action.spawn = [ "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1+" ];
+            "XF86AudioLowerVolume".action.spawn = [ "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1-" ];
 
             "Mod+T".action.spawn = "blackbox";
             "Mod+D".action.spawn = "fuzzel";
             "Super+Alt+L".action.spawn = "swaylock";
 
-            "Mod+Q".action = close-window;
+            #"Mod+Q".action = close-window;
 
-            "Mod+Left".action = focus-column-left;
+            /*"Mod+Left".action = focus-column-left;
             "Mod+Down".action = focus-window-down;
             "Mod+Up".action = focus-window-up;
             "Mod+Right".action = focus-column-right;
@@ -141,7 +141,7 @@
 
             "Print".action = screenshot;
             "Ctrl+Print".action = screenshot-screen;
-            "Alt+Print".action = screenshot-window;
+            "Alt+Print".action = screenshot-window;*/
           };
         };
       }
