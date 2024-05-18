@@ -37,8 +37,11 @@
     gnome.adwaita-icon-theme
   ];
 
-  qt.platformTheme = "gnome";
-  qt.style = "adwaita-dark";
+  qt = {
+    enable = true;
+    platformTheme = "gnome";
+    style = "adwaita-dark";
+  };
 
   home-manager = {
     sharedModules = [
