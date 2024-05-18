@@ -62,6 +62,7 @@
 
   home-manager = {
     useGlobalPkgs = true;
+    backupFileExtension = "backup";
     sharedModules = [
       #niri-flake.homeModules.niri
       {
