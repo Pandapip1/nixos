@@ -64,7 +64,6 @@
     useGlobalPkgs = true;
     backupFileExtension = "backup";
     sharedModules = [
-      #niri-flake.homeModules.niri
       {
         home.stateVersion = "23.11";
       }
