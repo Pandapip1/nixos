@@ -13,11 +13,7 @@
     };
   };
   services.xserver.desktopManager.phosh.user = "gavin";
-  home-manager.users.gavin = {
-    #imports = [
-    #  niri-flake.homeModules.niri
-    #];
-    home.stateVersion = "23.11";
+  home-manager.users.gavin = { pkgs, ... }: {
     programs.niri = {
       settings.binds = with config.lib.niri.actions; {
         "Mod+T".action.spawn = "blackbox";

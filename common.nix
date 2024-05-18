@@ -1,4 +1,4 @@
-{ config, lib, pkgs, hostname, ... }:
+{ config, lib, pkgs, hostname, niri-flake, ... }:
 
 {
   nix = {
@@ -50,7 +50,6 @@
     git
     gnupg
     vim
-    home-manager
     libva
     libdrm
     pavucontrol
@@ -60,6 +59,16 @@
     android-udev-rules
     fastfetch
   ];
+
+  home-manager = {
+    useGlobalPkgs = true;
+    sharedModules = [
+      #niri-flake.homeModules.niri
+      {
+        home.stateVersion = "23.11";
+      }
+    ];
+  };
 
   services.pcscd.enable = true;
   
