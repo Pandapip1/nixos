@@ -68,7 +68,6 @@
             (hostsDir + "/${hostname}.nix")
             inputs.agenix.nixosModules.default
             inputs.home-manager.nixosModules.default
-            inputs.niri-flake.nixosModules.niri
           ];
         };
       }) hosts);

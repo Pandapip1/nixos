@@ -13,12 +13,4 @@
     };
   };
   services.xserver.desktopManager.phosh.user = "gavin";
-  home-manager.users.gavin = { pkgs, ... }: {
-    programs.niri = {
-      settings.binds = with config.lib.niri.actions; {
-        "Mod+T".action.spawn = "blackbox";
-        "Mod+D".action.spawn = "fuzzel";
-      };
-    };
-  };
 }
