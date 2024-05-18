@@ -14,9 +14,9 @@
   };
   services.xserver.desktopManager.phosh.user = "gavin";
   home-manager.users.gavin = {
-    imports = [
-      #niri-flake.homeModules.niri
-    ];
+    #imports = [
+    #  niri-flake.homeModules.niri
+    #];
     home.stateVersion = "23.11";
     programs.niri = {
       settings.binds = with config.lib.niri.actions; {

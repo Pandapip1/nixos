@@ -1,10 +1,6 @@
 { config, lib, pkgs, niri-flake, ... }:
 
 {
-  # Add niri.nixosModules.niri to the list of modules
-  imports = [
-    niri-flake.nixosModules.niri
-  ];
   programs.niri = {
     enable = true;
     package = pkgs.niri;
@@ -30,6 +26,7 @@
   environment.systemPackages = with pkgs; [
     fuzzel
     swaylock
+    alacritty # fallback
     blackbox-terminal
     gnome.adwaita-icon-theme
   ];
