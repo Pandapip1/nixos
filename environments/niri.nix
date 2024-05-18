@@ -23,5 +23,16 @@
         wayland = true;
       };
     };
+    excludePackages = [ pkgs.xterm ];
+  };
+  environment.systemPackages = with pkgs; [
+    fuzzel
+    swaylock
+    blackbox-terminal
+    gnome.adwaita-icon-theme
+  ];
+  programs.niri.settings.binds = {
+    "Mod+T".action.spawn = "blackbox";
+    "Mod+D".action.spawn = "fuzzel";
   };
 }

@@ -2,8 +2,8 @@
 
 {
   imports = [
-    # GNOME Desktop Environment
-    ../environments/gnome.nix
+    # Niri Desktop Environment
+    ../environments/niri.nix
     # Services
     ../services/syncthing.nix
     ../services/nextcloud.nix
