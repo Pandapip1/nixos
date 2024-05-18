@@ -8,10 +8,6 @@
   programs.niri = {
     enable = true;
     package = pkgs.niri;
-    settings.binds = with config.lib.niri.actions; {
-      "Mod+T".action.spawn = "blackbox";
-      "Mod+D".action.spawn = "fuzzel";
-    };
   };
 
   services.displayManager = {

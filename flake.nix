@@ -7,6 +7,10 @@
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware/master";
     };
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-utils = {
       url = "github:numtide/flake-utils";
     };
@@ -41,7 +45,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-pr-308317, flake-utils, agenix, ... }@args:
+  outputs = { self, nixpkgs, nixpkgs-pr-308317, flake-utils, ... }@inputs:
     let
       pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
       pkgs-pr-308317 = import nixpkgs-pr-308317 { inherit system; config.allowUnfree = true; };
@@ -53,7 +57,7 @@
         name = hostname;
         value = nixpkgs.lib.nixosSystem {
           inherit system;
-          specialArgs = args // {
+          specialArgs = inputs // {
             inherit system;
             hostname = hostname;
             pkgs = pkgs;
@@ -62,7 +66,9 @@
           modules = [
             ./common.nix
             (hostsDir + "/${hostname}.nix")
-            agenix.nixosModules.default
+            inputs.agenix.nixosModules.default
+            inputs.home-manager.nixosModules.default
+            inputs.niri-flake.nixosModules.niri
           ];
         };
       }) hosts);
