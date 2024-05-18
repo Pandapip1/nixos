@@ -9,7 +9,7 @@
 
   services.displayManager = {
     enable = true;
-    defaultSession = "Hyprland";
+    defaultSession = "hyprland";
   };
 
   services.libinput.enable = true;
