@@ -2,8 +2,8 @@
 
 {
   imports = [
-    # Niri Desktop Environment
-    ../environments/niri.nix
+    # Hyprland Desktop Environment
+    ../environments/hyprland.nix
     # Applications
     ../applications/chromium.nix
     ../applications/vector.nix
