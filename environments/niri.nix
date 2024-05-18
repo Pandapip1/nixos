@@ -103,7 +103,7 @@
 
             "Mod+Shift+Page_Down".action."move-workspace-down" = [ ];
             "Mod+Shift+Page_Up".action."move-workspace-up" = [ ];
-            "Mod+Shift+U".action."move-workspace-dow" = [ ]n;
+            "Mod+Shift+U".action."move-workspace-down" = [ ];
             "Mod+Shift+I".action."move-workspace-up" = [ ];
 
             "Mod+1".action."focus-workspace" = 1;
