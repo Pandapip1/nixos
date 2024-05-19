@@ -2,8 +2,8 @@
 
 {
   imports = [
-    # Niri Desktop Environment
-    ../environments/niri.nix
+    # GNOME Desktop Environment
+    ../environments/gnome.nix
     # Applications
     ../applications/chromium.nix
     ../applications/vector.nix
