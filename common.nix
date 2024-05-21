@@ -100,7 +100,7 @@
       xr-hardware
       android-udev-rules
     ];
-  }
+  };
 
   fonts.packages = with pkgs; [
     noto-fonts
