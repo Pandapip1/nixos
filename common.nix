@@ -47,6 +47,7 @@
   ];
 
   home-manager = {
+    enable = true;
     useGlobalPkgs = true;
     backupFileExtension = "backup";
     sharedModules = [

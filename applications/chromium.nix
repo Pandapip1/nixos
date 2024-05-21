@@ -91,6 +91,13 @@
   };
 
   # Force certain Chromium flags
+  #home-manager = {
+  #  sharedModules = [
+  #    {
+  #      
+  #    }
+  #  ];
+  #};
   systemd.services.forceChromiumFlags = let 
     forceEnableFlags = builtins.toJSON [
       "customize-chrome-side-panel@1"
