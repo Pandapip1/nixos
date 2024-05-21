@@ -1,4 +1,4 @@
-{ self, config, system, lib, pkgs, ... }:
+{ ... }:
 
 {
   services.avahi = {

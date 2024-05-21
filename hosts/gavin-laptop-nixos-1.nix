@@ -1,20 +1,15 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, ... }:
 
 {
   imports = [
     # GNOME Desktop Environment
     ../environments/gnome.nix
     # Services
-    ../services/syncthing.nix
-    ../services/nextcloud.nix
     ../services/nebula.nix
-    ../services/waydroid.nix
-    ../services/podman.nix
     # Applications
     ../applications/chromium.nix
     ../applications/vector.nix
     ../applications/codium.nix
-    ../applications/s3fs.nix
     ../applications/envision.nix
     ../applications/telescope.nix
     ../applications/localsend.nix

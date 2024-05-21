@@ -1,4 +1,4 @@
-{ self, hostname, config, lib, pkgs, systemd, ... }:
+{ self, hostname, pkgs, ... }:
 
 rec {
   environment.systemPackages = with pkgs; [

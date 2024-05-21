@@ -1,9 +1,8 @@
-{ config, lib, system, pkgs, niri, niri-flake, ... }:
+{ config, lib, system, pkgs, niri-flake, ... }:
 
 {
   imports = [
     niri-flake.nixosModules.niri
-    ../services/pipewire.nix
     ../services/cups.nix
   ];
 

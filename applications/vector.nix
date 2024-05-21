@@ -1,7 +1,7 @@
-{ config, lib, pkgs, vector, ... }:
+{ system, vector, ... }:
 
 {
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = [
     vector.packages.${system}.default
   ];
 }

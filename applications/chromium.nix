@@ -1,4 +1,4 @@
-{ config, lib, pkgs, nix-software-center, nixos-conf-editor, ... }:
+{ pkgs, ... }:
 
 {
   # Configure installed packages

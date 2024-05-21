@@ -1,9 +1,8 @@
-{ config, lib, pkgs, nix-software-center, nixos-conf-editor, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   # Enable dependencies
   imports = [
-    ../services/pipewire.nix
     ../services/cups.nix
   ];
 

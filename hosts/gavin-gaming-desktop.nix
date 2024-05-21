@@ -1,4 +1,4 @@
-{ config, lib, pkgs, nixos-hardware, ... }:
+{ config, lib, ... }:
 
 {
   imports = [
@@ -15,12 +15,6 @@
     # Users
     ../users/gavin.nix
   ];
-
-  hardware.opengl = {
-    enable = true;
-    driSupport = true;
-    driSupport32Bit = true;
-  };
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "sd_mod" ];
   boot.initrd.kernelModules = [ ];

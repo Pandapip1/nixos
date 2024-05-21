@@ -1,4 +1,4 @@
-{ config, lib, pkgs, envision, ... }:
+{ system, pkgs, envision, ... }:
 
 {
   # Enable dependencies
@@ -6,9 +6,9 @@
     ../services/avahi.nix
   ];
 
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = [
     envision.packages.${system}.default
-    android-tools
+    pkgs.android-tools
   ];
   networking.firewall = {
     allowedTCPPorts = [

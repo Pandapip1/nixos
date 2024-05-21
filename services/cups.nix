@@ -1,4 +1,4 @@
-{ self, config, system, lib, pkgs, pkgs-pr-308317, ... }:
+{ pkgs, pkgs-pr-308317, ... }:
 
 {
   services.printing = {

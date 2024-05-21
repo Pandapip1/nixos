@@ -1,7 +1,7 @@
-{ config, lib, pkgs, telescope, ... }:
+{ system, telescope, ... }:
 
 {
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = [
     telescope.packages.${system}.default
     telescope.packages.${system}.flatscreen
   ];

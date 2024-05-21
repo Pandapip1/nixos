@@ -1,4 +1,4 @@
-{ config, lib, pkgs, hostname, niri-flake, ... }:
+{ config, pkgs, hostname, ... }:
 
 {
   nix = {
@@ -7,18 +7,12 @@
       experimental-features = nix-command flakes
     '';
   };
-
   
   boot = {
     loader = {
       systemd-boot.enable = true;
       efi.canTouchEfiVariables = true;
     };
-    kernelModules = [ "v4l2loopback" "snd-aloop" ];
-    extraModulePackages = with config.boot.kernelPackages; [ pkgs.linuxPackages.v4l2loopback ];
-    extraModprobeConfig = ''
-      options v4l2loopback exclusive_caps=1 card_label="v4l2loopback Virtual Camera"
-    '';
   };
 
   hardware.enableAllFirmware = true;
@@ -50,14 +44,6 @@
     git
     gnupg
     vim
-    libva
-    libdrm
-    pavucontrol
-    linuxPackages.v4l2loopback
-    v4l-utils
-    xr-hardware
-    android-udev-rules
-    fastfetch
   ];
 
   home-manager = {
@@ -71,11 +57,50 @@
   };
 
   services.pcscd.enable = true;
+
+  sound.enable = true;
+  
+  hardware.mcelog.enable = true;
+  hardware.gpgSmartcards.enable = true;
+  hardware.bluetooth.enable = true;
+  hardware.trackpoint.enable = true;
+  hardware.pulseaudio.enable = false; # Use pipewire instead
+  hardware.flipperzero.enable = true;
+  hardware.usb-modeswitch.enable = true;
+  hardware.sensor.hddtemp.enable = true;
+
+  services.undervolt.enable = true;
+
+  services.hardware.bolt.enable = true;
+
+  security.rtkit.enable = true;
+
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+    jack.enable = true;
+  };
+
+  hardware.opengl = {
+    enable = true;
+    driSupport = true;
+    driSupport32Bit = true;
+  };
   
   programs.gnupg.agent = {
     enable = true;
     enableSSHSupport = true;
   };
+
+  services.udev = {
+    enable = true;
+    packages = with pkgs; [
+      xr-hardware
+      android-udev-rules
+    ];
+  }
 
   fonts.packages = with pkgs; [
     noto-fonts
