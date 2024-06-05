@@ -3,6 +3,7 @@
 {
   services.printing = {
     enable = true;
+    package = pkgs-pr-308317.cups;
     drivers = with pkgs; [
       # Generic
       cups-pdf-to-pdf
