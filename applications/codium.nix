@@ -5,17 +5,23 @@
     (vscode-with-extensions.override {
       vscode = vscodium;
       vscodeExtensions = with vscode-extensions; [
-        bbenoist.nix
-        ms-python.python
-        ms-azuretools.vscode-docker
-        ms-vscode-remote.remote-ssh
-        vscode-extensions.james-yu.latex-workshop
+        # GitHub Integration
         github.vscode-pull-request-github
         github.vscode-github-actions
+        # GitLab Integration
+        gitlab.gitlab-workflow
+        # Remote Development
+        ms-azuretools.vscode-docker
+        ms-vscode-remote.remote-ssh
+        github.codespaces
+        # Accessibility
         github.copilot
         github.copilot-chat
-        github.codespaces
-        gitlab.gitlab-workflow
+        # Languages
+        ms-python.python
+        vscode-extensions.james-yu.latex-workshop
+        bbenoist.nix
+        rust-lang.rust-analyzer
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "remote-ssh-edit";
