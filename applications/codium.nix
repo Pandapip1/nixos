@@ -22,6 +22,7 @@
         vscode-extensions.james-yu.latex-workshop
         bbenoist.nix
         rust-lang.rust-analyzer
+        reditorsupport.r
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "remote-ssh-edit";
