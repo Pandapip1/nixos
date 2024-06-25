@@ -45,7 +45,6 @@
       dcp9020cdw-cupswrapper
       brlaser
       gutenprintBin
-      hll2390dw-cups
       # Ricoh
       cups-drv-rastertosag-gdi
       # Canon
