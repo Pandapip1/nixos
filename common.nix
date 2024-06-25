@@ -17,7 +17,7 @@
 
   hardware.enableAllFirmware = true;
 
-  time.timeZone = "America/Chicago";
+  services.automatic-timezoned.enable = true;
 
   i18n = {
     defaultLocale = "en_US.UTF-8";
