@@ -1,4 +1,4 @@
-{ config, pkgs, hostname, ... }:
+{ lib, config, pkgs, hostname, ... }:
 
 {
   nix = {
@@ -19,8 +19,9 @@
 
   services.geoclue2.enable = true;
   services.geoclue2.enableDemoAgent = false;
-  services.automatic-timezoned.enable = true;
   location.provider = "geoclue2";
+
+  time.timeZone = lib.mkDefault "America/New_York";
 
   i18n = {
     defaultLocale = "en_US.UTF-8";
