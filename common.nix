@@ -17,7 +17,10 @@
 
   hardware.enableAllFirmware = true;
 
-  services.tzupdate.enable = true;
+  services.geoclue2.enable = true;
+  services.geoclue2.enableDemoAgent = false;
+  services.automatic-timezoned.enable = true;
+  location.provider = "geoclue2";
 
   i18n = {
     defaultLocale = "en_US.UTF-8";
