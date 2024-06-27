@@ -67,9 +67,6 @@
   hardware.pulseaudio.enable = false; # Use pipewire instead
   hardware.flipperzero.enable = true;
   hardware.usb-modeswitch.enable = true;
-  #hardware.sensor.hddtemp.enable = true;
-
-  services.undervolt.enable = true;
 
   services.hardware.bolt.enable = true;
 
