@@ -17,7 +17,7 @@
 
   hardware.enableAllFirmware = true;
 
-  services.localtimed.enable = true;
+  services.tzupdate.enable = true;
 
   i18n = {
     defaultLocale = "en_US.UTF-8";
