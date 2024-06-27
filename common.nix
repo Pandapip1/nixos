@@ -17,7 +17,7 @@
 
   hardware.enableAllFirmware = true;
 
-  services.automatic-timezoned.enable = true;
+  services.localtimed.enable = true;
 
   i18n = {
     defaultLocale = "en_US.UTF-8";
