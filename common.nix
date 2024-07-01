@@ -17,11 +17,7 @@
 
   hardware.enableAllFirmware = true;
 
-  services.geoclue2.enable = true;
-  services.geoclue2.enableDemoAgent = false;
-  location.provider = "geoclue2";
-
-  time.timeZone = lib.mkDefault "America/New_York";
+  time.timeZone = lib.mkForce null;
 
   i18n = {
     defaultLocale = "en_US.UTF-8";
@@ -56,6 +52,13 @@
     sharedModules = [
       {
         home.stateVersion = "23.11";
+      }
+      {
+        # Automatic timezone and location
+        dconf.settings = {
+          "org/gnome/desktop/datetime" = { automatic-timezone = true; };
+          "org/gnome/system/location" = { enabled = true; };
+        };
       }
     ];
   };
