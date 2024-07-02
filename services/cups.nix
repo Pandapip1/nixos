@@ -1,9 +1,8 @@
-{ pkgs, pkgs-pr-308317, ... }:
+{ pkgs, ... }:
 
 {
   services.printing = {
     enable = true;
-    package = pkgs-pr-308317.cups;
     drivers = with pkgs; [
       # Generic
       cups-pdf-to-pdf
@@ -59,7 +58,7 @@
       # Lexmark
       lexmark-aex
       # Custom drivers
-      pkgs-pr-308317.cups-idprt
+      cups-idprt
     ];
   };
   environment.systemPackages = with pkgs; [

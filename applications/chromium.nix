@@ -5,7 +5,7 @@
   environment.systemPackages = with pkgs; [
     chromium
   ];
-  environment.gnome.excludePackages = with pkgs; with pkgs.gnome; [
+  environment.gnome.excludePackages = with pkgs; [
     epiphany
   ];
 

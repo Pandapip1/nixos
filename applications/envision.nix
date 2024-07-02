@@ -1,21 +1,8 @@
-{ system, pkgs, envision, ... }:
+{ system, pkgs, ... }:
 
 {
-  # Enable dependencies
-  imports = [
-    ../services/avahi.nix
-  ];
-
   environment.systemPackages = [
-    envision.packages.${system}.default
     pkgs.android-tools
   ];
-  networking.firewall = {
-    allowedTCPPorts = [
-      9757 # WiVRN
-    ];
-    allowedUDPPorts = [
-      9757 # WiVRN
-    ];
-  };
+  programs.envision.enable = true;
 }
