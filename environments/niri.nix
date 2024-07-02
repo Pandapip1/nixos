@@ -33,7 +33,7 @@
     swaylock
     alacritty # fallback
     blackbox-terminal
-    gnome.adwaita-icon-theme
+    adwaita-icon-theme
   ];
 
   qt = {

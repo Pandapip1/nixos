@@ -32,7 +32,7 @@
   # Configure installed packages
   environment.systemPackages = with pkgs; [
     blackbox-terminal
-    gnome.adwaita-icon-theme
+    adwaita-icon-theme
   ];
   services.xserver.excludePackages = with pkgs; [
     xterm
