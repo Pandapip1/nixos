@@ -963,6 +963,21 @@
         "type": "github"
       }
     },
+    "getFlake": {
+      "locked": {
+        "lastModified": 1714237590,
+        "narHash": "sha256-9gtHdGbzFHaR20xORN8IYd67ROWS+1nqQ5CsPf9MD8I=",
+        "owner": "ursi",
+        "repo": "get-flake",
+        "rev": "a6c57417d1b857b8be53aba4095869a0f438c502",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ursi",
+        "repo": "get-flake",
+        "type": "github"
+      }
+    },
     "gitignore": {
       "inputs": {
         "nixpkgs": [
@@ -1349,38 +1364,6 @@
         "type": "github"
       }
     },
-    "nixpkgs-pr-308317": {
-      "locked": {
-        "lastModified": 1717600571,
-        "narHash": "sha256-XkdY+jgsjRt2V5mxAZgH1fv+qVO8hmuztTrYQCNumag=",
-        "owner": "Pandapip1",
-        "repo": "nixpkgs",
-        "rev": "86430f8528cb4829aaed14278c3910584dd102ab",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Pandapip1",
-        "ref": "init-cups-idprt",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs-pr-321015": {
-      "locked": {
-        "lastModified": 1719870785,
-        "narHash": "sha256-Wr2fYCdnA9RYvwd+ZiSwwTkhlKuIh5caKgL9Zna8CD4=",
-        "owner": "Pandapip1",
-        "repo": "nixpkgs",
-        "rev": "8a8f328a44841617d8928e3e3dc265526310530f",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Pandapip1",
-        "ref": "init-envision",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixpkgs_10": {
       "locked": {
         "lastModified": 1700612854,
@@ -1706,12 +1689,11 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "getFlake": "getFlake",
         "home-manager": "home-manager",
         "niri": "niri",
         "niri-flake": "niri-flake",
         "nixpkgs": "nixpkgs_7",
-        "nixpkgs-pr-308317": "nixpkgs-pr-308317",
-        "nixpkgs-pr-321015": "nixpkgs-pr-321015",
         "telescope": "telescope",
         "vector": "vector"
       }
