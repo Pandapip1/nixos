@@ -47,11 +47,6 @@
             fetchpatch = pkgs-unpatched.fetchpatch;
           in [
             (fetchpatch {
-              name = "buildFHSEnv-add-capability-support.patch";
-              url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/309906.patch";
-              hash = "sha256-8ihdd6PuZ3vNFELnXy/a6ZKGZsS8ceboKOVe/jBXqJU=";
-            })
-            (fetchpatch {
               name = "init-cups-idprt.patch";
               url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/308317.patch";
               hash = "sha256-0kZDccC4WaKL+y3QEypQjeRx3AO1mE2wZqPyN8b6bVE=";
@@ -59,7 +54,7 @@
             (fetchpatch {
               name = "init-envision.patch";
               url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/321015.patch";
-              hash = "sha256-v18FDPDmAKViBFO6UnPDgpQN4ENvhssEafXnZGstEd4=";
+              hash = "sha256-iR8QTux5nN6TgeU/ishrNXG64beVqwRDoy+3AnMwB3U=";
             })
           ];
           nativeBuildInputs = [ pkgs-unpatched.nix ];
