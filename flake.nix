@@ -46,11 +46,11 @@
           patches = let
             fetchpatch = pkgs-unpatched.fetchpatch;
           in [
-            /* (fetchpatch {
+            (fetchpatch {
               name = "buildFHSEnv-add-capability-support.patch";
               url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/309906.patch";
-              hash = "sha256-RYeDc8loKq0b21/+CXco0HGduqNnFWgTeEDuyRzO0Bk=";
-            }) */
+              hash = "sha256-8ihdd6PuZ3vNFELnXy/a6ZKGZsS8ceboKOVe/jBXqJU=";
+            })
             (fetchpatch {
               name = "init-cups-idprt.patch";
               url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/308317.patch";
