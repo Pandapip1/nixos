@@ -56,6 +56,21 @@
               url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/321015.patch";
               hash = "sha256-iR8QTux5nN6TgeU/ishrNXG64beVqwRDoy+3AnMwB3U=";
             })
+            (fetchpatch {
+              name = "init-stardust-xr-server.patch";
+              url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324375.patch";
+              hash = "sha256-BOLn7YhYo3qd4Wlm21RVqvwHabHMbFP6QH82fP+1lao=";
+            })
+            (fetchpatch {
+              name = "init-stardust-xr-flatland.patch";
+              url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324395.patch";
+              hash = "sha256-xkF815z5r38jTuUtsohq+IKt5cdu6xPxDEsMx3Rz1Hs=";
+            })
+            (fetchpatch {
+              name = "init-stardust-xr-kiara.patch";
+              url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324404.patch";
+              hash = "sha256-z4aBQYtuE9VeNZy4+BtoZW1boFBCH+d3AXKlre9bCOE=";
+            })
           ];
           nativeBuildInputs = [ pkgs-unpatched.nix ];
           dontConfigure = true;
