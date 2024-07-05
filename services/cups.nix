@@ -9,6 +9,8 @@
       gutenprint
       cups-filters
       lprint
+      # HP
+      hplip
       # Dymo
       cups-dymo
       # Zijang ZJ-58
