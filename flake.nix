@@ -4,12 +4,10 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
     getFlake.url = "github:ursi/get-flake";
+    flake-utils.url = "github:numtide/flake-utils";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
-    };
-    flake-utils = {
-      url = "github:numtide/flake-utils";
     };
     vector = {
       url = "github:3webs-org/vector";
