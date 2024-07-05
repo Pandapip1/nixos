@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, lib, nixos-hardware, ... }:
 
 {
   imports = [
@@ -11,10 +11,11 @@
     ../applications/vector.nix
     ../applications/codium.nix
     ../applications/envision.nix
-    ../applications/telescope.nix
     ../applications/localsend.nix
     # Users
     ../users/gavin.nix
+    # Hardware
+    nixos-hardware.nixosModules.lenovo-thinkpad-t480s
   ];
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "sd_mod" ];
@@ -43,5 +44,4 @@
   # networking.interfaces.wlp61s0.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }

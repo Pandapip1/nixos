@@ -11,7 +11,6 @@
     ../applications/vector.nix
     ../applications/codium.nix
     ../applications/envision.nix
-    ../applications/telescope.nix
     ../applications/localsend.nix
     # Users
     ../users/gavin.nix

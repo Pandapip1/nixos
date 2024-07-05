@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, lib, nixos-hardware, ... }:
 
 {
   imports = [
@@ -10,10 +10,16 @@
     ../applications/codium.nix
     ../applications/steam.nix
     ../applications/envision.nix
-    ../applications/telescope.nix
     ../applications/localsend.nix
     # Users
     ../users/gavin.nix
+    # Hardware
+    nixosHardware.nixosModules.common-cpu-amd
+    nixosHardware.nixosModules.common-cpu-amd-pstate
+    nixosHardware.nixosModules.common-cpu-amd-zenpower
+    nixosHardware.nixosModules.common-gpu-amd
+    nixosHardware.nixosModules.common-pc
+    nixosHardware.nixosModules.common-pc-ssd
   ];
 
   programs.corectrl = {
@@ -52,5 +58,4 @@
   # networking.interfaces.wlp3s0.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
