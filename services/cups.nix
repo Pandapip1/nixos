@@ -10,7 +10,7 @@
       cups-filters
       lprint
       # HP
-      hplip
+      hplipWithPlugin
       # Dymo
       cups-dymo
       # Zijang ZJ-58
