@@ -1,4 +1,4 @@
-{ config, lib, pkgs, niri-flake, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   users.users.gavin = {

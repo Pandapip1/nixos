@@ -11,23 +11,9 @@
     flake-utils = {
       url = "github:numtide/flake-utils";
     };
-    telescope = {
-      url = "github:StardustXR/telescope";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     vector = {
       url = "github:3webs-org/vector";
       inputs.nixpkgs.follows = "nixpkgs";
-    };
-    niri = {
-      url = "github:YaLTeR/niri/v0.1.6";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    niri-flake = {
-      url = "github:sodiboo/niri-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nixpkgs-stable.follows = "nixpkgs";
-      inputs.niri-stable.follows = "niri";
     };
   };
 
