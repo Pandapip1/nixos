@@ -14,12 +14,12 @@
     # Users
     ../users/gavin.nix
     # Hardware
-    nixosHardware.nixosModules.common-cpu-amd
-    nixosHardware.nixosModules.common-cpu-amd-pstate
-    nixosHardware.nixosModules.common-cpu-amd-zenpower
-    nixosHardware.nixosModules.common-gpu-amd
-    nixosHardware.nixosModules.common-pc
-    nixosHardware.nixosModules.common-pc-ssd
+    nixos-hardware.nixosModules.common-cpu-amd
+    nixos-hardware.nixosModules.common-cpu-amd-pstate
+    nixos-hardware.nixosModules.common-cpu-amd-zenpower
+    nixos-hardware.nixosModules.common-gpu-amd
+    nixos-hardware.nixosModules.common-pc
+    nixos-hardware.nixosModules.common-pc-ssd
   ];
 
   programs.corectrl = {
