@@ -63,6 +63,9 @@
     ];
   };
 
+  # AFAIK there have not been any in-the-wild attacks that abuse SMT vulnerabilities such as Spectre and Meltdown, so I am re-enabling SMT for performance reasons
+  security.allowSimultaneousMultithreading = true;
+
   services.pcscd.enable = true;
 
   sound.enable = true;
