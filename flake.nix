@@ -76,6 +76,7 @@
           config.allowUnfree = true;
           overlays = [
             (final: prev: rec {
+              /*
               python = prev.python.override {
                 enableOptimizations = true;
                 reproducibleBuild = false;
@@ -111,6 +112,7 @@
               python311Packages = python311.pkgs;
               python310Packages = python310.pkgs;
               python39Packages = python39.pkgs;
+              */
             })
           ];
         });
