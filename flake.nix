@@ -51,6 +51,11 @@
               url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324404.patch";
               hash = "sha256-jt5iiof2o4GULIhwzuXtUGQbrh0fM8LKMjUut7huDIo=";
             })
+            (fetchpatch {
+              name = "fix-hplip.patch";
+              url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/325682.patch";
+              hash = "sha256-Ehsh6FgJvhAHorKVbS4moo2Bzg1SeJ6LOrhymXZMfZ4=";
+            })
           ];
           nativeBuildInputs = [ pkgs-unpatched.nix ];
           dontConfigure = true;
