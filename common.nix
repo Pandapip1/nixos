@@ -6,6 +6,9 @@
     extraOptions = ''
       experimental-features = nix-command flakes
     '';
+    # Build everything locally
+    binaryCaches = lib.mkForce [];
+    trustedBinaryCaches = lib.mkForce [];
   };
   
   boot = {
