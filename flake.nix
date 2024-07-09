@@ -49,7 +49,7 @@
             (fetchpatch {
               name = "init-stardust-xr-kiara.patch";
               url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324404.patch";
-              hash = "sha256-qAIt5YbJPxewM3wnbTxo24LgmewtQ8MDpKDuzdYJdls=";
+              hash = "sha256-jt5iiof2o4GULIhwzuXtUGQbrh0fM8LKMjUut7huDIo=";
             })
           ];
           nativeBuildInputs = [ pkgs-unpatched.nix ];
