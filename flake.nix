@@ -52,9 +52,14 @@
               hash = "sha256-jt5iiof2o4GULIhwzuXtUGQbrh0fM8LKMjUut7huDIo=";
             })
             (fetchpatch {
-              name = "fix-hplip.patch";
-              url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/325682.patch";
-              hash = "sha256-Ehsh6FgJvhAHorKVbS4moo2Bzg1SeJ6LOrhymXZMfZ4=";
+              name = "init-nixos-immersed-vr.patch";
+              url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/326385.patch";
+              hash = "sha256-Qw1XaLgBu/vBEI/xZWvzNO7GmDjl+3vwsXuKB+btzYk=";
+            })
+            (fetchpatch {
+              name = "init-localsend.patch";
+              url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/326378.patch";
+              hash = "sha256-GVBJdzeXcrKvqY1Bx7mPwghjkW68i3ahL+F+fvi7/OM=";
             })
           ];
           nativeBuildInputs = [ pkgs-unpatched.nix ];
