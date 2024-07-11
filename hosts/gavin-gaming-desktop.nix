@@ -58,5 +58,11 @@
   # networking.interfaces.enp4s0.useDHCP = lib.mkDefault true;
   # networking.interfaces.wlp3s0.useDHCP = lib.mkDefault true;
 
+  # Testing these applications
+  programs = {
+    qgroundcontrol.enable = true;
+    immersed-vr.enable = true;
+  };
+
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
