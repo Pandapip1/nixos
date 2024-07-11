@@ -11,12 +11,13 @@
     ../applications/vector.nix
     ../applications/codium.nix
     ../applications/envision.nix
-    ../applications/localsend.nix
     # Users
     ../users/gavin.nix
     # Hardware
     nixos-hardware.nixosModules.lenovo-thinkpad-t480s
   ];
+
+  programs.localsend.enable = true;
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];

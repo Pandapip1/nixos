@@ -10,7 +10,6 @@
     ../applications/codium.nix
     ../applications/steam.nix
     ../applications/envision.nix
-    ../applications/localsend.nix
     # Users
     ../users/gavin.nix
     # Hardware
@@ -21,6 +20,8 @@
     nixos-hardware.nixosModules.common-pc
     nixos-hardware.nixosModules.common-pc-ssd
   ];
+
+  programs.localsend.enable = true;
 
   programs.corectrl = {
     enable = true;
