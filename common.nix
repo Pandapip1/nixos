@@ -1,11 +1,7 @@
 { lib, config, pkgs, hostname, ... }:
 
 {
-  nix = {
-    extraOptions = ''
-      experimental-features = nix-command flakes
-    '';
-  };
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
   
   boot = {
     loader = {
