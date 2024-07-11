@@ -135,7 +135,6 @@
           };
           modules = [
             ./common.nix
-            "${nixpkgs-patched-source}/nixos/modules/profiles/hardened.nix"
             (hostsDir + "/${hostname}.nix")
             inputs.home-manager.nixosModules.default
           ];
