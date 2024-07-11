@@ -54,6 +54,8 @@
 
   # AFAIK there have not been any in-the-wild attacks that abuse SMT vulnerabilities such as Spectre and Meltdown, so I am re-enabling SMT for performance reasons
   security.allowSimultaneousMultithreading = true;
+  # Enable unprivileged user namespaces (required for bubblewrap and other sandboxing tools)
+  security.unprivilegedUsernsClone = true;
 
   services.pcscd.enable = true;
 
