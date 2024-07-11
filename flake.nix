@@ -61,6 +61,11 @@
               url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/326378.patch";
               hash = "sha256-GVBJdzeXcrKvqY1Bx7mPwghjkW68i3ahL+F+fvi7/OM=";
             })
+            (fetchpatch {
+              name = "fix-minecraft.patch";
+              url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/326374.patch";
+              hash = "sha256-w8ty0a3sHKqHI1basWS+ah1/ultw7MEiAoi8w6XANdc=";
+            })
           ];
           nativeBuildInputs = [ pkgs-unpatched.nix ];
           dontConfigure = true;

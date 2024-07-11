@@ -63,6 +63,9 @@
     qgroundcontrol.enable = true;
     immersed-vr.enable = true;
   };
+  environment.systemPackages = with pkgs; [
+    minecraft
+  ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
