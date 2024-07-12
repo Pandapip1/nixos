@@ -98,12 +98,15 @@
     noto-fonts
     noto-fonts-cjk
     noto-fonts-emoji
+    nerdfonts
   ];
 
   programs.git = {
     enable = true;
     lfs.enable = true;
   };
+
+  programs.starship.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
