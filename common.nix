@@ -2,7 +2,52 @@
 
 {
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  
+
+  nixpkgs.config = {
+    allowUnfree = true;
+    overlays = [
+      (final: prev: rec {
+        /*
+          python = prev.python.override {
+            enableOptimizations = true;
+            reproducibleBuild = false;
+          };
+          python3 = prev.python3.override {
+            enableOptimizations = true;
+            reproducibleBuild = false;
+          };
+          python313 = prev.python313.override {
+            enableOptimizations = true;
+            reproducibleBuild = false;
+          };
+          python312 = prev.python312.override {
+            enableOptimizations = true;
+            reproducibleBuild = false;
+          };
+          python311 = prev.python311.override {
+            enableOptimizations = true;
+            reproducibleBuild = false;
+          };
+          python310 = prev.python310.override {
+            enableOptimizations = true;
+            reproducibleBuild = false;
+          };
+          python39 = prev.python39.override {
+            enableOptimizations = true;
+            reproducibleBuild = false;
+          };
+          pythonPackages = python.pkgs;
+          python3Packages = python3.pkgs;
+          python313Packages = python313.pkgs;
+          python312Packages = python312.pkgs;
+          python311Packages = python311.pkgs;
+          python310Packages = python310.pkgs;
+          python39Packages = python39.pkgs;
+        */
+      })
+    ];
+  };
+
   boot = {
     loader = {
       systemd-boot.enable = true;
