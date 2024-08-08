@@ -6,7 +6,6 @@
     ../environments/gnome.nix
     # Applications
     ../applications/chromium.nix
-    ../applications/vector.nix
     ../applications/codium.nix
     ../applications/steam.nix
     ../applications/envision.nix
@@ -55,6 +54,7 @@
     qgroundcontrol.enable = true;
     immersed-vr.enable = true;
     minecraft-client.enable = true;
+    vector.enable = true;
   };
 
   nixpkgs.hostPlatform = "x86_64-linux";

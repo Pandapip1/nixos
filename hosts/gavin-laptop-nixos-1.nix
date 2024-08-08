@@ -8,7 +8,6 @@
     ../services/nebula.nix
     # Applications
     ../applications/chromium.nix
-    ../applications/vector.nix
     ../applications/codium.nix
     ../applications/envision.nix
     # Users
@@ -18,6 +17,7 @@
   ];
 
   programs.localsend.enable = true;
+  programs.vector.enable = true;
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
