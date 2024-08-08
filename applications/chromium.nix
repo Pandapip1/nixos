@@ -99,7 +99,7 @@
     description = "Forces Chromium to use certain flags";
     path = with pkgs; [ jq ];
     script = ''
-      local_state="~/.config/chromium/Local State"
+      local_state="$HOME/.config/chromium/Local State"
       mkdir -p $(dirname "$local_state")
       if [ -f $local_state ]; then
         echo -E "$(jq '.browser.enabled_labs_experiments |= (${forceEnableFlags} + . | unique)' "$local_state")" > "$local_state"
