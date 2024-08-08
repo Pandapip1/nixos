@@ -47,6 +47,11 @@
                   in
                   [
                     (fetchpatch {
+                      name = "fix-programs-chromium-enable.patch";
+                      url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/333240.patch";
+                      hash = "sha256-OOB0auroliESt9PB/VF1PZgWbqmVY0Humxuezm6jS6I=";
+                    })
+                    (fetchpatch {
                       name = "init-cups-idprt.patch";
                       url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/308317.patch";
                       hash = "sha256-HiJ+KJhTe3oeu5ftl7rbXecMTa2rav2ECg+SbLBk/N4=";
