@@ -18,17 +18,6 @@
     nixos-hardware.nixosModules.common-pc
     nixos-hardware.nixosModules.common-pc-ssd
   ];
-
-  programs.localsend.enable = true;
-  programs.envision.enable = true;
-
-  programs.corectrl = {
-    enable = true;
-    gpuOverclock = {
-      enable = true;
-      ppfeaturemask = "0xffffffff";
-    };
-  };
   
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
@@ -49,12 +38,20 @@
     [ { device = "/dev/disk/by-uuid/4540c1ff-03b9-4119-a013-1fe791c5a6de"; }
     ];
 
-  # Testing these applications
   programs = {
     qgroundcontrol.enable = true;
     immersed-vr.enable = true;
     minecraft-client.enable = true;
     vector.enable = true;
+    localsend.enable = true;
+    envision.enable = true;
+    corectrl = {
+      enable = true;
+      gpuOverclock = {
+        enable = true;
+        ppfeaturemask = "0xffffffff";
+      };
+    };
   };
 
   nixpkgs.hostPlatform = "x86_64-linux";

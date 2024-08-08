@@ -15,9 +15,11 @@
     nixos-hardware.nixosModules.lenovo-thinkpad-t480s
   ];
 
-  programs.localsend.enable = true;
-  programs.vector.enable = true;
-  programs.envision.enable = true;
+  programs = {
+    localsend.enable = true;
+    vector.enable = true;
+    envision.enable = true;
+  };
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
