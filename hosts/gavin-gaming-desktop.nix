@@ -8,7 +8,6 @@
     ../applications/chromium.nix
     ../applications/codium.nix
     ../applications/steam.nix
-    ../applications/envision.nix
     # Users
     ../users/gavin.nix
     # Hardware
@@ -21,6 +20,7 @@
   ];
 
   programs.localsend.enable = true;
+  programs.envision.enable = true;
 
   programs.corectrl = {
     enable = true;

@@ -9,10 +9,12 @@
     # Applications
     ../applications/chromium.nix
     ../applications/codium.nix
-    ../applications/envision.nix
     # Users
     ../users/gavin.nix
   ];
 
-  programs.vector.enable = true;
+  programs = {
+    vector.enable = true;
+    envision.enable = true;
+  };
 }
