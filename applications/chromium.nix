@@ -87,7 +87,7 @@
   ];
 
   # Force certain Chromium flags
-  systemd.services.forceChromiumFlags = let 
+  systemd.user.services.force-chromium-flags = let 
     forceEnableFlags = builtins.toJSON [
       "customize-chrome-side-panel@1"
       "scrollable-tabstrip@1"
@@ -95,23 +95,17 @@
     ];
   in {
     enable = true;
+    wantedBy = [ "default.target" ];
     description = "Forces Chromium to use certain flags";
-    wantedBy = [ "multi-user.target" ];
     path = with pkgs; [ jq ];
     script = ''
-      for userdir in /home/*; do
-        user=$(basename "$userdir")
-        group=$(id -gn $user)
-        user_home=$(getent passwd $user | cut -d: -f6)
-        local_state="$user_home/.config/chromium/Local State"
-        mkdir -p $(dirname "$local_state")
-        if [ -f $local_state ]; then
-          echo -E "$(jq '.browser.enabled_labs_experiments |= (${forceEnableFlags} + . | unique)' "$local_state")" > "$local_state"
-        else
-          echo -E '{"browser": {"enabled_labs_experiments": ${forceEnableFlags}}}' > "$local_state"
-        fi
-        chown $user:$group -R $(dirname "$local_state")
-      done
+      local_state="~/.config/chromium/Local State"
+      mkdir -p $(dirname "$local_state")
+      if [ -f $local_state ]; then
+        echo -E "$(jq '.browser.enabled_labs_experiments |= (${forceEnableFlags} + . | unique)' "$local_state")" > "$local_state"
+      else
+        echo -E '{"browser": {"enabled_labs_experiments": ${forceEnableFlags}}}' > "$local_state"
+      fi
     '';
     serviceConfig.Restart = "on-failure";
   };
