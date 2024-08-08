@@ -4,7 +4,6 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   nixpkgs.config = {
-    allowUnfree = true;
     overlays = [
       (final: prev: rec {
         /*
@@ -98,8 +97,6 @@
   };
 
   services.pcscd.enable = true;
-
-  sound.enable = true;
   
   hardware.mcelog.enable = true;
   hardware.gpgSmartcards.enable = true;

@@ -49,12 +49,12 @@
                     (fetchpatch {
                       name = "init-cups-idprt.patch";
                       url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/308317.patch";
-                      hash = "sha256-0kZDccC4WaKL+y3QEypQjeRx3AO1mE2wZqPyN8b6bVE=";
+                      hash = "sha256-HiJ+KJhTe3oeu5ftl7rbXecMTa2rav2ECg+SbLBk/N4=";
                     })
                     (fetchpatch {
                       name = "init-stardust-xr-server.patch";
                       url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324375.patch";
-                      hash = "sha256-6Se3ZKvb7N/Z1Mo4Bx9B868PlTqVXJo4koL0hXE0u/E=";
+                      hash = "sha256-Eeqb4OEeC1zBCqeDMokc/yjOyVCCAmgmYRDNce609Gg=";
                     })
                     (fetchpatch {
                       name = "init-stardust-xr-flatland.patch";
@@ -67,16 +67,6 @@
                       hash = "sha256-jt5iiof2o4GULIhwzuXtUGQbrh0fM8LKMjUut7huDIo=";
                     })
                     (fetchpatch {
-                      name = "init-nixos-immersed-vr.patch";
-                      url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/326385.patch";
-                      hash = "sha256-Qw1XaLgBu/vBEI/xZWvzNO7GmDjl+3vwsXuKB+btzYk=";
-                    })
-                    (fetchpatch {
-                      name = "init-localsend.patch";
-                      url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/326378.patch";
-                      hash = "sha256-GVBJdzeXcrKvqY1Bx7mPwghjkW68i3ahL+F+fvi7/OM=";
-                    })
-                    (fetchpatch {
                       name = "fix-minecraft.patch";
                       url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/326374.patch";
                       hash = "sha256-w8ty0a3sHKqHI1basWS+ah1/ultw7MEiAoi8w6XANdc=";
@@ -84,7 +74,7 @@
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
-              pkgs = (import nixpkgs-patched { inherit system; });
+              pkgs = (import nixpkgs-patched { inherit system; config.allowUnfree = true; }); # TODO: Is there a way to put allowUnfree in common.nix?
             in
             nixpkgs-patched.lib.nixosSystem {
               inherit system;

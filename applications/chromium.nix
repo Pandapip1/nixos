@@ -2,16 +2,25 @@
 
 {
   # Configure installed packages
-  environment.systemPackages = with pkgs; [
-    chromium
-  ];
-  environment.gnome.excludePackages = with pkgs; [
-    epiphany
-  ];
-
-  # Configure Chromium
-  environment.etc."chromium/policies/managed/gnome_x11.json" = {
-    text = builtins.toJSON {
+  programs.chromium = {
+    enable = true;
+    extensions = [
+      "cjpalhdlnbpafiamejdnhcphjbkeiagm"
+      "oboonakemofpalcgghocfoadofidjkkk"
+      "nfcdcdoegfnidkeldipgmhbabmndlhbf"
+      "mpbjkejclgfgadiemmefgebjfooflfhl"
+      "icallnadddjmdinamnolclfjanhfoafe"
+      "pfldomphmndnmmhhlbekfbafifkkpnbc"
+      "nakplnnackehceedgkgkokbgbmfghain"
+      "mhfjchmiaocbleapojmgnmjfcmanihio"
+      "enamippconapkdmgfgjchkhakpfinmaj"
+      "omkfmpieigblcllmkgbflkikinpkodlk"
+      "gebbhagfogifgggkldgodflihgfeippi"
+      "mnjggcdmjocbbbhaepdhchncahnbgone"
+      "khncfooichmfjbepaaaebmommgaepoid"
+    ];
+    extraOpts = {
+      # https://cloud.google.com/docs/chrome-enterprise/policies/
       "ShowHomeButton" = false;
       "DefaultSearchProviderEnabled" = true;
       "DefaultSearchProviderName" = "DuckDuckGo";
@@ -71,33 +80,13 @@
       ];
       "BuiltInDnsClientEnabled" = false;
       "DnsOverHttpsMode" = "off";
-      "ExtensionInstallForcelist" = [
-        "cjpalhdlnbpafiamejdnhcphjbkeiagm"
-        "oboonakemofpalcgghocfoadofidjkkk"
-        "nfcdcdoegfnidkeldipgmhbabmndlhbf"
-        "mpbjkejclgfgadiemmefgebjfooflfhl"
-        "icallnadddjmdinamnolclfjanhfoafe"
-        "pfldomphmndnmmhhlbekfbafifkkpnbc"
-        "nakplnnackehceedgkgkokbgbmfghain"
-        "mhfjchmiaocbleapojmgnmjfcmanihio"
-        "enamippconapkdmgfgjchkhakpfinmaj"
-        "omkfmpieigblcllmkgbflkikinpkodlk"
-        "gebbhagfogifgggkldgodflihgfeippi"
-        "mnjggcdmjocbbbhaepdhchncahnbgone"
-        "khncfooichmfjbepaaaebmommgaepoid"
-      ];
     };
-    mode = "0444";
   };
+  environment.gnome.excludePackages = with pkgs; [
+    epiphany
+  ];
 
   # Force certain Chromium flags
-  #home-manager = {
-  #  sharedModules = [
-  #    {
-  #      
-  #    }
-  #  ];
-  #};
   systemd.services.forceChromiumFlags = let 
     forceEnableFlags = builtins.toJSON [
       "customize-chrome-side-panel@1"
@@ -121,6 +110,6 @@
         fi
       done
     '';
-    serviceConfig.Restart="on-failure";
+    serviceConfig.Restart = "on-failure";
   };
 }
