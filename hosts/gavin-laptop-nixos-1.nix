@@ -19,6 +19,7 @@
     localsend.enable = true;
     vector.enable = true;
     envision.enable = true;
+    zed.enable = true;
   };
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "sd_mod" ];
