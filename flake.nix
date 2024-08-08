@@ -2,7 +2,7 @@
   description = "A NixOS configuration with per-hostname modifications";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/master"; # WARNING: The bleeding edge is sharp!
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     getFlake.url = "github:ursi/get-flake";
     flake-utils.url = "github:numtide/flake-utils";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
@@ -26,6 +26,7 @@
     }@inputs:
     let
       hostsDir = ./hosts;
+      modulesDir = ./modules;
       hosts = map (s: builtins.substring 0 (builtins.stringLength s - 4) s) (
         builtins.attrNames (builtins.readDir hostsDir)
       );
@@ -80,6 +81,9 @@
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
               pkgs = (import nixpkgs-patched { inherit system; config.allowUnfree = true; }); # TODO: Is there a way to put allowUnfree in common.nix?
+              modules = map (s: "${modulesDir}/${s}") (
+                builtins.attrNames (builtins.readDir modulesDir)
+              );
             in
             nixpkgs-patched.lib.nixosSystem {
               inherit system;
@@ -90,7 +94,7 @@
                 ./common.nix
                 (hostsDir + "/${hostname}.nix")
                 inputs.home-manager.nixosModules.default
-              ];
+              ] ++ modules;
             };
         }) hosts
       );
