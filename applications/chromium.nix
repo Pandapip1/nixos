@@ -101,13 +101,16 @@
     script = ''
       for userdir in /home/*; do
         user=$(basename "$userdir")
-        local_state="/home/$user/.config/chromium/Local State"
+        group=$(id -gn $user)
+        user_home=$(getent passwd $user | cut -d: -f6)
+        local_state="$user_home/.config/chromium/Local State"
         mkdir -p $(dirname "$local_state")
-        if [ -f /home/$user/.config/chromium/Local\ State ]; then
+        if [ -f $local_state ]; then
           echo -E "$(jq '.browser.enabled_labs_experiments |= (${forceEnableFlags} + . | unique)' "$local_state")" > "$local_state"
         else
           echo -E '{"browser": {"enabled_labs_experiments": ${forceEnableFlags}}}' > "$local_state"
         fi
+        chown $user:$group -R $(dirname "$local_state")
       done
     '';
     serviceConfig.Restart = "on-failure";
