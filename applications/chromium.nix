@@ -101,7 +101,7 @@
     script = ''
       local_state="$HOME/.config/chromium/Local State"
       mkdir -p $(dirname "$local_state")
-      if [ -f $local_state ]; then
+      if [ -f "$local_state" ]; then
         echo -E "$(jq '.browser.enabled_labs_experiments |= (${forceEnableFlags} + . | unique)' "$local_state")" > "$local_state"
       else
         echo -E '{"browser": {"enabled_labs_experiments": ${forceEnableFlags}}}' > "$local_state"
