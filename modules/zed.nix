@@ -9,7 +9,7 @@ in {
   options = {
     programs.zed = {
       enable = mkEnableOption "zed editor";
-      package = mkPackageOption pkgs "zed-editor";
+      package = mkPackageOption pkgs "zed-editor" { };
     };
   };
 
