@@ -156,7 +156,12 @@
   # nix-ld
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
-    xorg.libXext # TODO: Remove when Caltech placement exam done
+    # TODO: Remove when Caltech placement exam done
+    xorg.libXext
+    xorg.libX11
+    xorg.libXrender
+    xorg.libXtst
+    xorg.libXi
   ];
 
   # This value determines the NixOS release from which the default
