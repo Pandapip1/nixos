@@ -162,6 +162,7 @@
     xorg.libXrender
     xorg.libXtst
     xorg.libXi
+    fontconfig
   ];
 
   # This value determines the NixOS release from which the default
