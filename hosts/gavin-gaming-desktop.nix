@@ -59,6 +59,10 @@
         ppfeaturemask = "0xffffffff";
       };
     };
+    alvr = {
+      enable = true;
+      openFirewall = true;
+    };
   };
 
   nixpkgs.hostPlatform = "x86_64-linux";
