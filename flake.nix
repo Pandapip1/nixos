@@ -84,7 +84,15 @@
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
-              pkgs = (import nixpkgs-patched { inherit system; config.allowUnfree = true; }); # TODO: Is there a way to put allowUnfree in common.nix?
+              pkgs = (import nixpkgs-patched {
+                inherit system;
+                config = {
+                  allowUnfree = true;
+                };
+                overlays = [
+                  inputs.jovian.overlays.default
+                ];
+              }); # TODO: Is there a way to put allowUnfree in common.nix?
               modules = map (s: "${modulesDir}/${s}") (
                 builtins.attrNames (builtins.readDir modulesDir)
               );
@@ -98,6 +106,7 @@
                 ./common.nix
                 (hostsDir + "/${hostname}.nix")
                 inputs.home-manager.nixosModules.default
+                inputs.jovian.nixosModules.default
               ] ++ modules;
             };
         }) hosts
