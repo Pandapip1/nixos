@@ -59,9 +59,9 @@
   };
 
   # Additional KWin session
-  services.desktopManager.plasma6.enable = true;
+  #services.desktopManager.plasma6.enable = true;
 
   nixpkgs.hostPlatform = "x86_64-linux";
 } // (if pkgs == null then {} else {
-  programs.ssh.askPassword = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
+  #programs.ssh.askPassword = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
 })
