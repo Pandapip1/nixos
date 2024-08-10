@@ -18,13 +18,6 @@
     nixos-hardware.nixosModules.common-pc
     nixos-hardware.nixosModules.common-pc-ssd
   ];
-
-  jovian = {
-    steam.enable = true;
-    steamos.useSteamOSConfig = true;
-    hardware.has.amd.gpu = true;
-    decky-loader.enable = true;
-  };
   
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
