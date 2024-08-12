@@ -3,6 +3,7 @@ let
   steam = pkgs.steam.override {
     extraPkgs = pkgs: with pkgs; [
       gamescope
+      opencomposite
     ];
   };
   lutris = pkgs.lutris.override {
@@ -17,12 +18,11 @@ in
 {
   environment.systemPackages = with pkgs; [
     lutris
-    gamescope
     gamemode
     mangohud
     vkbasalt
     vkbasalt-cli
-  ] ++ [ steam steam.run ];
+  ];
   programs.steam = {
     enable = true;
     package = steam;
