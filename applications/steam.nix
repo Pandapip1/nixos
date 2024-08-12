@@ -3,7 +3,7 @@ let
   steam = pkgs.steam.override {
     extraPkgs = pkgs: with pkgs; [
       gamescope
-      opencomposite
+      #opencomposite
     ];
   };
   lutris = pkgs.lutris.override {
