@@ -68,4 +68,5 @@
   nixpkgs.hostPlatform = "x86_64-linux";
 } // (if pkgs == null then {} else {
   #programs.ssh.askPassword = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
+  boot.kernelPackages = pkgs.linuxKernel.packages.linux_6_10;
 })
