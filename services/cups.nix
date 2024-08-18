@@ -60,7 +60,11 @@
       # Lexmark
       lexmark-aex
       # Custom drivers
-      cups-idprt
+      cups-idprt-tspl
+      cups-idprt-barcode
+      cups-idprt-mt888
+      cups-idprt-mt890
+      cups-idprt-sp900
     ];
   };
   environment.systemPackages = with pkgs; [

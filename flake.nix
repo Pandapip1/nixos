@@ -52,14 +52,9 @@
                   in
                   [
                     (fetchpatch {
-                      name = "fix-programs-chromium-enable.patch";
-                      url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/333240.patch";
-                      hash = "sha256-OOB0auroliESt9PB/VF1PZgWbqmVY0Humxuezm6jS6I=";
-                    })
-                    (fetchpatch {
                       name = "init-cups-idprt.patch";
                       url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/308317.patch";
-                      hash = "sha256-HiJ+KJhTe3oeu5ftl7rbXecMTa2rav2ECg+SbLBk/N4=";
+                      hash = "sha256-kuAZI16xGzsvaH2PAn9IJcuJpX3FOePS0ifxCRfC6og=";
                     })
                     (fetchpatch {
                       name = "init-stardust-xr-server.patch";
@@ -80,6 +75,11 @@
                       name = "fix-minecraft.patch";
                       url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/326374.patch";
                       hash = "sha256-w8ty0a3sHKqHI1basWS+ah1/ultw7MEiAoi8w6XANdc=";
+                    })
+                    (fetchpatch {
+                      name = "fix-qgc.patch";
+                      url = "https://github.com/NixOS/nixpkgs/compare/7bae0943064987c775f857b698522ff2db2df292...ab8cc6fe7a24b32d1965ad63547f325b39503b9e.patch";
+                      hash = "sha256-2NPjaCfbCxF3rRUd36PPSSFi9hNoYi6Q2UM7edSe0+k=";
                     })
                   ];
               };
