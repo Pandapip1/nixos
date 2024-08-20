@@ -78,8 +78,8 @@
                     })
                     (fetchpatch {
                       name = "fix-qgc.patch";
-                      url = "https://github.com/NixOS/nixpkgs/compare/21576aba43e604a95cc45c25248f39f3989ebe36...4863ec3183b68219c7dbc2329588316450566997.patch";
-                      hash = "sha256-mCVVbfV2uin4d5k6ZpIougSdbQ5bwB0+rijCzFZF+Hk=";
+                      url = "https://github.com/NixOS/nixpkgs/compare/21576aba43e604a95cc45c25248f39f3989ebe36...98526114c271e6eea7adf8f518904d186d927212.patch";
+                      hash = "sha256-8U+rsnOQnGm3feAseBw7KxgorSUiW9TsdfqOeEcVrDs=";
                     })
                   ];
               };
