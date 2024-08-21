@@ -2,6 +2,9 @@
 
 {
   # Configure installed packages
+  environment.systemPackages = with pkgs; [
+    chromium
+  ];
   programs.chromium = {
     enable = true;
     extensions = [
