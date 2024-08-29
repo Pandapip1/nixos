@@ -11,6 +11,7 @@
       };
       efi.canTouchEfiVariables = true;
     };
+    tmp.cleanOnBoot = true;
   };
 
   # Auto GC every day
