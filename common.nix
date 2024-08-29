@@ -141,8 +141,14 @@
     fontconfig
   ];
 
-  # nix-mineral allow all users to use nix
+  # nix-mineral overrides
+  # TODO: Check if all of these are still needed
   nm-overrides.desktop.nix-allow-allow-users.enable = true;
+  nm-overrides.desktop.allow-unprivileged-userns.enable = true;
+  nm-overrides.desktop.allow-multilib.enable = true;
+  nm-overrides.desktop.usbguard-disable.enable = true;
+  nm-overrides.desktop.home-exec.enable = true;
+  nm-overrides.compatibility.binfmt-misc.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
