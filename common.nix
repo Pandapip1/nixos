@@ -12,6 +12,7 @@
       efi.canTouchEfiVariables = true;
     };
     tmp.cleanOnBoot = true;
+    kernelPackages = pkgs.linuxPackages_latest;
   };
 
   # Auto GC every day
