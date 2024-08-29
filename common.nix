@@ -25,7 +25,7 @@
     serviceConfig.Type = "oneshot";
     startAt = "daily";
   };
-  systemd.timers.nix-gc = lib.mkIf cfg.automatic {
+  systemd.timers.nix-gc = {
     timerConfig = {
       Persistent = true;
     };
