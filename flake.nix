@@ -6,6 +6,10 @@
     getFlake.url = "github:ursi/get-flake";
     flake-utils.url = "github:numtide/flake-utils";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
+    nix-mineral = {
+      url = "github:Pandapip1/nix-mineral/patch-2";
+      flake = false;
+    };
     jovian = {
       url = "github:Jovian-Experiments/Jovian-NixOS";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -93,6 +97,7 @@
                 ./common.nix
                 (hostsDir + "/${hostname}.nix")
                 inputs.home-manager.nixosModules.default
+                "${inputs.nix-mineral}/nix-mineral.nix"
               ] ++ modules;
             };
         }) hosts
