@@ -52,14 +52,9 @@
                   in
                   [
                     (fetchpatch {
-                      name = "init-cups-idprt.patch";
-                      url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/308317.patch";
-                      hash = "sha256-kuAZI16xGzsvaH2PAn9IJcuJpX3FOePS0ifxCRfC6og=";
-                    })
-                    (fetchpatch {
                       name = "init-stardust-xr-server.patch";
                       url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324375.patch";
-                      hash = "sha256-Eeqb4OEeC1zBCqeDMokc/yjOyVCCAmgmYRDNce609Gg=";
+                      hash = "sha256-qQY1ZGVGf4GTBm7bIofsS2VExzIFnHufMhRp2iUbzMc=";
                     })
                     (fetchpatch {
                       name = "init-stardust-xr-flatland.patch";
@@ -70,11 +65,6 @@
                       name = "init-stardust-xr-kiara.patch";
                       url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324404.patch";
                       hash = "sha256-jt5iiof2o4GULIhwzuXtUGQbrh0fM8LKMjUut7huDIo=";
-                    })
-                    (fetchpatch {
-                      name = "fix-minecraft.patch";
-                      url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/326374.patch";
-                      hash = "sha256-w8ty0a3sHKqHI1basWS+ah1/ultw7MEiAoi8w6XANdc=";
                     })
                     (fetchpatch {
                       name = "fix-qgc.patch";
