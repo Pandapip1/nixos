@@ -310,23 +310,6 @@
         "type": "github"
       }
     },
-    "nix-mineral": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1724960056,
-        "narHash": "sha256-VoxxCpr5DdSun0OpUtvH4XJ5WwENNK9e+uSyMjQIEoM=",
-        "owner": "Pandapip1",
-        "repo": "nix-mineral",
-        "rev": "c35218eabecb141c016f6c5b6d45c493e428d34e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Pandapip1",
-        "ref": "patch-2",
-        "repo": "nix-mineral",
-        "type": "github"
-      }
-    },
     "nix-test-runner": {
       "flake": false,
       "locked": {
@@ -451,7 +434,6 @@
         "getFlake": "getFlake",
         "home-manager": "home-manager",
         "jovian": "jovian",
-        "nix-mineral": "nix-mineral",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
         "vector": "vector"
