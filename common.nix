@@ -16,7 +16,7 @@
   # Auto GC every day
   systemd.services.nix-gc = let
     configurationLimit = 16;
-  in {
+  in lib.mkForce {
     description = "Nix Garbage Collector";
     script = ''
       ${lib.getExe' pkgs.nix "nix-env"} --delete-generations +${toString configurationLimit} --profile /nix/var/nix/profiles/system
@@ -25,7 +25,7 @@
     serviceConfig.Type = "oneshot";
     startAt = "daily";
   };
-  systemd.timers.nix-gc = {
+  systemd.timers.nix-gc = lib.mkForce {
     timerConfig = {
       Persistent = true;
     };
