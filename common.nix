@@ -17,6 +17,7 @@
 
   # Auto nix-index
   programs.nix-index.enable = true;
+  programs.command-not-found.enable = false;
   systemd.services.nix-index = {
     description = "Nix Indexer";
     script = ''
