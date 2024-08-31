@@ -15,6 +15,30 @@
     kernelPackages = pkgs.linuxPackages_latest;
   };
 
+  # Auto nix-index
+  programs.nix-index.enable = true;
+  systemd.services.nix-index = {
+    description = "Nix Indexer";
+    script = ''
+      mkdir -p /var/cache/nix-index/
+      umask 022
+      ${lib.getExe pkgs.nix-index}
+    '';
+    environment = {
+      NIX_INDEX_DATABASE = "/var/cache/nix-index/";
+    };
+    serviceConfig.Type = "oneshot";
+    startAt = "daily";
+  };
+  systemd.timers.nix-index = {
+    timerConfig = {
+      Persistent = true;
+    };
+  };
+  environment.variables = {
+    NIX_INDEX_DATABASE = "/var/cache/nix-index/";
+  };
+
   # Auto GC every day
   systemd.services.nix-gc = let
     configurationLimit = 16;
@@ -64,6 +88,7 @@
     git
     gnupg
     vim
+    comma
   ];
 
   home-manager = {
