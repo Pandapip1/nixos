@@ -1,7 +1,20 @@
-{ lib, config, pkgs, hostname, ... }:
+{ lib, config, pkgs, nixpkgs, hostname, ... }:
 
 {
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix = {
+    settings.experimental-features = [ "nix-command" "flakes" ];
+    registry = {
+      nixpkgs.to = {
+        type = "path";
+        path = pkgs.path;
+        narHash = builtins.readFile
+            (pkgs.runCommandLocal "get-nixpkgs-hash"
+              { nativeBuildInputs = [ pkgs.nix ]; }
+              "nix-hash --type sha256 --sri ${pkgs.path} > $out");
+      };
+    };
+    channel.enable = false;
+  };
 
   boot = {
     loader = {
@@ -27,6 +40,7 @@
     '';
     environment = {
       NIX_INDEX_DATABASE = "/var/cache/nix-index/";
+      NIX_PATH = "nixpkgs=flake:nixpkgs:${lib.escapeShellArg nixpkgs.outPath}";
     };
     serviceConfig.Type = "oneshot";
     startAt = "daily";
