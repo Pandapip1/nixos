@@ -31,12 +31,38 @@
         "type": "github"
       }
     },
+    "comma": {
+      "inputs": {
+        "flake-compat": "flake-compat",
+        "naersk": "naersk",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "utils": [
+          "flake-utils"
+        ]
+      },
+      "locked": {
+        "lastModified": 1725151443,
+        "narHash": "sha256-lm6psJqztn9Rp7BOO1CSrlgCNunoPftmgeWFLnGfpYc=",
+        "owner": "Pandapip1",
+        "repo": "comma",
+        "rev": "cb69790bfab26b628751a4af9c776a8583d1c7da",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Pandapip1",
+        "ref": "command-not-found-handle",
+        "repo": "comma",
+        "type": "github"
+      }
+    },
     "crate2nix": {
       "inputs": {
         "cachix": "cachix",
         "crate2nix_stable": "crate2nix_stable",
         "devshell": "devshell",
-        "flake-compat": "flake-compat",
+        "flake-compat": "flake-compat_2",
         "flake-parts": "flake-parts",
         "nix-test-runner": "nix-test-runner",
         "nixpkgs": [
@@ -102,6 +128,22 @@
       }
     },
     "flake-compat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1696426674,
+        "narHash": "sha256-kvjfFW7WAETZlt09AgDn1MrtKzP7t90Vf7vypd3OL1U=",
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "rev": "0f9255e01c2351cc7d116c072cb317785dd33b33",
+        "type": "github"
+      },
+      "original": {
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
+    "flake-compat_2": {
       "locked": {
         "lastModified": 1696426674,
         "narHash": "sha256-kvjfFW7WAETZlt09AgDn1MrtKzP7t90Vf7vypd3OL1U=",
@@ -288,6 +330,28 @@
         "type": "github"
       }
     },
+    "naersk": {
+      "inputs": {
+        "nixpkgs": [
+          "comma",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1698420672,
+        "narHash": "sha256-/TdeHMPRjjdJub7p7+w55vyABrsJlt5QkznPYy55vKA=",
+        "owner": "nix-community",
+        "repo": "naersk",
+        "rev": "aeb58d5e8faead8980a807c840232697982d47b9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "ref": "master",
+        "repo": "naersk",
+        "type": "github"
+      }
+    },
     "nix-github-actions": {
       "inputs": {
         "nixpkgs": [
@@ -430,6 +494,7 @@
     },
     "root": {
       "inputs": {
+        "comma": "comma",
         "flake-utils": "flake-utils",
         "getFlake": "getFlake",
         "home-manager": "home-manager",

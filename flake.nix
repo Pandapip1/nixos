@@ -6,6 +6,13 @@
     getFlake.url = "github:ursi/get-flake";
     flake-utils.url = "github:numtide/flake-utils";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
+    comma = {
+      url = "github:Pandapip1/comma/command-not-found-handle";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        utils.follows = "flake-utils";
+      };
+    };
     jovian = {
       url = "github:Jovian-Experiments/Jovian-NixOS";
       inputs.nixpkgs.follows = "nixpkgs";

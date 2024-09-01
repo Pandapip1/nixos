@@ -1,4 +1,4 @@
-{ lib, config, pkgs, nixpkgs, hostname, ... }:
+{ lib, config, pkgs, nixpkgs, hostname, comma, system, ... }:
 
 {
   nix = {
@@ -29,15 +29,42 @@
     kernelPackages = pkgs.linuxPackages_latest;
   };
 
+  # Install comma command-not-found
+  programs.bash.interactiveShellInit = ''
+    source ${comma.packages."${system}".comma}/etc/profile.d/command-not-found.sh
+  '';
+
+  programs.zsh.interactiveShellInit = ''
+    source ${comma.packages."${system}".comma}/etc/profile.d/command-not-found.sh
+  '';
+
+  # See https://github.com/bennofs/nix-index/issues/126
+  programs.fish.interactiveShellInit = let
+    wrapper = pkgs.writeScript "command-not-found" ''
+      #!${lib.getExe pkgs.bash}
+      source ${comma.packages."${system}".comma}/etc/profile.d/command-not-found.sh
+      command_not_found_handle "$@"
+    '';
+  in ''
+    function __fish_command_not_found_handler --on-event fish_command_not_found
+        ${wrapper} $argv
+    end
+  '';
+
   # Auto nix-index
-  programs.nix-index.enable = true;
+  programs.nix-index = {
+    enable = true;
+    enableZshIntegration = false;
+    enableFishIntegration = false;
+    enableBashIntegration = false;
+  };
   programs.command-not-found.enable = false;
   systemd.services.nix-index = {
     description = "Nix Indexer";
     script = ''
       mkdir -p /var/cache/nix-index/
       umask 022
-      ${lib.getExe pkgs.nix-index}
+      ${lib.getExe' pkgs.nix-index "nix-index"}
     '';
     environment = {
       NIX_INDEX_DATABASE = "/var/cache/nix-index/";
@@ -100,12 +127,11 @@
     nftables.enable = true;
   };
 
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = (with pkgs; [
     git
     gnupg
     vim
-    comma
-  ];
+  ]) ++ [ comma.packages."${system}".comma ];
 
   home-manager = {
     useGlobalPkgs = true;
