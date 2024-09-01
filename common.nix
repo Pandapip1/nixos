@@ -15,6 +15,7 @@
     };
     nixPath = lib.mkForce [ "nixpkgs=${nixpkgs.outPath}" ];
     channel.enable = false;
+    package = pkgs.nixVersions.latest;
   };
 
   boot = {
