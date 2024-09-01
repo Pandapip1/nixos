@@ -13,6 +13,7 @@
               "nix-hash --type sha256 --sri ${pkgs.path} > $out");
       };
     };
+    nixPath = lib.mkForce [ "nixpkgs=${nixpkgs.outPath}" ];
     channel.enable = false;
   };
 
