@@ -56,8 +56,8 @@
                   [
                     (fetchpatch {
                       name = "fix-qgc.patch";
-                      url = "https://github.com/NixOS/nixpkgs/compare/master..63f73b59b18aef477f34336a53ced6ef0f52a7d5.patch";
-                      hash = "sha256-a4bUZLqPFtXbbrsoQFUj86RLwuQtE/83iA+XhEZYKRw=";
+                      url = "https://github.com/NixOS/nixpkgs/compare/master..e990c276a96d1b1013299c0b0d05af4b2cef2835.patch";
+                      hash = "sha256-WmBpQ89t/jDuOk2QrX54rPPDDMLpzZerFKN1a7imwsU=";
                     })
                   ];
               };
