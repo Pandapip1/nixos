@@ -29,7 +29,7 @@
       gnome.enable = true;
     };
   };
-  services.udev.packages = with pkgs; [ gnome.gnome-settings-daemon gnome2.GConf ];
+  services.udev.packages = with pkgs; [ gnome-settings-daemon gnome2.GConf ];
 
   # Configure installed packages
   environment.systemPackages = with pkgs; [
