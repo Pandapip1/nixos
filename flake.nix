@@ -21,10 +21,6 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    vector = {
-      url = "github:3webs-org/vector";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -59,24 +55,9 @@
                   in
                   [
                     (fetchpatch {
-                      name = "init-stardust-xr-server.patch";
-                      url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324375.patch";
-                      hash = "sha256-qQY1ZGVGf4GTBm7bIofsS2VExzIFnHufMhRp2iUbzMc=";
-                    })
-                    (fetchpatch {
-                      name = "init-stardust-xr-flatland.patch";
-                      url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324395.patch";
-                      hash = "sha256-VtIC40bHzlx9iYktttd7nsi3WKs3h00u3OalSTguNbc=";
-                    })
-                    (fetchpatch {
-                      name = "init-stardust-xr-kiara.patch";
-                      url = "https://patch-diff.githubusercontent.com/raw/NixOS/nixpkgs/pull/324404.patch";
-                      hash = "sha256-jt5iiof2o4GULIhwzuXtUGQbrh0fM8LKMjUut7huDIo=";
-                    })
-                    (fetchpatch {
                       name = "fix-qgc.patch";
-                      url = "https://github.com/NixOS/nixpkgs/compare/21576aba43e604a95cc45c25248f39f3989ebe36...3fdc6949a41c018dedb13d5f63626400e18363a3.patch";
-                      hash = "sha256-LYPPQUk91MgO234MCOnAli+qxuTL7OPF5erWIHtXHSM=";
+                      url = "https://github.com/NixOS/nixpkgs/compare/master..63f73b59b18aef477f34336a53ced6ef0f52a7d5.patch";
+                      hash = "sha256-a4bUZLqPFtXbbrsoQFUj86RLwuQtE/83iA+XhEZYKRw=";
                     })
                   ];
               };

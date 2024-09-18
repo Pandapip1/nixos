@@ -1,4 +1,4 @@
-{ system, vector, config, lib, pkgs, ... }:
+/*{ system, vector, config, lib, pkgs, ... }:
 
 with lib;
 
@@ -18,3 +18,6 @@ in {
     ];
   };
 }
+*/
+
+{}
