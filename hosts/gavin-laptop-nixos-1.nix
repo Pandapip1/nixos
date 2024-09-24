@@ -11,7 +11,6 @@
     ../applications/codium.nix
     # Users
     ../users/gavin.nix
-    ../users/guest.nix
     # Hardware
     nixos-hardware.nixosModules.lenovo-thinkpad-t480s
   ];
