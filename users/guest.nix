@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 
 {
-  users.users.gavin = {
+  users.users.guest = {
     isNormalUser = true;
     description = "guest";
   };
