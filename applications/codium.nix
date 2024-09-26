@@ -19,12 +19,12 @@
         github.copilot-chat
         # Languages
         ms-python.python
-        vscode-extensions.james-yu.latex-workshop
+        james-yu.latex-workshop
         bbenoist.nix
         rust-lang.rust-analyzer
         reditorsupport.r
         # Language Packs
-        vscode-extensions.vscjava.vscode-java-pack
+        vscjava.vscode-java-pack
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "remote-ssh-edit";
