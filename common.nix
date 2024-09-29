@@ -26,6 +26,7 @@
       };
       efi.canTouchEfiVariables = true;
     };
+    initrd.systemd.enable = true;
     tmp.cleanOnBoot = true;
     kernelPackages = pkgs.linuxPackages_latest;
   };
