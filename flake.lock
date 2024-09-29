@@ -162,15 +162,16 @@
     },
     "nixos-hardware": {
       "locked": {
-        "lastModified": 1727613673,
-        "narHash": "sha256-qqIffTQfxMYo3MKQ9BoY2s2mdKZNnUiksdnxv81js9U=",
-        "owner": "NixOS",
+        "lastModified": 1727652863,
+        "narHash": "sha256-KUojXAmI5nLfwTqKbG43WIDWc40fD/q5eW53rIfeg4M=",
+        "owner": "Pandapip1",
         "repo": "nixos-hardware",
-        "rev": "f5c239fa9acb27f0a5326ba2949c00fada89ca9f",
+        "rev": "a53ca667df44b1e02659f73f720bb20fc4b202bd",
         "type": "github"
       },
       "original": {
-        "owner": "NixOS",
+        "owner": "Pandapip1",
+        "ref": "enable-t480s-gpu-acceleration",
         "repo": "nixos-hardware",
         "type": "github"
       }
