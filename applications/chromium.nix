@@ -3,7 +3,17 @@
 {
   # Configure installed packages
   environment.systemPackages = with pkgs; [
-    chromium
+    (chromium.override {
+      commandLineArgs = [
+        "--enable-features=Vulkan,VulkanFromANGLE,DefaultANGLEVulkan,VaapiIgnoreDriverChecks,VaapiVideoDecoder,UseMultiPlaneFormatForHardwareVideo"
+        "--ignore-gpu-blocklist"
+        "--enable-zero-copy"
+        "--use-gl=angle"
+        "--use-angle=vulkan"
+        "--enable-accelerated-video-decode"
+        "--ozone-platform=wayland"
+      ];
+    })
   ];
   programs.chromium = {
     enable = true;
