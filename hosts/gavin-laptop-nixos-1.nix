@@ -40,5 +40,11 @@
 
   swapDevices = [ ];
 
+  virtualisation.podman ={
+    enable = true;
+    dockerCompat = true;
+    dockerSocket.enable = true;
+  };
+
   nixpkgs.hostPlatform = "x86_64-linux";
 }
