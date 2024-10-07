@@ -24,7 +24,7 @@
         bbenoist.nix
         rust-lang.rust-analyzer
         reditorsupport.r
-        yzane.markdown-pdf
+        chrischinchilla.vscode-pandoc
         # Language Packs
         vscjava.vscode-java-pack
       ];

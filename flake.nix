@@ -64,6 +64,11 @@
                       url = "https://github.com/NixOS/nixpkgs/compare/master..1bbfbb0680e52c821f8b706571edeefb990d86c9.patch";
                       hash = "sha256-hMSx+55pOffThkqXW32xR/eS9olHseJwARAdGGlTjIA=";
                     })
+                    (fetchpatch {
+                      name = "init-vscode-pandoc.patch";
+                      url = "https://github.com/NixOS/nixpkgs/compare/master..40249bdadb5b5fd7d0ddb7c13cc05ccc376ca64a.patch";
+                      hash = "sha256-bzj3KD3ClRpy9560varDoIDrdjI/N2VrAyWMztpDuDo=";
+                    })
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
