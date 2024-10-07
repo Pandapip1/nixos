@@ -59,6 +59,11 @@
                       url = "https://github.com/NixOS/nixpkgs/compare/master..e990c276a96d1b1013299c0b0d05af4b2cef2835.patch";
                       hash = "sha256-WmBpQ89t/jDuOk2QrX54rPPDDMLpzZerFKN1a7imwsU=";
                     })
+                    (fetchpatch {
+                      name = "init-vscode-markdown-to-pdf.patch";
+                      url = "https://github.com/NixOS/nixpkgs/compare/master..96c289baa43b67e6797b5c02fb300a734a50a199.patch";
+                      hash = "sha256-/gOmW9hTE02z9pIRDg1iw/ls374to5UtEsfau47A4/E=";
+                    })
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
