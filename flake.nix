@@ -61,8 +61,8 @@
                     })
                     (fetchpatch {
                       name = "init-vscode-markdown-to-pdf.patch";
-                      url = "https://github.com/NixOS/nixpkgs/compare/master..96c289baa43b67e6797b5c02fb300a734a50a199.patch";
-                      hash = "sha256-/gOmW9hTE02z9pIRDg1iw/ls374to5UtEsfau47A4/E=";
+                      url = "https://github.com/NixOS/nixpkgs/compare/master..1bbfbb0680e52c821f8b706571edeefb990d86c9.patch";
+                      hash = "sha256-hMSx+55pOffThkqXW32xR/eS9olHseJwARAdGGlTjIA=";
                     })
                   ];
               };
