@@ -53,7 +53,6 @@
       carps-cups
       canon-cups-ufr2
       # Epson
-      epson-workforce-635-nx625-series
       epson-escpr
       # Samsung
       splix
