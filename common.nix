@@ -2,7 +2,13 @@
 
 {
   nix = {
-    settings.experimental-features = [ "nix-command" "flakes" ];
+    settings = {
+      trusted-substituters = [
+        "https://nixos-search.cachix.org"
+        "https://hydra.nixos.org/"
+      ];
+      experimental-features = [ "nix-command" "flakes" ];
+    };
     registry = {
       nixpkgs.to = {
         type = "path";
