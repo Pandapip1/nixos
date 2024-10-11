@@ -11,6 +11,9 @@
         "nixos-search.cachix.org-1:1HV3YF8az4fywnH+pAd+CXFEdpTXtv9WpoivPi+H70o="
         "hydra.nixos.org-1:CNHJZBh9K4tP3EKF6FkkgeVYsS3ohTl+oS0Qa8bezVs="
       ];
+      trusted-users = [
+        "@wheel"
+      ];
       experimental-features = [ "nix-command" "flakes" ];
     };
     registry = {
