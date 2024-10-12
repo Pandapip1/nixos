@@ -2,8 +2,6 @@
 
 {
   imports = [
-    # GNOME Desktop Environment
-    ../environments/gnome.nix
     # Services
     ../services/nebula.nix
     # Applications
@@ -45,6 +43,10 @@
     dockerCompat = true;
     dockerSocket.enable = true;
   };
+
+  # COSMIC Desktop
+  services.desktopManager.cosmic.enable = true;
+  services.displayManager.cosmic-greeter.enable = true;
 
   nixpkgs.hostPlatform = "x86_64-linux";
 }

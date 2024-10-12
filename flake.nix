@@ -63,6 +63,11 @@
                     fetchpatch = pkgs-unpatched.fetchpatch;
                   in
                   [
+                    (fetchpatch {
+                      name = "init-cosmic-wallpapers.patch";
+                      url = "https://github.com/NixOS/nixpkgs/compare/master..6fdc38a038528f57ab2e48802a92c28f432614c9.patch";
+                      hash = "sha256-FaRTb7c9tHRq6pfItvmmsi4gWA9d4PAWME623YQRMkM=";
+                    })
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
