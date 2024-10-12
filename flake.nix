@@ -71,12 +71,6 @@
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
-              pkgs = (import nixpkgs-patched {
-                inherit system;
-                config = {
-                  allowUnfree = true;
-                };
-              }); # TODO: Is there a way to put allowUnfree in common.nix?
               modules = map (s: "${modulesDir}/${s}") (
                 builtins.attrNames (builtins.readDir modulesDir)
               );
@@ -84,7 +78,7 @@
             nixpkgs-patched.lib.nixosSystem {
               inherit system;
               specialArgs = inputs // {
-                inherit system hostname pkgs;
+                inherit system hostname;
               };
               modules = [
                 ./common.nix

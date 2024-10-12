@@ -31,6 +31,8 @@
     package = pkgs.nixVersions.latest;
   };
 
+  nixpkgs.config.allowUnfree = true;
+
   boot = {
     loader = {
       systemd-boot = {
