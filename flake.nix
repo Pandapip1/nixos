@@ -54,11 +54,6 @@
                     fetchpatch = pkgs-unpatched.fetchpatch;
                   in
                   [
-                    (fetchpatch {
-                      name = "fix-qgc.patch";
-                      url = "https://github.com/NixOS/nixpkgs/compare/master..e990c276a96d1b1013299c0b0d05af4b2cef2835.patch";
-                      hash = "sha256-WmBpQ89t/jDuOk2QrX54rPPDDMLpzZerFKN1a7imwsU=";
-                    })
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
