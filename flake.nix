@@ -5,12 +5,21 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable-small";
     getFlake.url = "github:ursi/get-flake";
     flake-utils.url = "github:numtide/flake-utils";
+    flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     comma = {
       url = "github:Pandapip1/comma/command-not-found-handle";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         utils.follows = "flake-utils";
+        flake-compat.follows = "flake-compat";
+      };
+    };
+    nixos-cosmic = {
+      url = "github:lilyinstarlight/nixos-cosmic";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
       };
     };
     jovian = {
@@ -76,6 +85,13 @@
                 ./common.nix
                 (hostsDir + "/${hostname}.nix")
                 inputs.home-manager.nixosModules.default
+                {
+                  nix.settings = {
+                    substituters = [ "https://cosmic.cachix.org/" ];
+                    trusted-public-keys = [ "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE=" ];
+                  };
+                }
+                inputs.nixos-cosmic.nixosModules.default
               ] ++ modules;
             };
         }) hosts
