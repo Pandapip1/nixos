@@ -188,15 +188,16 @@
     },
     "nixos-hardware": {
       "locked": {
-        "lastModified": 1728269138,
-        "narHash": "sha256-oKxDImsOvgUZMY4NwXVyUc/c1HiU2qInX+b5BU0yXls=",
-        "owner": "NixOS",
+        "lastModified": 1728584597,
+        "narHash": "sha256-9cORMv1rZqbY1hjeF5u7pt35f/nS8+C5e9ZmANW1XsQ=",
+        "owner": "Pandapip1",
         "repo": "nixos-hardware",
-        "rev": "ecfcd787f373f43307d764762e139a7cdeb9c22b",
+        "rev": "e50dfbe09e0e19cb5697d8befe213be7cf5e08d0",
         "type": "github"
       },
       "original": {
-        "owner": "NixOS",
+        "owner": "Pandapip1",
+        "ref": "general-intel-gpu-compat-stuff",
         "repo": "nixos-hardware",
         "type": "github"
       }
