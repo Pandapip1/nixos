@@ -6,7 +6,7 @@
     getFlake.url = "github:ursi/get-flake";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
-    nixos-hardware.url = "github:Pandapip1/nixos-hardware/general-intel-gpu-compat-stuff-v2";
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
     comma = {
       url = "github:Pandapip1/comma/command-not-found-handle";
       inputs = {
