@@ -7,6 +7,10 @@
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:Pandapip1/nixos-hardware/remove-intel-ocl";
+    genix7000 = {
+      url = "github:cab404/genix7000";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     comma = {
       url = "github:Pandapip1/comma/command-not-found-handle";
       inputs = {
@@ -63,11 +67,6 @@
                     fetchpatch = pkgs-unpatched.fetchpatch;
                   in
                   [
-                    (fetchpatch {
-                      name = "init-cosmic-wallpapers.patch";
-                      url = "https://github.com/NixOS/nixpkgs/compare/master..6fdc38a038528f57ab2e48802a92c28f432614c9.patch";
-                      hash = "sha256-FaRTb7c9tHRq6pfItvmmsi4gWA9d4PAWME623YQRMkM=";
-                    })
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
