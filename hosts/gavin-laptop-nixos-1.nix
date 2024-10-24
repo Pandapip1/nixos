@@ -46,10 +46,6 @@
   # COSMIC Desktop
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
-  # Pinentry
-  programs.gnupg.agent = {
-    pinentryPackage = pkgs.pinentry-gnome3;
-  };
 
   nixpkgs.hostPlatform = "x86_64-linux";
 }
