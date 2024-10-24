@@ -2,8 +2,6 @@
 
 {
   imports = [
-    # GNOME Desktop Environment
-    ../environments/gnome.nix
     # Applications
     ../applications/chromium.nix
     ../applications/codium.nix
