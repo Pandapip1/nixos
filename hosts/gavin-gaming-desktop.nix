@@ -46,7 +46,6 @@
     qgroundcontrol.enable = true;
     immersed-vr.enable = true;
     minecraft-client.enable = true;
-    #vector.enable = true;
     localsend.enable = true;
     envision.enable = true;
     corectrl = {

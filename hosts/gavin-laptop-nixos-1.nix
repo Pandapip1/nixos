@@ -15,7 +15,6 @@
 
   programs = {
     localsend.enable = true;
-    #vector.enable = true;
     envision.enable = true;
     zed.enable = true;
     qgroundcontrol.enable = true;

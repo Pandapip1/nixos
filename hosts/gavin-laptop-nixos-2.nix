@@ -14,7 +14,6 @@
   ];
 
   programs = {
-    vector.enable = true;
     envision.enable = true;
   };
 }
