@@ -67,6 +67,10 @@
                     fetchpatch = pkgs-unpatched.fetchpatch;
                   in
                   [
+                    (fetchpatch {
+                      url = "https://github.com/NixOS/nixpkgs/commit/92298a22b087b4f98ab1b613dbdf8ecacfa57443.patch";
+                      hash = "sha256-pJgMrLm2NPRLOOgAev+ZB4UUBIeJ8WmcIkkzI14OSTk=";
+                    })
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
