@@ -229,7 +229,7 @@
 
   programs.starship = {
     enable = true;
-    presets = [ "tokyo-night" "nerd-font" ];
+    presets = [ "tokyo-night" "nerd-font-symbols" ];
     settings = {
       command_timeout = 2000;
     };
