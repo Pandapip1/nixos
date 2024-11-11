@@ -16,7 +16,7 @@
   programs = {
     localsend.enable = true;
     envision.enable = true;
-    zed.enable = true;
+    # zed.enable = true;
     qgroundcontrol.enable = true;
   };
 
@@ -44,8 +44,13 @@
   };
 
   # COSMIC Desktop
-  services.desktopManager.cosmic.enable = true;
-  services.displayManager.cosmic-greeter.enable = true;
+  #services.desktopManager.cosmic.enable = true;
+  #services.displayManager.cosmic-greeter.enable = true;
+
+  # KDE Plasma
+  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true;
+  services.desktopManager.plasma6.enable = true;
 
   nixpkgs.hostPlatform = "x86_64-linux";
 }

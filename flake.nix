@@ -6,7 +6,7 @@
     getFlake.url = "github:ursi/get-flake";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
-    nixos-hardware.url = "github:Pandapip1/nixos-hardware/remove-intel-ocl";
+    nixos-hardware.url = "github:nixos/nixos-hardware";
     genix7000 = {
       url = "github:cab404/genix7000";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -67,10 +67,6 @@
                     fetchpatch = pkgs-unpatched.fetchpatch;
                   in
                   [
-                    (fetchpatch {
-                      url = "https://github.com/NixOS/nixpkgs/commit/92298a22b087b4f98ab1b613dbdf8ecacfa57443.patch";
-                      hash = "sha256-pJgMrLm2NPRLOOgAev+ZB4UUBIeJ8WmcIkkzI14OSTk=";
-                    })
                   ];
               };
               nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
