@@ -202,12 +202,24 @@
     ];
   };
 
-  fonts.packages = with pkgs; [
-    noto-fonts
-    noto-fonts-cjk-sans
-    noto-fonts-emoji
-    nerdfonts
-  ];
+  fonts = {
+    fontDir.enable = true;
+    fontconfig = {
+      enable = true;
+      defaultFonts = {
+        serif = [ "Noto Serif" ];
+        sansSerif = [ "Noto Sans" ];
+        monospace = [ "Noto Mono" ];
+        emoji = [ "Noto Color Emoji" ];
+      };
+    };
+    packages = with pkgs; [
+      noto-fonts
+      noto-fonts-cjk-sans
+      noto-fonts-emoji
+      nerdfonts
+    ];
+  };
 
   programs.git = {
     enable = true;
