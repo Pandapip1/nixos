@@ -227,7 +227,13 @@
     lfs.enable = true;
   };
 
-  programs.starship.enable = true;
+  programs.starship = {
+    enable = true;
+    presets = [ "tokyo-night" "nerd-font" ];
+    settings = {
+      command_timeout = 2000;
+    };
+  };
 
   # nix-ld
   programs.nix-ld.enable = true;
