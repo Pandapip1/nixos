@@ -150,6 +150,7 @@
     git
     gnupg
     vim
+    adwaita-icon-theme-legacy
   ]) ++ [ comma.packages."${system}".comma ];
 
   home-manager = {

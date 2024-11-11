@@ -35,7 +35,6 @@
   environment.systemPackages = with pkgs; [
     blackbox-terminal
     adwaita-icon-theme
-    gnomeExtensions.appindicator
   ];
   services.xserver.excludePackages = with pkgs; [
     xterm

@@ -37,7 +37,6 @@
   # Configure installed packages
   environment.systemPackages = with pkgs; [
     blackbox-terminal
-    adwaita-icon-theme
     thunderbird
     gnomeExtensions.appindicator
   ];
