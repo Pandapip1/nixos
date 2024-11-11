@@ -125,7 +125,7 @@
   location.provider = "geoclue2";
 
   i18n = {
-    supportedLocales = "all";
+    supportedLocales = [ "all" ];
     defaultLocale = "en_US.UTF-8";
     extraLocaleSettings = {
       LC_ADDRESS = "en_US.UTF-8";
