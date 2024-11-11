@@ -236,11 +236,11 @@
   };
 
   # Use Adwaita theme
-  qt = {
-    enable = true;
-    platformTheme = "gnome";
-    style = "adwaita-dark";
-  };
+  # qt = {
+  #   enable = true;
+  #   platformTheme = "gnome";
+  #   style = "adwaita-dark";
+  # };
 
   # nix-ld
   programs.nix-ld.enable = true;
