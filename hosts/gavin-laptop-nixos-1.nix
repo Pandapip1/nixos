@@ -43,10 +43,6 @@
     dockerSocket.enable = true;
   };
 
-  # COSMIC Desktop
-  #services.desktopManager.cosmic.enable = true;
-  #services.displayManager.cosmic-greeter.enable = true;
-
   # KDE Plasma
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;

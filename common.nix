@@ -5,12 +5,10 @@
     settings = {
       trusted-substituters = [
         "https://nixos-search.cachix.org"
-        "https://cosmic.cachix.org/"
         "https://hydra.nixos.org/"
       ];
       trusted-public-keys = [
         "nixos-search.cachix.org-1:1HV3YF8az4fywnH+pAd+CXFEdpTXtv9WpoivPi+H70o="
-        "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="
         "hydra.nixos.org-1:CNHJZBh9K4tP3EKF6FkkgeVYsS3ohTl+oS0Qa8bezVs="
       ];
       trusted-users = [

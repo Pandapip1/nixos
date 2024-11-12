@@ -7,10 +7,6 @@
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:nixos/nixos-hardware";
-    genix7000 = {
-      url = "github:cab404/genix7000";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     comma = {
       url = "github:Pandapip1/comma/command-not-found-handle";
       inputs = {
@@ -18,17 +14,6 @@
         utils.follows = "flake-utils";
         flake-compat.follows = "flake-compat";
       };
-    };
-    nixos-cosmic = {
-      url = "github:lilyinstarlight/nixos-cosmic";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-compat.follows = "flake-compat";
-      };
-    };
-    jovian = {
-      url = "github:Jovian-Experiments/Jovian-NixOS";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -83,7 +68,6 @@
                 ./common.nix
                 (hostsDir + "/${hostname}.nix")
                 inputs.home-manager.nixosModules.default
-                inputs.nixos-cosmic.nixosModules.default
               ] ++ modules;
             };
         }) hosts
