@@ -220,8 +220,7 @@
       noto-fonts
       noto-fonts-cjk-sans
       noto-fonts-emoji
-      nerdfonts
-    ];
+    ] ++ (builtins.filter lib.isDerivation (builtins.attrValues pkgs.nerd-fonts));
   };
 
   programs.git = {
