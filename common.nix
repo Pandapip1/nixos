@@ -230,7 +230,7 @@
 
   programs.starship = {
     enable = true;
-    presets = [ "gruvbox-rainbow" "nerd-font-symbols" ];
+    presets = [ "nerd-font-symbols" ];
     settings = {
       command_timeout = 2000;
     };
