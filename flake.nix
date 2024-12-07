@@ -15,6 +15,10 @@
         flake-compat.follows = "flake-compat";
       };
     };
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -67,6 +71,7 @@
               modules = [
                 ./common.nix
                 (hostsDir + "/${hostname}.nix")
+                inputs.nur.modules.nixos.default
                 inputs.home-manager.nixosModules.default
               ] ++ modules;
             };
