@@ -7,6 +7,10 @@
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:nixos/nixos-hardware";
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     comma = {
       url = "github:Pandapip1/comma/command-not-found-handle";
       inputs = {
@@ -72,6 +76,7 @@
                 ./common.nix
                 (hostsDir + "/${hostname}.nix")
                 inputs.nur.modules.nixos.default
+                inputs.nix-index-database.nixosModules.nix-index
                 inputs.home-manager.nixosModules.default
               ] ++ modules;
             };

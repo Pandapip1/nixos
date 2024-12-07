@@ -1,4 +1,4 @@
-{ lib, config, pkgs, nixpkgs, hostname, comma, system, ... }:
+{ lib, config, pkgs, nix-index-database, nixpkgs, hostname, comma, system, ... }:
 
 {
   nix = {
@@ -76,27 +76,8 @@
     enableBashIntegration = false;
   };
   programs.command-not-found.enable = false;
-  systemd.services.nix-index = {
-    description = "Nix Indexer";
-    script = ''
-      mkdir -p /var/cache/nix-index/
-      umask 022
-      ${lib.getExe' pkgs.nix-index "nix-index"}
-    '';
-    environment = {
-      NIX_INDEX_DATABASE = "/var/cache/nix-index/";
-      NIX_PATH = "nixpkgs=flake:nixpkgs:${lib.escapeShellArg nixpkgs.outPath}";
-    };
-    serviceConfig.Type = "oneshot";
-    startAt = "daily";
-  };
-  systemd.timers.nix-index = {
-    timerConfig = {
-      Persistent = true;
-    };
-  };
   environment.variables = {
-    NIX_INDEX_DATABASE = "/var/cache/nix-index/";
+    NIX_INDEX_DATABASE = "${nix-index-database.packages."${system}".nix-index-with-db}/share/cache/nix-index";
   };
 
   # Auto GC every day
