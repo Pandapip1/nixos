@@ -48,5 +48,14 @@
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
 
+  # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
+  services.undervolt = {
+    enable = true;
+    coreOffset = -100;
+    uncoreOffset = -100;
+    gpuOffset = -100;
+    analogioOffset = -100;
+  };
+
   nixpkgs.hostPlatform = "x86_64-linux";
 }
