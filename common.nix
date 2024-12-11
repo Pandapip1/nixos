@@ -234,8 +234,6 @@
     xorg.libXtst
     xorg.libXi
     fontconfig
-    # TODO: STM32_Programmer_CLI
-    libusb1
   ];
 
   # This value determines the NixOS release from which the default
