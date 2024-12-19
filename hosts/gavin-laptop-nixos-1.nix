@@ -52,9 +52,9 @@
   services.undervolt = {
     enable = true;
     coreOffset = -100;
-    uncoreOffset = -100;
-    gpuOffset = -100;
-    analogioOffset = -100;
+    uncoreOffset = 0;
+    gpuOffset = 0;
+    analogioOffset = 0;
   };
 
   nixpkgs.hostPlatform = "x86_64-linux";
