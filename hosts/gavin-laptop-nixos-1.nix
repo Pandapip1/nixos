@@ -5,7 +5,7 @@
     # Services
     ../services/nebula.nix
     # Applications
-    ../applications/chromium.nix
+    # ../applications/chromium.nix
     ../applications/codium.nix
     # Users
     ../users/gavin.nix

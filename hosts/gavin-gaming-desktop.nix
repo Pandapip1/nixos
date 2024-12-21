@@ -3,7 +3,7 @@
 {
   imports = [
     # Applications
-    ../applications/chromium.nix
+    # ../applications/chromium.nix
     ../applications/codium.nix
     ../applications/steam.nix
     # Users
