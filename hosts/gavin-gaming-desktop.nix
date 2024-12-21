@@ -43,7 +43,6 @@
   programs = {
     qgroundcontrol.enable = true;
     immersed-vr.enable = true;
-    minecraft-client.enable = true;
     localsend.enable = true;
     envision.enable = true;
     corectrl = {
