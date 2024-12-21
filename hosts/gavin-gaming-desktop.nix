@@ -1,4 +1,4 @@
-{ nixos-hardware, pkgs ? null, lib ? null, ... }:
+{ nixos-hardware, lib ? null, ... }:
 
 {
   imports = [
@@ -63,6 +63,6 @@
   #services.desktopManager.plasma6.enable = true;
 
   nixpkgs.hostPlatform = "x86_64-linux";
-} // (if pkgs == null then {} else {
+}# // (if pkgs == null then {} else {
   #programs.ssh.askPassword = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
-})
+#})
