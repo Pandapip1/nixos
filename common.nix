@@ -153,7 +153,7 @@
   hardware.gpgSmartcards.enable = true;
   hardware.bluetooth.enable = true;
   hardware.trackpoint.enable = true;
-  hardware.pulseaudio.enable = false; # Use pipewire instead
+  services.pulseaudio.enable = false; # Use pipewire instead
   hardware.flipperzero.enable = true;
   hardware.usb-modeswitch.enable = true;
 
