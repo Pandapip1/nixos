@@ -25,6 +25,7 @@
               { nativeBuildInputs = [ pkgs.nix ]; }
               "nix-hash --type sha256 --sri ${pkgs.path} > $out");
       };
+      # TODO: Add nixos-config for nixos-option command
     };
     nixPath = lib.mkForce [ "nixpkgs=${nixpkgs.outPath}" ];
     channel.enable = false;
