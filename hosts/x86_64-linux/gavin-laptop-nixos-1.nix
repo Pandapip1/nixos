@@ -1,14 +1,18 @@
-{ nixos-hardware, ... }:
+{
+  pkgs,
+  nixos-hardware,
+  ...
+}:
 
 {
   imports = [
     # Services
-    ../services/nebula.nix
+    ../../services/nebula.nix
     # Applications
     # ../applications/chromium.nix
-    ../applications/codium.nix
+    ../../applications/codium.nix
     # Users
-    ../users/gavin.nix
+    ../../users/gavin.nix
     # Hardware
     nixos-hardware.nixosModules.lenovo-thinkpad-t480s
   ];

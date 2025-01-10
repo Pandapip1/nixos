@@ -3,9 +3,9 @@
 {
   imports = [
     # Services
-    ../services/nebula.nix
-    ../services/openssh.nix
+    ../../services/nebula.nix
+    ../../services/openssh.nix
     # Users
-    ../users/gavin.nix
+    ../../users/gavin.nix
   ];
 }
