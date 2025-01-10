@@ -84,7 +84,7 @@
                   };
                   modules = [
                     ./common.nix
-                    (hostsDir + "/${hostname}.nix")
+                    (hostsDir + "/${system}/${hostname}.nix")
                     inputs.nur.modules.nixos.default
                     inputs.nix-index-database.nixosModules.nix-index
                     inputs.home-manager.nixosModules.default
