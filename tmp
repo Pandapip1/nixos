@@ -1,0 +1,7 @@
+
+
+  # Renice daemon so that KDE plasma can stop freaking freezing
+  services.ananicy = {
+    enable = true;
+    package = pkgs.ananicy-cpp;
+  };

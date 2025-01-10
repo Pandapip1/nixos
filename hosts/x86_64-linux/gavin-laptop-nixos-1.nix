@@ -56,6 +56,4 @@
     gpuOffset = 0;
     analogioOffset = 0;
   };
-
-  nixpkgs.hostPlatform = "x86_64-linux";
 }
