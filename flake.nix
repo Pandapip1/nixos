@@ -23,10 +23,6 @@
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -87,7 +83,6 @@
                     (hostsDir + "/${system}/${hostname}.nix")
                     inputs.nur.modules.nixos.default
                     inputs.nix-index-database.nixosModules.nix-index
-                    inputs.home-manager.nixosModules.default
                     {
                       nixpkgs.hostPlatform = system;
                     }

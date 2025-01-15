@@ -137,16 +137,6 @@
     adwaita-icon-theme-legacy
   ]) ++ [ comma.packages."${system}".comma ];
 
-  home-manager = {
-    useGlobalPkgs = true;
-    backupFileExtension = "backup";
-    sharedModules = [
-      {
-        home.stateVersion = "23.11";
-      }
-    ];
-  };
-
   # Enable kubo, an IPFS client
   services.kubo = {
     enable = true;
