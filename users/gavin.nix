@@ -1,10 +1,23 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   users.users.gavin = {
     isNormalUser = true;
     description = "gavin";
-    extraGroups = [ "networkmanager" "wheel" "disk" "corectrl" "dialout" "podman" "plugdev" ];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "disk"
+      "corectrl"
+      "dialout"
+      "podman"
+      "plugdev"
+    ] ++ lib.optional config.services.kubo.enable config.services.kubo.group;
     packages = with pkgs; [ ];
     openssh = {
       authorizedKeys.keys = [
@@ -13,5 +26,5 @@
     };
   };
   services.xserver.desktopManager.phosh.user = "gavin";
-  home-manager.users.gavin = {};
+  home-manager.users.gavin = { };
 }
