@@ -147,6 +147,12 @@
     ];
   };
 
+  # Enable kubo, an IPFS client
+  services.kubo = {
+    enable = true;
+    autoMount = true;
+  };
+
   services.pcscd.enable = true;
   
   hardware.mcelog.enable = true;
