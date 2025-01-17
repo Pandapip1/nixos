@@ -104,15 +104,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1736978230,
-        "narHash": "sha256-f5SH4qQzRWYKwIjpzOuhI9mPwlyNcBWjr2mrCKLgml4=",
-        "owner": "StevenBlack",
+        "lastModified": 1737142871,
+        "narHash": "sha256-DKYeP7s36lc2Io1dEMTaOxAP9ZD0G6y1MfU/JAq2TeA=",
+        "owner": "Pandapip1",
         "repo": "hosts",
-        "rev": "1b19054c880e1ea75c73dfbeb3fb071c2bf08e1f",
+        "rev": "7147e45ec5e7ca196fb54141ab438ddab5a3c91f",
         "type": "github"
       },
       "original": {
-        "owner": "StevenBlack",
+        "owner": "Pandapip1",
+        "ref": "ipv6-flake",
         "repo": "hosts",
         "type": "github"
       }
