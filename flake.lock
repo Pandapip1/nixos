@@ -104,11 +104,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1737143058,
-        "narHash": "sha256-45X0E7kx9bmMltEX96mx+osjXlmWOnIQ8IrsVQ/2DyU=",
+        "lastModified": 1737143353,
+        "narHash": "sha256-YaCHFT5N3RjE7HfAVUrQfPMUvbA7D35bjZOT3KreGwI=",
         "owner": "Pandapip1",
         "repo": "hosts",
-        "rev": "55ad4dc62333138ef40e832c4265af375ebab037",
+        "rev": "cf34678c8999369b73e038b489dbc56398a5bd2f",
         "type": "github"
       },
       "original": {
