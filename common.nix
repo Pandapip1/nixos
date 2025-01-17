@@ -136,6 +136,11 @@
     adwaita-icon-theme-legacy
   ]) ++ [ comma.packages."${system}".comma ];
 
+  # Local hosts blocklist
+  networking.stevenBlackHosts = {
+    enable = true;
+  };
+
   # Enable kubo, an IPFS client
   services.kubo = {
     enable = true;

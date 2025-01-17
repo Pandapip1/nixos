@@ -97,6 +97,26 @@
         "type": "github"
       }
     },
+    "hosts": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1736978230,
+        "narHash": "sha256-f5SH4qQzRWYKwIjpzOuhI9mPwlyNcBWjr2mrCKLgml4=",
+        "owner": "StevenBlack",
+        "repo": "hosts",
+        "rev": "1b19054c880e1ea75c73dfbeb3fb071c2bf08e1f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "StevenBlack",
+        "repo": "hosts",
+        "type": "github"
+      }
+    },
     "naersk": {
       "inputs": {
         "nixpkgs": [
@@ -198,6 +218,7 @@
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "getFlake": "getFlake",
+        "hosts": "hosts",
         "nix-index-database": "nix-index-database",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
