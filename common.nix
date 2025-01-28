@@ -156,6 +156,7 @@
   services.pulseaudio.enable = false; # Use pipewire instead
   hardware.flipperzero.enable = true;
   hardware.usb-modeswitch.enable = true;
+  hardware.rtl-sdr.enable = true;
 
   services.hardware.bolt.enable = true;
 
