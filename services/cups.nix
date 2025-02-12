@@ -3,6 +3,7 @@
 {
   services.printing = {
     enable = true;
+    startWhenNeeded = false;
     drivers = with pkgs; [
       cups-pdf-to-pdf
       gutenprint
