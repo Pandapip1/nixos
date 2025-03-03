@@ -28,7 +28,7 @@
   };
 
   services = {
-    sdrPlay.enable = true;
+    sdrplayApi.enable = true;
   };
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "uas" "sd_mod" ];
