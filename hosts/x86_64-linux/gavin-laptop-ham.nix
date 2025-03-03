@@ -18,18 +18,8 @@
     # TODO: nixos-hardware profile
   ];
 
-  nixpkgs.overlays = [
-    (self: super: {
-      soapysdr-with-plugins = super.soapysdr.override { extraPackages = [ super.soapysdrplay ]; };
-    })
-  ];
-
   programs = {
     xastir.enable = true;
-  };
-
-  services = {
-    sdrplayApi.enable = true;
   };
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "uas" "sd_mod" ];
