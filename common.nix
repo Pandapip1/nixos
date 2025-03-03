@@ -192,18 +192,7 @@
     fontDir.enable = true;
     fontconfig = {
       enable = true;
-      defaultFonts = {
-        serif = [ "Noto Serif" ];
-        sansSerif = [ "Noto Sans" ];
-        monospace = [ "Noto Mono" ];
-        emoji = [ "Noto Color Emoji" ];
-      };
     };
-    packages = with pkgs; [
-      noto-fonts
-      noto-fonts-cjk-sans
-      noto-fonts-emoji
-    ] ++ (builtins.filter lib.isDerivation (builtins.attrValues pkgs.nerd-fonts));
   };
 
   programs.git = {
