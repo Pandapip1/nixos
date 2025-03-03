@@ -8,7 +8,8 @@
 {
   imports = [
     # Services
-    ../../services/nebula.nix
+    # TODO: Add certs for nebula
+    #../../services/nebula.nix
     # Applications
     ../../applications/codium.nix
     # Users
