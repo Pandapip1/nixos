@@ -24,8 +24,11 @@
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "uas" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-intel" ];
+  boot.kernelModules = [ "kvm-intel" "snd-aloop" ];
   boot.extraModulePackages = [ ];
+  boot.extraModprobeConfig = ''
+    options snd-aloop index=1 id=APRS-Loop pcm_substreams=1 enable=1
+  '';
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/ce939f6b-10d0-40b1-8d88-bf720da3052b";
