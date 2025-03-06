@@ -48,6 +48,9 @@
     dockerSocket.enable = true;
   };
 
+  # GNOME settings daemon
+  services.gnome.gnome-settings-daemon.enable = true;
+
   # KDE Plasma
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
