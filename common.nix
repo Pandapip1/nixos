@@ -225,6 +225,11 @@
     xorg.libXtst
     xorg.libXi
     fontconfig
+    zlib
+    SDL2
+    gtk3
+    glib
+    libgcc
   ];
 
   # Renice daemon so that KDE plasma can stop freaking freezing
