@@ -208,11 +208,14 @@
     };
   };
 
-  # Avahi
+  # DNS / mDNS
+  services.resolved = {
+    enable = true;
+  };
   services.avahi = {
     enable = true;
-    nssmdns4 = true;
-    nssmdns6 = true;
+    nssmdns4 = false; # Handled by systemd-resolved
+    nssmdns6 = false; # Handled by systemd-resolved
     publish = {
       enable = true;
       addresses = true;
