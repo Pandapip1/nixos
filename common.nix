@@ -36,8 +36,8 @@
     allowUnfree = true;
     warnUndeclaredOptions = true;
     # WARNING: Below options cause mass rebuilds
-    cudaSupport = lib.mkDefault true;
-    rocmSupport = lib.mkDefault true;
+    #cudaSupport = lib.mkDefault true;
+    #rocmSupport = lib.mkDefault true;
   };
 
   documentation = {
