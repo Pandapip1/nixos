@@ -32,7 +32,13 @@
     package = pkgs.nixVersions.latest;
   };
 
-  nixpkgs.config.allowUnfree = true;
+  nixpkgs.config = {
+    allowUnfree = true;
+    warnUndeclaredOptions = true;
+    # WARNING: Below options cause mass rebuilds
+    cudaSupport = lib.mkDefault true;
+    rocmSupport = lib.mkDefault true;
+  };
 
   documentation = {
     enable = lib.mkDefault true;
