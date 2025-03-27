@@ -78,7 +78,7 @@
                   modules = map (s: "${modulesDir}/${s}") (builtins.attrNames (builtins.readDir modulesDir));
                 in
                 #nixpkgs-patched.lib.nixosSystem {
-                nixpkgs.lib.nixosSystem
+                nixpkgs.lib.nixosSystem {
                   inherit system;
                   specialArgs = inputs // {
                     inherit system hostname;
