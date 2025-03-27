@@ -34,7 +34,7 @@
 
   nixpkgs.config = {
     allowUnfree = true;
-    warnUndeclaredOptions = true;
+    #warnUndeclaredOptions = true;
     # WARNING: Below options cause mass rebuilds
     #cudaSupport = lib.mkDefault true;
     #rocmSupport = lib.mkDefault true;
