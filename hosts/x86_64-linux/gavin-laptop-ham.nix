@@ -31,12 +31,12 @@
   '';
 
   fileSystems."/" =
-    { device = "/dev/disk/by-uuid/ce939f6b-10d0-40b1-8d88-bf720da3052b";
+    { device = "/dev/disk/by-label/NIXROOT";
       fsType = "ext4";
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/7701-94D9";
+    { device = "/dev/disk/by-label/NIXBOOT";
       fsType = "vfat";
       options = [ "fmask=0022" "dmask=0022" ];
     };
@@ -45,7 +45,7 @@
     systemd-boot.enable = lib.mkForce false;
     grub = {
       enable = true;
-      device = "/dev/sda";
+      device = "/dev/by-id/ata-INTEL_SSDSC2CW240A3_CVCV230302Q0240CGN";
       default = "saved";
     };
   };
