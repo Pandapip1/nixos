@@ -1,4 +1,4 @@
-{
+\{
   lib,
   pkgs,
   nixos-hardware,
@@ -45,7 +45,7 @@
     systemd-boot.enable = lib.mkForce false;
     grub = {
       enable = true;
-      device = "/dev/by-id/ata-INTEL_SSDSC2CW240A3_CVCV230302Q0240CGN";
+      device = "/dev/disk/by-id/ata-INTEL_SSDSC2CW240A3_CVCV230302Q0240CGN";
       default = "saved";
     };
   };
