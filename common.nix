@@ -225,7 +225,7 @@
       };
       useEmbeddedBitmaps = true;
     };
-    packages = builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts)
+    packages = builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts);
   };
 
   programs.git = {
