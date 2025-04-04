@@ -20,9 +20,6 @@
 
   programs = {
     localsend.enable = true;
-    envision.enable = true;
-    # zed.enable = true;
-    qgroundcontrol.enable = true;
   };
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "sd_mod" ];
