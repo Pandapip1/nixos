@@ -26,6 +26,7 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
+  hardware.spacenavd.enable = true;
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/941197bb-1946-4607-8a36-0a71f3ccb918";
