@@ -50,14 +50,8 @@
   services.gnome.gnome-settings-daemon.enable = true;
 
   # KDE Plasma
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
-  services.desktopManager.plasma6.enable = true;
-  environment.etc."xdg/baloofilerc".source = (pkgs.formats.ini {}).generate "baloorc" {
-    "Basic Settings" = {
-      "Indexing-Enabled" = false;
-    };
-  };
+  services.displayManager.cosmic-greeter.enable = true;
+  services.desktopManager.cosmic.enable = true;
 
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
   services.undervolt = {
