@@ -49,9 +49,10 @@
   # GNOME settings daemon
   services.gnome.gnome-settings-daemon.enable = true;
 
-  # KDE Plasma
+  # COSMIC DE
   services.displayManager.cosmic-greeter.enable = true;
   services.desktopManager.cosmic.enable = true;
+  programs.gnupg.agent.pinentryPackage = pkgs.pinentry-qt;
 
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
   /* services.undervolt = {
