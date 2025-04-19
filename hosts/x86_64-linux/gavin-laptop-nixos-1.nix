@@ -54,11 +54,11 @@
   services.desktopManager.cosmic.enable = true;
 
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
-  services.undervolt = {
+  /* services.undervolt = {
     enable = true;
     coreOffset = -100;
     uncoreOffset = 0;
     gpuOffset = 0;
     analogioOffset = 0;
-  };
+  }; */
 }
