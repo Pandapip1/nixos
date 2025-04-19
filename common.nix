@@ -283,8 +283,11 @@
     libgcc
   ];
 
-  # kmscon for fancier tty
-  services.kmscon.enable = true;
+  # kmscon for fancier hardware-accelerated tty
+  services.kmscon = {
+    enable = true;
+    hwRender = true;
+  };
 
   # Renice daemon so that KDE plasma can stop freaking freezing
   services.ananicy = {
