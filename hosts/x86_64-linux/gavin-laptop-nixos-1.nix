@@ -62,4 +62,5 @@
     gpuOffset = 0;
     analogioOffset = 0;
   }; */
+  services.udev.packages = with pkgs; [ labelle ];
 }
