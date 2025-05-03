@@ -15,7 +15,9 @@
     # Users
     ../../users/gavin.nix
     # Hardware
-    # TODO: nixos-hardware profile
+    nixos-hardware.common.cpu.amd
+    nixos-hardware.common.gpu.amd
+    # TODO: proper nixos-hardware profile
   ];
 
   programs = {
