@@ -15,8 +15,9 @@
     # Users
     ../../users/gavin.nix
     # Hardware
-    nixos-hardware.nixosModules.common.cpu.amd
-    nixos-hardware.nixosModules.common.gpu.amd
+    nixos-hardware.nixosModules.common-cpu-amd
+    nixos-hardware.nixosModules.common-cpu-amd-pstate # TODO: Does this do anything
+    nixos-hardware.nixosModules.common-gpu-amd
     # TODO: proper nixos-hardware profile
   ];
 
