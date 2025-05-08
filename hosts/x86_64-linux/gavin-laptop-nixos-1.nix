@@ -54,6 +54,9 @@
   services.desktopManager.cosmic.enable = true;
   programs.gnupg.agent.pinentryPackage = pkgs.pinentry-qt;
 
+  services.speechd.enable = true;
+  programs.qgroundcontrol.enable = true;
+
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
   /* services.undervolt = {
     enable = true;
