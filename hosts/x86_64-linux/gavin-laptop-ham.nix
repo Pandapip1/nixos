@@ -14,6 +14,7 @@
     ../../applications/codium.nix
     # Users
     ../../users/gavin.nix
+    ../../users/priyanka.nix
     # Hardware
     nixos-hardware.nixosModules.common-cpu-amd
     nixos-hardware.nixosModules.common-cpu-amd-pstate # TODO: Does this do anything
@@ -60,6 +61,12 @@
     dockerCompat = true;
     dockerSocket.enable = true;
   };
+
+  environment.systemPackages = with pkgs; [
+    direwolf
+    gqrx
+    xastir
+  ];
 
   # KDE Plasma
   services.displayManager.sddm.enable = true;
