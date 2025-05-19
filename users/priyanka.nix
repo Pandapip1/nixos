@@ -11,6 +11,7 @@
     description = "priyanka";
     extraGroups = [
       "audio"
+      "plugdev"
     ];
     packages = with pkgs; [ ];
   };

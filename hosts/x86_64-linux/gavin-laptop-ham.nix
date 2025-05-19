@@ -68,6 +68,9 @@
     xastir
   ];
 
+  hardware.rtl-sdr.enable = true;
+  hardware.hackrf.enable = true;
+
   # KDE Plasma
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
