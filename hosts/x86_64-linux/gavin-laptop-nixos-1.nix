@@ -54,6 +54,9 @@
   services.desktopManager.cosmic.enable = true;
   programs.gnupg.agent.pinentryPackage = pkgs.pinentry-qt;
 
+  hardware.hackrf.enable = true;
+  hardware.rtl-sdr.enable = true;
+
   services.speechd.enable = true;
   programs.qgroundcontrol.enable = true;
 
