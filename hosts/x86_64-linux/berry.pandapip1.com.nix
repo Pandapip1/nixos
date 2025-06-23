@@ -20,9 +20,9 @@
   # We're legacy BIOS
   ec2.efi = false;
 
-  # Fix: Add ssm-user to wheel to stop:
   # Some definitions in `security.sudo.extraRules` refer to users other than 'root' or groups other than 'wheel'. Disable `config.security.sudo.execWheelOnly`, or adjust the rules.
-  users.users.ssm-user.extraGroups = [ "wheel" ];
+  # https://github.com/nix-community/srvos/issues/655
+  security.sudo.execWheelOnly = lib.mkForce false;
 
   documentation = {
     enable = true;
