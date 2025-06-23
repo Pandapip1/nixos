@@ -1,0 +1,60 @@
+static_host_map:
+  "10.0.0.1":
+    - "64.23.155.119:4242" # TODO: IPV6
+    - "lighthouse.3webs.org:4242"
+
+lighthouse:
+  am_lighthouse: false
+  interval: 60
+  hosts:
+    - "10.0.0.1"
+
+listen:
+  host: "::"
+  port: 4242
+
+punchy:
+  punch: true
+
+relay:
+  relays:
+    - 10.0.0.1
+  use_relays: true
+
+tun:
+  disabled: false
+  dev: nebula0
+  drop_local_broadcast: false
+  drop_multicast: false
+  tx_queue: 500
+  mtu: 1300
+
+  routes:
+
+  use_system_route_table: true
+
+logging:
+  level: info
+  format: json
+
+
+firewall:
+  outbound_action: drop
+  inbound_action: drop
+
+  conntrack:
+    tcp_timeout: 12m
+    udp_timeout: 3m
+    default_timeout: 10m
+
+  outbound:
+    # Allow all outbound traffic from this node
+    - port: any
+      proto: any
+      host: any
+
+  inbound:
+    # Allow all inbound traffic to this node
+    - port: any
+      proto: any
+      host: any
