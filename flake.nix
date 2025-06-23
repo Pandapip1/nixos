@@ -94,7 +94,10 @@
                     inputs.nix-index-database.nixosModules.nix-index
                     inputs.hosts.nixosModule
                     {
-                      nixpkgs.hostPlatform = system;
+                      nixpkgs = {
+                        hostPlatform = system;
+                        buildPlatform = builtins.currentSystem;
+                      };
                     }
                   ] ++ modules;
                 };

@@ -196,7 +196,7 @@
 
   hardware.graphics = {
     enable = true;
-    enable32Bit = targetPlatform == "x86_64-linux";
+    enable32Bit = config.nixpkgs.hostPlatform == "x86_64-linux";
   };
   
   programs.gnupg.agent = {
