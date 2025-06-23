@@ -13,7 +13,22 @@
     srvos.nixosModules.hardware-amazon
   ];
 
-  documentation.enable = true;
+  documentation = {
+    enable = true;
+    man = {
+      enable = true;
+      man-db.enable = false;
+      mandoc.enable = true; # BSD-compatible
+      generateCaches = true;
+    };
+    doc.enable = true;
+    dev.enable = true;
+    info.enable = true;
+    nixos = {
+      enable = true;
+      #includeAllModules = true;
+    };
+  };
 
   boot = {
     loader.grub = {
