@@ -156,8 +156,11 @@
   environment.systemPackages = (with pkgs; [
     git
     vim
+  ]) ++ [
+    comma.packages."${system}".comma
+  ] ++ lib.optionals config.services.graphical-desktop.enable (with pkgs; [
     adwaita-icon-theme-legacy
-  ]) ++ [ comma.packages."${system}".comma ];
+  ]);
 
   # Local hosts blocklist
   networking.stevenBlackHosts = {
@@ -210,7 +213,7 @@
     ];
   };
 
-  fonts = {
+  fonts = lib.mkIf config.services.graphical-desktop.enable {
     enableDefaultPackages = true;
     fontDir.enable = true;
     fontconfig = {

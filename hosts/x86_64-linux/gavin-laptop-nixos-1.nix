@@ -50,6 +50,7 @@
   services.gnome.gnome-settings-daemon.enable = true;
 
   # COSMIC DE
+  services.graphical-desktop.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
   services.desktopManager.cosmic.enable = true;
   programs.gnupg.agent.pinentryPackage = pkgs.pinentry-qt;
