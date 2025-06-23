@@ -13,6 +13,8 @@
     srvos.nixosModules.hardware-amazon
   ];
 
+  documentation.enable = true;
+
   boot = {
     loader.grub = {
       enable = true;
