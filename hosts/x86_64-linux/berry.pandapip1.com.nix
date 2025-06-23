@@ -94,7 +94,7 @@
     '';
 
     virtualHosts."berry.pandapip1.com" = {
-      enableACME = true;
+      useACMEHost = "berry.pandapip1.com";
       forceSSL = true;
       locations."/" = {
         proxyPass = "http://127.0.0.1:${toString config.services.node-red.port}";
