@@ -11,6 +11,10 @@
   imports = [
     srvos.nixosModules.server
     srvos.nixosModules.hardware-amazon
+    # Users
+    ../../users/gavin.nix
+    # Services
+    ../../services/nebula.nix
   ];
 
   # We're legacy BIOS
