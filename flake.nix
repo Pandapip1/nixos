@@ -96,7 +96,7 @@
                     {
                       nixpkgs = {
                         hostPlatform = system;
-                        buildPlatform = builtins.currentSystem;
+                        # buildPlatform = builtins.currentSystem;
                       };
                     }
                   ] ++ modules;
