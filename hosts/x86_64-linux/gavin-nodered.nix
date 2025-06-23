@@ -13,6 +13,9 @@
     srvos.nixosModules.hardware-amazon
   ];
 
+  # We're legacy BIOS
+  ec2.efi = false;
+
   documentation = {
     enable = true;
     man = {
@@ -30,26 +33,6 @@
     };
   };
 
-  boot = {
-    loader.grub = {
-      enable = true;
-      efiSupport = true;
-      efiInstallAsRemovable = true;
-    };
-    initrd = {
-      availableKernelModules = [ "ata_piix" "xen_blkfront" ];
-      kernelModules = [ ];
-    };
-    kernelModules = [ ];
-    extraModulePackages = [ ];
-  };
-
-  fileSystems."/" =
-    { device = "/dev/disk/by-uuid/f222513b-ded1-49fa-b591-20ce86a2fe7f";
-      fsType = "ext4";
-    };
-
-  swapDevices = [ ];
 
   # Get key for berry.pandapip1.com
   security.acme = {
