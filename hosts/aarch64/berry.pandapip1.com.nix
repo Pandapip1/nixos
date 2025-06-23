@@ -17,8 +17,7 @@
     ../../services/nebula.nix
   ];
 
-  # We're legacy BIOS
-  ec2.efi = false;
+  ec2.efi = true;
 
   # Some definitions in `security.sudo.extraRules` refer to users other than 'root' or groups other than 'wheel'. Disable `config.security.sudo.execWheelOnly`, or adjust the rules.
   # https://github.com/nix-community/srvos/issues/655
