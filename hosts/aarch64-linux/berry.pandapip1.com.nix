@@ -28,7 +28,7 @@
     man = {
       enable = true;
       man-db.enable = false;
-      mandoc.enable = true; # BSD-compatible
+      mandoc.enable = false; # Broken on aarch64
       generateCaches = true;
     };
     doc.enable = true;
