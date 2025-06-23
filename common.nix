@@ -124,7 +124,6 @@
 
   hardware.enableAllFirmware = true;
 
-  time.timeZone = lib.mkForce null;
   location.provider = "geoclue2";
 
   i18n = {
