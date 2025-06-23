@@ -146,7 +146,7 @@
   };
 
   networking = {
-    hostName = hostname;
+    fqdnOrHostName = hostname;
     networkmanager.enable = true;
     firewall.enable = true;
     nftables.enable = true;
