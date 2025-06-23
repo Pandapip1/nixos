@@ -116,11 +116,7 @@
     serviceConfig.Type = "oneshot";
     startAt = "daily";
   };
-  systemd.timers.nix-gc = lib.mkForce {
-    timerConfig = {
-      Persistent = true;
-    };
-  };
+  systemd.timers.nix-gc.timerConfig.Persistent = lib.mkForce true;
 
   hardware.enableAllFirmware = true;
 
