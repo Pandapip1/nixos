@@ -1,4 +1,4 @@
-{ lib, config, pkgs, nix-index-database, nixpkgs, hostname, comma, srvos, system, ... }:
+{ lib, config, pkgs, nix-index-database, nixpkgs, hostname, comma, srvos, system, stdenv, ... }:
 
 {
   imports = [
@@ -196,7 +196,7 @@
 
   hardware.graphics = {
     enable = true;
-    enable32Bit = true;
+    enable32Bit = targetPlatform == "x86_64-linux";
   };
   
   programs.gnupg.agent = {
