@@ -19,6 +19,9 @@
 
   ec2.efi = true;
 
+  # Berry is underpowered, use external builder
+  nixbuild-net.enable = true;
+
   # Some definitions in `security.sudo.extraRules` refer to users other than 'root' or groups other than 'wheel'. Disable `config.security.sudo.execWheelOnly`, or adjust the rules.
   # https://github.com/nix-community/srvos/issues/655
   security.sudo.execWheelOnly = lib.mkForce false;
