@@ -1,6 +1,10 @@
-{ lib, config, pkgs, nix-index-database, nixpkgs, hostname, comma, system, ... }:
+{ lib, config, pkgs, nix-index-database, nixpkgs, hostname, comma, srvos, system, ... }:
 
 {
+  imports = [
+    srvos.nixosModules.common
+  ];
+
   nix = {
     settings = {
       trusted-substituters = [
