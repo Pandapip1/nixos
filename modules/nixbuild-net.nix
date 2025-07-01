@@ -15,7 +15,7 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     programs.ssh.extraConfig = ''
       Host eu.nixbuild.net
       PubkeyAcceptedKeyTypes ssh-ed25519
