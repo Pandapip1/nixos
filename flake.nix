@@ -63,7 +63,7 @@
       ...
     }@inputs:
     let
-      lib = nixpkgs.lib;
+      inherit (nixpkgs) lib;
       hostsDir = ./hosts;
       modulesDir = ./modules;
       hosts = builtins.mapAttrs (
@@ -88,7 +88,7 @@
             map (
               fqdn:
               let
-                hostname = lib.head (lib.splitString "." fqdn);
+                hostName = lib.head (lib.splitString "." fqdn);
                 domain =
                   if (lib.length (lib.splitString "." fqdn) == 1) then
                     null
@@ -96,7 +96,7 @@
                     lib.concatStringsSep "." (lib.tail (lib.splitString "." fqdn));
               in
               {
-                name = hostname;
+                name = hostName;
                 value =
                   let
                     pkgs-unpatched = import nixpkgs { inherit system; };
@@ -120,7 +120,7 @@
                     modules = [
                       {
                         networking = {
-                          inherit hostname domain;
+                          inherit hostName domain;
                         };
                         nixpkgs = {
                           hostPlatform = system;
@@ -128,7 +128,7 @@
                         };
                       }
                       ./common.nix
-                      (hostsDir + "/${system}/${hostname}.nix")
+                      (hostsDir + "/${system}/${hostName}.nix")
                       inputs.nur.modules.nixos.default
                       inputs.nix-index-database.nixosModules.nix-index
                       inputs.hosts.nixosModule
