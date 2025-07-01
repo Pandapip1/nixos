@@ -115,6 +115,9 @@
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 
+  # Makes berry even slower but we're disk constrained so it makes sense to
+  nix.settings.auto-optimise-store = true;
+
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave
