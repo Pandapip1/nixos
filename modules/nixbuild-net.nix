@@ -6,7 +6,7 @@
 }:
 
 let
-  cfg = config.programs.nixbuild-net;
+  cfg = config.nixbuild-net;
 in
 {
   options = {
