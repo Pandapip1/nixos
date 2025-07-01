@@ -1,4 +1,4 @@
-{ lib, config, pkgs, nix-index-database, nixpkgs, hostname, comma, srvos, system, stdenv, ... }:
+{ lib, config, pkgs, nix-index-database, nixpkgs, comma, srvos, system, stdenv, ... }:
 
 {
   imports = [
@@ -146,7 +146,6 @@
   };
 
   networking = {
-    fqdnOrHostName = hostname;
     networkmanager.enable = true;
     firewall.enable = true;
     nftables.enable = true;

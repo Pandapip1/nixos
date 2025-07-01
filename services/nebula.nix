@@ -1,6 +1,8 @@
-{ self, hostname, pkgs, ... }:
+{ self, config, pkgs, ... }:
 
-rec {
+let
+  hostname = config.networking.fqdnOrHostName;
+in rec {
   environment.systemPackages = with pkgs; [
     nebula
   ];
