@@ -104,16 +104,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1743099944,
-        "narHash": "sha256-RNSlkjQJAJwmZDC/lfQu/JghiYMQ/f2a1pM1hIvDYEg=",
-        "owner": "Pandapip1",
+        "lastModified": 1751310429,
+        "narHash": "sha256-NISp1TNEgoLn2sBglpoKfg/aiiLynNOrOWqTppkbDs0=",
+        "owner": "Stevenblack",
         "repo": "hosts",
-        "rev": "5424279ae06ebcdbb02519cc0c96b92de924d079",
+        "rev": "c33258ee5cb7526d494d08b921c865692a1beaf9",
         "type": "github"
       },
       "original": {
-        "owner": "Pandapip1",
-        "ref": "patch-1",
+        "owner": "Stevenblack",
         "repo": "hosts",
         "type": "github"
       }

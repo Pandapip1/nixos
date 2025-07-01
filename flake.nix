@@ -8,7 +8,7 @@
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:nixos/nixos-hardware";
     hosts = {
-      url = "github:Pandapip1/hosts/patch-1";
+      url = "github:Stevenblack/hosts";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-index-database = {
