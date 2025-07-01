@@ -103,6 +103,10 @@
                       nixpkgs = {
                         hostPlatform = system;
                         buildPlatform = builtins.currentSystem or system;
+                        overlays = [
+                          inputs.comma.overlays.default
+                          inputs.nix-index-database.overlays.default
+                        ];
                       };
                     }
                     "${self}/common.nix"
