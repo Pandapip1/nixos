@@ -154,9 +154,8 @@
   environment.systemPackages = (with pkgs; [
     git
     vim
-  ]) ++ [
     comma-with-db
-  ] ++ lib.optionals config.services.graphical-desktop.enable (with pkgs; [
+  ]) ++ lib.optionals config.services.graphical-desktop.enable (with pkgs; [
     adwaita-icon-theme-legacy
   ]);
 
