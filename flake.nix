@@ -24,7 +24,7 @@
         treefmt-nix.follows = "treefmt-nix";
       };
     };
-    hosts = {
+    stevenblack-hosts = {
       url = "github:Stevenblack/hosts";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -105,15 +105,14 @@
                         buildPlatform = builtins.currentSystem or system;
                         overlays = [
                           inputs.comma.overlays.default
-                          inputs.nix-index-database.overlays.default
+                          inputs.nix-index-database.overlays.nix-index
+                          inputs.nur.overlays.nixos.default
                         ];
                       };
                     }
                     "${self}/common.nix"
                     "${hostsDir}/${system}/${fqdn}.nix"
-                    inputs.nur.modules.nixos.default
-                    inputs.nix-index-database.nixosModules.nix-index
-                    inputs.hosts.nixosModule
+                    inputs.stevenblack-hosts.nixosModule
                   ] ++ modules;
                 };
               }
