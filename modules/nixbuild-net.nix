@@ -40,7 +40,7 @@ in
         trusted-public-keys = [
           "nixbuild.net/WD7ZMS-1:fDoljU8vNe12BOadKcF0jxTvRddZjIjUkoyZCm7QMFw="
         ];
-      }
+      };
     };
   };
 }
