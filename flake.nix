@@ -3,10 +3,27 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    getFlake.url = "github:ursi/get-flake";
+    getFlake = {
+      url = "github:ursi/get-flake";
+      inputs.flake-compat.follows = "flake-compat";
+    };
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
-    nixos-hardware.url = "github:nixos/nixos-hardware";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nixos-hardware = {
+      url = "github:nixos/nixos-hardware";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        treefmt-nix.follows = "treefmt-nix";
+      };
+    };
     hosts = {
       url = "github:Stevenblack/hosts";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -25,7 +42,11 @@
     };
     nur = {
       url = "github:nix-community/NUR";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        treefmt-nix.follows = "treefmt-nix";
+      };
     };
     srvos = {
       url = "github:nix-community/srvos";
