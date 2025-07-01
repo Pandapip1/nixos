@@ -84,7 +84,7 @@ module.exports = {
         default: {
             permissions: [] // Nothing
         }
-    }
+    },
     
     /** The following property can be used to enable HTTPS
     * This property can be either an object, containing both a (private) key
