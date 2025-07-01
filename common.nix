@@ -1,4 +1,4 @@
-{ lib, config, pkgs, nix-index-database, nixpkgs, comma, srvos, system, stdenv, ... }:
+{ lib, config, pkgs, nix-index-database, nixpkgs, comma, srvos, stdenv, ... }:
 
 {
   imports = [
@@ -76,18 +76,18 @@
 
   # Install comma command-not-found
   programs.bash.interactiveShellInit = ''
-    source ${comma.packages."${system}".comma}/etc/profile.d/command-not-found.sh
+    source ${comma.packages."${pkgs.stdenv.hostPlatform.system}".comma}/etc/profile.d/command-not-found.sh
   '';
 
   programs.zsh.interactiveShellInit = ''
-    source ${comma.packages."${system}".comma}/etc/profile.d/command-not-found.sh
+    source ${comma.packages."${pkgs.stdenv.hostPlatform.system}".comma}/etc/profile.d/command-not-found.sh
   '';
 
   # See https://github.com/bennofs/nix-index/issues/126
   programs.fish.interactiveShellInit = let
     wrapper = pkgs.writeScript "command-not-found" ''
       #!${lib.getExe pkgs.bash}
-      source ${comma.packages."${system}".comma}/etc/profile.d/command-not-found.sh
+      source ${comma.packages."${pkgs.stdenv.hostPlatform.system}".comma}/etc/profile.d/command-not-found.sh
       command_not_found_handle "$@"
     '';
   in ''
@@ -105,7 +105,7 @@
   };
   programs.command-not-found.enable = false;
   environment.variables = {
-    NIX_INDEX_DATABASE = "${nix-index-database.packages."${system}".nix-index-with-db}/share/cache/nix-index";
+    NIX_INDEX_DATABASE = "${nix-index-database.packages."${pkgs.stdenv.hostPlatform.system}".nix-index-with-db}/share/cache/nix-index";
   };
 
   # Auto GC every day
@@ -155,7 +155,7 @@
     git
     vim
   ]) ++ [
-    comma.packages."${system}".comma
+    comma.packages."${pkgs.stdenv.hostPlatform.system}".comma
   ] ++ lib.optionals config.services.graphical-desktop.enable (with pkgs; [
     adwaita-icon-theme-legacy
   ]);

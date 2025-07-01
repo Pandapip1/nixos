@@ -64,21 +64,18 @@
     }@inputs:
     let
       inherit (nixpkgs) lib;
-      hostsDir = ./hosts;
-      modulesDir = ./modules;
-      hosts = builtins.mapAttrs (
+      hostsDir = "${self}/hosts";
+      modulesDir = "${self}/modules";
+      hosts = lib.mapAttrs (
         system: _:
-        map (s: builtins.substring 0 (builtins.stringLength s - 4) s) (
-          builtins.attrNames (builtins.readDir (hostsDir + "/${system}"))
+        map (s: lib.substring 0 (lib.stringLength s - 4) s) (
+          lib.attrNames (builtins.readDir "${hostsDir}/${system}")
         )
       ) (builtins.readDir hostsDir);
+      systems = lib.attrNames hosts;
+      modules = map (s: "${modulesDir}/${s}") (lib.attrNames (builtins.readDir modulesDir));
 
-      concatAttrSets =
-        attrs:
-        if builtins.length attrs == 0 then
-          { }
-        else
-          concatAttrSets (builtins.tail attrs) // builtins.head attrs;
+      concatAttrSets = attrs: lib.foldl' (a: b: a // b) { } attrs;
     in
     {
       nixosConfigurations = concatAttrSets (
@@ -88,56 +85,37 @@
             map (
               fqdn:
               let
-                hostName = lib.head (lib.splitString "." fqdn);
+                splitName = lib.splitString "." fqdn;
+                hostName = lib.head splitName;
                 domain =
-                  if (lib.length (lib.splitString "." fqdn) == 1) then
-                    null
-                  else
-                    lib.concatStringsSep "." (lib.tail (lib.splitString "." fqdn));
+                  if (lib.length splitName == 1) then null else lib.concatStringsSep "." (lib.tail splitName);
               in
               {
                 name = hostName;
-                value =
-                  let
-                    pkgs-unpatched = import nixpkgs { inherit system; };
-                    #nixpkgs-patched-source = pkgs-unpatched.applyPatches {
-                    #  name = "nixpkgs-patched-source";
-                    #  src = nixpkgs;
-                    #  patches =
-                    #    let
-                    #      fetchpatch = pkgs-unpatched.fetchpatch;
-                    #    in
-                    #    [
-                    #    ];
-                    #};
-                    #nixpkgs-patched = getFlake "${nixpkgs-patched-source}";
-                    modules = map (s: "${modulesDir}/${s}") (builtins.attrNames (builtins.readDir modulesDir));
-                  in
-                  #nixpkgs-patched.lib.nixosSystem {
-                  nixpkgs.lib.nixosSystem {
-                    inherit system;
-                    specialArgs = inputs;
-                    modules = [
-                      {
-                        networking = {
-                          inherit hostName domain;
-                        };
-                        nixpkgs = {
-                          hostPlatform = system;
-                          buildPlatform = builtins.currentSystem or system;
-                        };
-                      }
-                      ./common.nix
-                      (hostsDir + "/${system}/${hostName}.nix")
-                      inputs.nur.modules.nixos.default
-                      inputs.nix-index-database.nixosModules.nix-index
-                      inputs.hosts.nixosModule
-                    ] ++ modules;
-                  };
+                value = lib.nixosSystem {
+                  inherit system;
+                  specialArgs = inputs;
+                  modules = [
+                    {
+                      networking = {
+                        inherit hostName domain;
+                      };
+                      nixpkgs = {
+                        hostPlatform = system;
+                        buildPlatform = builtins.currentSystem or system;
+                      };
+                    }
+                    "${self}/common.nix"
+                    "${hostsDir}/${system}/${fqdn}.nix"
+                    inputs.nur.modules.nixos.default
+                    inputs.nix-index-database.nixosModules.nix-index
+                    inputs.hosts.nixosModule
+                  ] ++ modules;
+                };
               }
             ) hosts."${system}"
           )
-        ) (builtins.attrNames hosts)
+        ) systems
       );
     };
 }
