@@ -74,6 +74,14 @@
       ) (builtins.readDir hostsDir);
       systems = lib.attrNames hosts;
       modules = map (s: "${modulesDir}/${s}") (lib.attrNames (builtins.readDir modulesDir));
+      inputModules = with inputs; [
+        stevenblack-hosts.nixosModule
+      ];
+      inputOverlays = with inputs; [
+        comma.overlays.default
+        nix-index-database.overlays.nix-index
+        nur.overlays.default
+      ];
 
       concatAttrSets = attrs: lib.foldl' (a: b: a // b) { } attrs;
     in
@@ -95,25 +103,23 @@
                 value = lib.nixosSystem {
                   inherit system;
                   specialArgs = inputs;
-                  modules = [
-                    {
-                      networking = {
-                        inherit hostName domain;
-                      };
-                      nixpkgs = {
-                        hostPlatform = system;
-                        buildPlatform = builtins.currentSystem or system;
-                        overlays = [
-                          inputs.comma.overlays.default
-                          inputs.nix-index-database.overlays.nix-index
-                          inputs.nur.overlays.nixos.default
-                        ];
-                      };
-                    }
-                    "${self}/common.nix"
-                    "${hostsDir}/${system}/${fqdn}.nix"
-                    inputs.stevenblack-hosts.nixosModule
-                  ] ++ modules;
+                  modules =
+                    [
+                      {
+                        networking = {
+                          inherit hostName domain;
+                        };
+                        nixpkgs = {
+                          hostPlatform = system;
+                          buildPlatform = builtins.currentSystem or system;
+                          overlays = inputOverlays;
+                        };
+                      }
+                      "${self}/common.nix"
+                      "${hostsDir}/${system}/${fqdn}.nix"
+                    ]
+                    ++ modules
+                    ++ inputModules;
                 };
               }
             ) hosts."${system}"

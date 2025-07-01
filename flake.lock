@@ -101,26 +101,6 @@
         "type": "github"
       }
     },
-    "hosts": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1751310429,
-        "narHash": "sha256-NISp1TNEgoLn2sBglpoKfg/aiiLynNOrOWqTppkbDs0=",
-        "owner": "Stevenblack",
-        "repo": "hosts",
-        "rev": "c33258ee5cb7526d494d08b921c865692a1beaf9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Stevenblack",
-        "repo": "hosts",
-        "type": "github"
-      }
-    },
     "naersk": {
       "inputs": {
         "nixpkgs": [
@@ -235,12 +215,12 @@
         "flake-parts": "flake-parts",
         "flake-utils": "flake-utils",
         "getFlake": "getFlake",
-        "hosts": "hosts",
         "nix-index-database": "nix-index-database",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
         "nur": "nur",
         "srvos": "srvos",
+        "stevenblack-hosts": "stevenblack-hosts",
         "treefmt-nix": "treefmt-nix"
       }
     },
@@ -261,6 +241,26 @@
       "original": {
         "owner": "nix-community",
         "repo": "srvos",
+        "type": "github"
+      }
+    },
+    "stevenblack-hosts": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1751310429,
+        "narHash": "sha256-NISp1TNEgoLn2sBglpoKfg/aiiLynNOrOWqTppkbDs0=",
+        "owner": "Stevenblack",
+        "repo": "hosts",
+        "rev": "c33258ee5cb7526d494d08b921c865692a1beaf9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Stevenblack",
+        "repo": "hosts",
         "type": "github"
       }
     },
