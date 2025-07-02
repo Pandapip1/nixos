@@ -5,7 +5,6 @@
         "flake-compat": [
           "flake-compat"
         ],
-        "naersk": "naersk",
         "nixpkgs": [
           "nixpkgs"
         ],
@@ -14,16 +13,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1725153223,
-        "narHash": "sha256-PgO1TX4a5/K39pxwtiWgUnp5l3XEB7Qp/pnB7SqxTOw=",
+        "lastModified": 1751468994,
+        "narHash": "sha256-kpF4hDMXUPeS4o7bv29KXeMtB9GZkJ9wXgCLZ/i41Wk=",
         "owner": "Pandapip1",
         "repo": "comma",
-        "rev": "25f513544d8330f0bd5ee7a55f1dbbfd1b627c7b",
+        "rev": "0f2784313a85926e19badac8ac04eecdae39472e",
         "type": "github"
       },
       "original": {
         "owner": "Pandapip1",
-        "ref": "command-not-found-handle",
+        "ref": "overridable-drvs",
         "repo": "comma",
         "type": "github"
       }
@@ -98,28 +97,6 @@
       "original": {
         "owner": "ursi",
         "repo": "get-flake",
-        "type": "github"
-      }
-    },
-    "naersk": {
-      "inputs": {
-        "nixpkgs": [
-          "comma",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1698420672,
-        "narHash": "sha256-/TdeHMPRjjdJub7p7+w55vyABrsJlt5QkznPYy55vKA=",
-        "owner": "nix-community",
-        "repo": "naersk",
-        "rev": "aeb58d5e8faead8980a807c840232697982d47b9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "ref": "master",
-        "repo": "naersk",
         "type": "github"
       }
     },

@@ -33,7 +33,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     comma = {
-      url = "github:Pandapip1/comma/command-not-found-handle";
+      url = "github:Pandapip1/comma/overridable-drvs";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         utils.follows = "flake-utils";
