@@ -70,6 +70,7 @@
     openFirewall = false; # Local-only, thank you
     host = "localhost"; # Again, still local-only please
     port = 7890; # Just a random free port
+    environment.WEBUI_AUTH = "False";
   };
   services.ollama = {
     enable = true;
