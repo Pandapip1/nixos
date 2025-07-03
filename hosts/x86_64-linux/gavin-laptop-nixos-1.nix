@@ -62,10 +62,10 @@
   programs.qgroundcontrol.enable = true;
 
   # AI Stuff
-  services.open-webui = {
-    enable = true;
-    openFirewall = false; # Local-only, thank you
-  };
+  # services.open-webui = {
+  #   enable = true;
+  #   openFirewall = false; # Local-only, thank you
+  # };
 
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
   /* services.undervolt = {
