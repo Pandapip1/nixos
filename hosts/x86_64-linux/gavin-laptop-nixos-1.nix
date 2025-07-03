@@ -68,12 +68,12 @@
   services.open-webui = {
     enable = true;
     openFirewall = false; # Local-only, thank you
-    host = "[::]"; # ipv6 localhost
+    host = "localhost"; # Again, still local-only please
     port = 7890; # Just a random free port
   };
   services.ollama = {
     enable = true;
-    host = "[::]"; # ipv6 please
+    host = "localhost"; # Still just localhost thanks
     # Default port is acceptable
     loadModels = [
       "deepseek-r1"
