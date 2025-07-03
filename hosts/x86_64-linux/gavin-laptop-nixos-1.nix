@@ -62,10 +62,23 @@
   programs.qgroundcontrol.enable = true;
 
   # AI Stuff
-  # services.open-webui = {
-  #   enable = true;
-  #   openFirewall = false; # Local-only, thank you
-  # };
+  services.open-webui = {
+    enable = true;
+    openFirewall = false; # Local-only, thank you
+    host = "[::]"; # ipv6 localhost
+    port = 7890; # Just a random free port
+  };
+  services.ollama = {
+    enable = true;
+    host = "[::]"; # ipv6 please
+    # Default port is acceptable
+    loadModels = [
+      "deepseek-r1"
+      "gemma3n"
+      "llama2-uncensored"
+    ];
+    acceleration = false; # No ROCm or CUDA on my laptop with an intel iGPU :(
+  };
 
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
   services.undervolt = {
