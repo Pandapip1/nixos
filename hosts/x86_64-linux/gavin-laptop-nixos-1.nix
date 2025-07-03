@@ -18,6 +18,9 @@
     nixos-hardware.nixosModules.lenovo-thinkpad-t480s
   ];
 
+  # Enable ModemManager
+  networking.modemmanager.enable = true;
+
   programs = {
     localsend.enable = true;
   };
