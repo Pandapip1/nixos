@@ -68,13 +68,13 @@
   # };
 
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
-  /* services.undervolt = {
+  services.undervolt = {
     enable = true;
-    coreOffset = -100;
-    uncoreOffset = 0;
-    gpuOffset = 0;
+    coreOffset = -80;
+    uncoreOffset = -20;
+    gpuOffset = -50;
     analogioOffset = 0;
-  }; */
+  };
   services.udev.packages = with pkgs; [ labelle ];
 
   # This value determines the NixOS release from which the default
