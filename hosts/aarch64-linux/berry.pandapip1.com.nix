@@ -60,7 +60,7 @@
     defaults.email = "gavinnjohn@gmail.com";
     certs."berry.pandapip1.com" = {
       dnsProvider = "cloudflare";
-      credentialsFile = "/etc/secrets/cloudflare";
+      credentialsFile = "/etc/secrets/cloudflare/cloudflare.ini";
       domain = "berry.pandapip1.com";
     };
   };
