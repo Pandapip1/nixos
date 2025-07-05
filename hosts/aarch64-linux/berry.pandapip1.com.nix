@@ -125,6 +125,7 @@
     configFile = "/etc/secrets/inadyn/inadyn.conf";
   };
   secrets.inadyn.ownership.user = config.services.inadyn.user;
+  systemd.services.inadyn.serviceConfig.LoadCredential = lib.mkForce []; # Clearly has a bug
 
   # Allow nginx user to see ACME certs
   # "Certificate berry.pandapip1.com (group=acme) must be readable by service(s) nginx.service (user=nginx groups=nginx), nginx-config-reload.service (user=root groups=)"
