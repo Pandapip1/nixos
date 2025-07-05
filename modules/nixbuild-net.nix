@@ -58,7 +58,7 @@ in
             hostName = "eu.nixbuild.net";
             sshUser = "root";
             sshKey = cfg.identity.key;
-            system = pkgs.stdenv.hostPlatform.system;
+            inherit system;
             supportedFeatures = [
               "nixos-test"
               "big-parallel"
