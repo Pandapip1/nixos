@@ -59,6 +59,7 @@ in
             sshUser = "root";
             sshKey = cfg.identity.key;
             inherit system;
+            maxJobs = 128;
             supportedFeatures = [
               "nixos-test"
               "big-parallel"
