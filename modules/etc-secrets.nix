@@ -16,12 +16,12 @@ in
           ownership = {
             user = lib.mkOption {
               type = lib.types.str;
-              example = "root";
+              default = "root";
               description = "User owner for the path";
             };
             group = lib.mkOption {
               type = lib.types.str;
-              example = "root";
+              default = "root";
               description = "Group owner for the path";
             };
           };
