@@ -118,6 +118,11 @@
       };
     };
   };
+  # Open port 80 and 443
+  networking.firewall.allowedTCPPorts = [
+    80
+    443
+  ];
 
   services.inadyn = {
     enable = true;
