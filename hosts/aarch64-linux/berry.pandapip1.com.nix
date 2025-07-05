@@ -124,6 +124,7 @@
     # TODO: make declarative
     configFile = "/etc/secrets/inadyn/config";
   };
+  secrets.inadyn.ownership.user = config.services.inadyn.user;
 
   # Allow nginx user to see ACME certs
   # "Certificate berry.pandapip1.com (group=acme) must be readable by service(s) nginx.service (user=nginx groups=nginx), nginx-config-reload.service (user=root groups=)"
