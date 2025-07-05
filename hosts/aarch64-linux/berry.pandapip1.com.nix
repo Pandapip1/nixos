@@ -113,7 +113,7 @@
       useACMEHost = "berry.pandapip1.com";
       forceSSL = true;
       locations."/" = {
-        proxyPass = "http://127.0.0.1:${toString config.services.node-red.port}";
+        proxyPass = "http://localhost:${toString config.services.node-red.port}";
         proxyWebsockets = true;
       };
     };
