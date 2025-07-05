@@ -123,8 +123,6 @@
   # "Certificate berry.pandapip1.com (group=acme) must be readable by service(s) nginx.service (user=nginx groups=nginx), nginx-config-reload.service (user=root groups=)"
   users.users.nginx.extraGroups = [ "acme" ];
 
-  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-
   # Makes berry even slower but we're disk constrained so it makes sense to
   nix.settings.auto-optimise-store = true;
 
