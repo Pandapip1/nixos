@@ -17,6 +17,9 @@
     ../../services/nebula.nix
   ];
 
+  # Simply not necessary
+  hardware.enableAllFirmware = false;
+
   ec2.efi = true;
 
   # Berry is underpowered, use external builder

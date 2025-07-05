@@ -122,7 +122,7 @@
   };
   systemd.timers.nix-gc.timerConfig.Persistent = lib.mkForce true;
 
-  hardware.enableAllFirmware = true;
+  hardware.enableAllFirmware = lib.mkDefault true;
 
   location.provider = "geoclue2";
 
