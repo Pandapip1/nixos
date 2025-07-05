@@ -124,7 +124,9 @@
     # TODO: make declarative
     configFile = "/etc/secrets/inadyn/inadyn.conf";
   };
-  secrets.inadyn.ownership.user = config.services.inadyn.user;
+  secrets.inadyn.ownership = {
+    inherit (config.services.inadyn) user group;
+  };
   # Clearly has a bug
   systemd.services.inadyn.serviceConfig = {
     LoadCredential = lib.mkForce [];

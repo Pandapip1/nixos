@@ -42,7 +42,7 @@ in
 
         # Set permissions
         find /etc/secrets -type f -exec chmod 440 {} \;
-        find /etc/secrets -type d -exec chmod 550 {} \;
+        find /etc/secrets -type d -exec chmod 551 {} \;
 
         # Custom ownership
         ${lib.concatStringsSep "\n" (
