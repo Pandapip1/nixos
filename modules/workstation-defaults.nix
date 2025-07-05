@@ -6,16 +6,12 @@
   ...
 }:
 
-let
-  cfg = config.defaults.workstation;
-
-in
 {
   options = {
-    defaults.workstation.enable = mkEnableOption "workstation defaults";
+    defaults.workstation = lib.mkEnableOption "workstation defaults";
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf config.defaults.workstation {
     services.pcscd.enable = true;
     
     hardware.mcelog.enable = true;
