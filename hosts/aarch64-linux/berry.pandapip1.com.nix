@@ -17,6 +17,13 @@
     ../../services/nebula.nix
   ];
 
+  # Max jobs 2; use a single core for each of them
+  # Availability more important than build speed, but 2 jobs is a 100% speedup so worth it
+  nix.settings = {
+    max-jobs = 2;
+    cores = 1;
+  };
+
   # Simply not necessary
   hardware.enableAllFirmware = false;
 
