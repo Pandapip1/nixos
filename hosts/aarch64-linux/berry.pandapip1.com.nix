@@ -128,7 +128,7 @@
   # Clearly has a bug
   systemd.services.inadyn.serviceConfig = {
     LoadCredential = lib.mkForce [];
-    ProtectSystem = lib.mkForce "full";
+    ProtectSystem = lib.mkForce false;
   };
 
   # Allow nginx user to see ACME certs
