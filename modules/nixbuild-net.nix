@@ -57,7 +57,7 @@ in
           (system: {
             hostName = "eu.nixbuild.net";
             sshUser = "root";
-            sshKey = cfg.identitiy.key;
+            sshKey = cfg.identity.key;
             system = pkgs.stdenv.hostPlatform.system;
             supportedFeatures = [
               "nixos-test"
