@@ -53,6 +53,8 @@
     };
   };
 
+  # Enable fail2ban for security
+  services.fail2ban.enable = true;
 
   # Get key for berry.pandapip1.com
   security.acme = {
