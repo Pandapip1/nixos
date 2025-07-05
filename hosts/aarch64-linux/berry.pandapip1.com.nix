@@ -67,7 +67,7 @@
 
   services.node-red = {
     enable = true;
-    openFirewall = false; # Do NOT expose node-red # TODO: Disable this!!!
+    openFirewall = false; # Do NOT expose node-red
     withNpmAndGcc = true;
     configFile = ../../config/nodered/settings.js;
   };
