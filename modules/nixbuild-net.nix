@@ -15,7 +15,7 @@ in
       crossOnly = lib.mkEnableOption "nixbuild for only cross compiling";
       identity = {
         string = lib.mkOption {
-          description = "The identitiy string";
+          description = "The identity string";
           default = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPIQCZc54poJ8vqawd8TraNryQeJnvH1eLpIDgbiqymM"; # TODO make generic
         };
         key = lib.mkOption {
@@ -42,7 +42,7 @@ in
     programs.ssh.knownHosts = {
       nixbuild = {
         hostNames = [ "eu.nixbuild.net" ];
-        publicKey = cfg.identitiy.string;
+        publicKey = cfg.identity.string;
       };
     };
 
