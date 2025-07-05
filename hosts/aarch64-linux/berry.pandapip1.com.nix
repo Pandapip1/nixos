@@ -119,10 +119,12 @@
     };
   };
 
-  services.cfdyndns = {
+  services.inadyn = {
     enable = true;
-    records = [ "berry.pandapip1.com" ];
-    apiTokenFile = "/etc/secrets/cloudflare/token";
+    settings.provider.cloudflare = {
+      username = "pandapip1.com";
+      include = "/etc/secrets/cloudflare/inadyn";`
+    };
   };
 
   # Allow nginx user to see ACME certs

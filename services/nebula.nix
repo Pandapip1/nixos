@@ -1,7 +1,7 @@
 { self, config, pkgs, ... }:
 
 let
-  hostname = config.networking.fqdnOrHostName;
+  hostname = config.networking.hostName;
 in rec {
   environment.systemPackages = with pkgs; [
     nebula
