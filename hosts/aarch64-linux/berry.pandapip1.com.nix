@@ -121,10 +121,8 @@
 
   services.inadyn = {
     enable = true;
-    settings.provider.cloudflare = {
-      username = "pandapip1.com";
-      include = "/etc/secrets/cloudflare/inadyn";`
-    };
+    # TODO: make declarative
+    configFile = "/etc/secrets/inadyn/config";
   };
 
   # Allow nginx user to see ACME certs
