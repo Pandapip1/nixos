@@ -117,9 +117,6 @@
       locations."/node-red" = {
         proxyPass = "http://localhost:${toString config.services.node-red.port}";
         proxyWebsockets = true;
-        extraConfig = ''
-          rewrite ^/node-red(/.*)?$ $1 break;
-        '';
       };
     };
   };
