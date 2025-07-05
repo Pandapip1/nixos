@@ -18,6 +18,8 @@
     nixos-hardware.nixosModules.lenovo-thinkpad-t480s
   ];
 
+  defaults.workstation = true;
+
   # Enable nixbuild.net, but only for building to other systems
   nixbuild-net = {
     enable = true;

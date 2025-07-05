@@ -104,9 +104,6 @@
     enableBashIntegration = false;
   };
   programs.command-not-found.enable = false;
-  environment.variables = {
-    NIX_INDEX_DATABASE = "${pkgs.nix-index-with-db}/share/cache/nix-index";
-  };
 
   # Auto GC every day
   systemd.services.nix-gc = let
@@ -123,8 +120,6 @@
   systemd.timers.nix-gc.timerConfig.Persistent = lib.mkForce true;
 
   hardware.enableAllFirmware = lib.mkDefault true;
-
-  location.provider = "geoclue2";
 
   i18n = {
     supportedLocales = [ "all" ];
@@ -151,54 +146,17 @@
     nftables.enable = true;
   };
 
-  environment.systemPackages = (with pkgs; [
-    git
+  environment.systemPackages = with pkgs; [
     vim
     comma-with-db
-  ]) ++ lib.optionals config.services.graphical-desktop.enable (with pkgs; [
-    adwaita-icon-theme-legacy
-  ]);
+  ];
 
   # Local hosts blocklist
   networking.stevenBlackHosts = {
     enable = true;
   };
 
-  # Enable kubo, an IPFS client
-  services.kubo = {
-    enable = lib.mkDefault true;
-    autoMount = lib.mkDefault true;
-    enableGC = lib.mkDefault true;
-    localDiscovery = lib.mkDefault false;
-    # Use port 4030 by default (leave port 8080 alone)
-    # This isn't standard, and was chosen because it's kinda near 4000, which is also used by ipfs
-    settings.Addresses.Gateway = lib.mkDefault [
-      "/ip4/127.0.0.1/tcp/4030"
-      "/ip6/::1/tcp/4030"
-    ];
-  };
-
-  services.pcscd.enable = true;
-  
-  hardware.mcelog.enable = true;
-  hardware.gpgSmartcards.enable = true;
-  hardware.bluetooth.enable = true;
-  hardware.trackpoint.enable = true;
-  services.pulseaudio.enable = false; # Use pipewire instead
-  hardware.flipperzero.enable = true;
-  hardware.usb-modeswitch.enable = true;
-
-  services.hardware.bolt.enable = true;
-
   security.rtkit.enable = true;
-
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    jack.enable = true;
-  };
 
   hardware.graphics = {
     enable = true;
@@ -210,30 +168,7 @@
     enableSSHSupport = true;
   };
 
-  services.udev = {
-    enable = true;
-    packages = with pkgs; [
-      xr-hardware
-      android-udev-rules
-    ];
-  };
-
-  fonts = lib.mkIf config.services.graphical-desktop.enable {
-    enableDefaultPackages = true;
-    fontDir.enable = true;
-    fontconfig = {
-      enable = true;
-      defaultFonts = {
-        # Use Noto for everything
-        serif = [ "Noto Serif" ];
-        sansSerif = [ "Noto Sans" ];
-        monospace = [ "Noto Mono" ];
-        emoji = [ "Noto Color Emoji" ];
-      };
-      useEmbeddedBitmaps = true;
-    };
-    packages = builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts);
-  };
+  services.udev.enable = true;
 
   programs.git = {
     enable = true;
@@ -272,29 +207,6 @@
   #   platformTheme = "gnome";
   #   style = "adwaita-dark";
   # };
-
-  # nix-ld
-  programs.nix-ld.enable = true;
-  programs.nix-ld.libraries = with pkgs; [
-    # TODO: Remove when Caltech placement exam done
-    xorg.libXext
-    xorg.libX11
-    xorg.libXrender
-    xorg.libXtst
-    xorg.libXi
-    fontconfig
-    zlib
-    SDL2
-    gtk3
-    glib
-    libgcc
-  ];
-
-  # kmscon for fancier hardware-accelerated tty
-  services.kmscon = {
-    enable = true;
-    hwRender = true;
-  };
 
   # Renice daemon so that KDE plasma can stop freaking freezing
   services.ananicy = {
