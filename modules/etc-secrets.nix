@@ -33,15 +33,10 @@ in
   };
 
   config = {
-    systemd.services.etc-secrets-permissions = {
-      description = "Ensure permissions on /etc/secrets";
-      wantedBy = [ "multi-user.target" ];
-      before = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-      };
-      script = ''
+    system.activationScripts.etcSecretsPermissions = {
+      text = ''
+        echo "Setting up /etc/secrets permissions..."
+
         mkdir -p /etc/secrets
         chown -R root:root /etc/secrets
 
@@ -51,7 +46,9 @@ in
 
         # Custom ownership
         ${lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (path: val: "chown -R ${val.ownership.user}:${val.ownership.group} '/etc/secrets/${path}'") cfg
+          lib.mapAttrsToList (
+            path: val: "chown -R ${val.ownership.user}:${val.ownership.group} '/etc/secrets/${path}'"
+          ) cfg
         )}
       '';
     };
