@@ -195,7 +195,7 @@ module.exports = {
     * can be used to specify a different root path. If set to false, this is
     * disabled.
     */
-    httpNodeRoot: '/node-red',
+    httpNodeRoot: '/',
     
     /** The following property can be used to configure cross-origin resource sharing
     * in the HTTP nodes.

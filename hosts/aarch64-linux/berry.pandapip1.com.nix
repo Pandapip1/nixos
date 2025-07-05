@@ -111,10 +111,10 @@
       proxy_cookie_path / "/; secure; HttpOnly; SameSite=strict";
     '';
 
-    virtualHosts."berry.pandapip1.com" = {
+    virtualHosts."node-red.berry.pandapip1.com" = {
       useACMEHost = "berry.pandapip1.com";
       forceSSL = true;
-      locations."/node-red" = {
+      locations."/" = {
         proxyPass = "http://localhost:${toString config.services.node-red.port}";
         proxyWebsockets = true;
       };
