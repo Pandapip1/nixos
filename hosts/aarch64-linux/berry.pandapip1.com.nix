@@ -86,6 +86,7 @@
   # Keycloak for IAM
   services.keycloak = {
     enable = true;
+    settings.hostname = "keycloak.berry.pandapip1.com";
     # TODO: configure
   };
 
