@@ -105,21 +105,6 @@
 
     # HTTPS hardening
     appendHttpConfig = ''
-      # Default server: don't serve anything if no host defined
-      server {
-        listen 80 default_server;
-        listen [::]:80 default_server;
-        return 444;
-      }
-
-      server {
-        listen 443 ssl default_server;
-        listen [::]:443 ssl default_server;
-        ssl_certificate     /dev/null;
-        ssl_certificate_key /dev/null;
-        return 444;
-      }
-
       # Add HSTS header with preloading to HTTPS requests.
       # Adding this header to HTTP requests is discouraged
       map $scheme $hsts_header {
