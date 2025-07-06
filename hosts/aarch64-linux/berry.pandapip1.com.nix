@@ -97,7 +97,7 @@
       type = "postgresql";
       name = "keycloak";
       username = "keycloak";
-      passwordFile = "/etc/secrets/keycloak/db_password";
+      passwordFile = "/etc/secrets/keycloak/db_password"; # TODO: Hook up keycloak user with etc-secrets.nix
       host = "localhost";
       port = config.services.postgresql.settings.port;
       createLocally = false;
