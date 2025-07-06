@@ -69,6 +69,7 @@
     };
   };
 
+  # Nodered for workflow orchestration
   services.node-red = {
     enable = true;
     openFirewall = false; # Do NOT expose node-red
@@ -76,6 +77,19 @@
     configFile = "${self}/config/nodered/settings.js";
   };
 
+  # OpenBao for central management of APIs
+  services.openbao = {
+    enable = true;
+    # TODO: configure
+  };
+
+  # Keycloak for IAM
+  services.keycloak = {
+    enable = true;
+    # TODO: configure
+  };
+
+  # Nginx for proxying
   services.nginx = {
     enable = true;
 
@@ -150,6 +164,7 @@
     443
   ];
 
+  # In-A-Dyn for dyndns
   services.inadyn = {
     enable = true;
     # TODO: make declarative
