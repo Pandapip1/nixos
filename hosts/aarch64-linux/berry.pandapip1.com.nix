@@ -79,7 +79,7 @@
 
   # OpenBao for central management of APIs
   services.openbao = {
-    enable = true;
+    # enable = true;
     # TODO: configure
   };
 
@@ -87,7 +87,47 @@
   services.keycloak = {
     enable = true;
     settings.hostname = "keycloak.berry.pandapip1.com";
+    database = {
+      type = "postgresql";
+      name = "keycloak";
+      username = "keycloak";
+      passwordFile = "/etc/secrets/keycloak/db_password";
+      host = "localhost";
+      port = config.services.postgresql.settings.port;
+      createLocally = false;
+    };
     # TODO: configure
+  };
+  # Currently just used for postgres auth
+  # See https://github.com/NixOS/nixpkgs/issues/422823
+  users.users.keycloak = {
+    isSystemUser = true;
+    group = "keycloak";
+  };
+  users.groups.keycloak = {};
+
+  # Postgres for Keycloak and other data needed by berry's various services
+  # TODO: Add config.services.postgresql.user and config.services.postgresql.group to set those in particular
+  # The default user and group are postgres
+  services.postgresql = {
+    enable = true;
+    enableTCPIP = true; # Required by keycloak, TODO consider making upstream patch to support socket
+    authentication = ''
+      # TYPE  DATABASE        USER            ADDRESS                 METHOD
+      host    all             all             127.0.0.1/32            scram-sha-256
+      host    all             all             ::1/128                 scram-sha-256
+    '';
+    settings.password_encryption = "scram-sha-256";
+    ensureDatabases = [
+      config.services.keycloak.database.name
+    ];
+    ensureUsers = [
+      {
+        name = config.services.keycloak.database.username;
+        ensureClauses.superuser = true; # During initial setup, we def want the keycloak user to be superuser
+        # TODO: Once setup done, superuser = false
+      }
+    ];
   };
 
   # Nginx for proxying
