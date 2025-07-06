@@ -86,7 +86,13 @@
   # Keycloak for IAM
   services.keycloak = {
     enable = true;
-    settings.hostname = "keycloak.berry.pandapip1.com";
+    settings = {
+      hostname = "keycloak.berry.pandapip1.com";
+      http-host = "::1"; # We are using a reverse proxy
+      http-enabled = true; # We are using a reverse proxy
+      http-port = 7412; # Random number
+      https-port = 7413; # Unused
+    };
     database = {
       type = "postgresql";
       name = "keycloak";
@@ -128,6 +134,7 @@
         # TODO: Once setup done, superuser = false
       }
     ];
+    # TODO: Set up initialScript?
   };
 
   # Nginx for proxying
@@ -179,6 +186,14 @@
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.node-red.port}";
+          proxyWebsockets = true;
+        };
+      };
+      "keycloak.berry.pandapip1.com" = {
+        useACMEHost = "berry.pandapip1.com";
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
           proxyWebsockets = true;
         };
       };
