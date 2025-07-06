@@ -64,6 +64,7 @@
       dnsProvider = "cloudflare";
       credentialsFile = "/etc/secrets/cloudflare/cloudflare.ini";
       domain = "berry.pandapip1.com";
+      extraDomainNames = [ "*.berry.pandapip1.com" ];
     };
   };
 
