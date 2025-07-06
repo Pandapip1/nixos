@@ -73,7 +73,7 @@
     enable = true;
     openFirewall = false; # Do NOT expose node-red
     withNpmAndGcc = true;
-    configFile = ../../config/nodered/settings.js;
+    configFile = "${self}/config/nodered/settings.js";
   };
 
   services.nginx = {
