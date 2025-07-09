@@ -14,8 +14,6 @@
     srvos.nixosModules.hardware-amazon
     # Users
     ../../users/gavin.nix
-    # Services
-    ../../services/nebula.nix
   ];
 
   # Max jobs 2; use a single core for each of them
@@ -221,6 +219,9 @@
 
   # Makes berry even slower but we're disk constrained so it makes sense to
   nix.settings.auto-optimise-store = true;
+
+  # Enable nebula network
+  services.nebula.networks.nebula0 = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

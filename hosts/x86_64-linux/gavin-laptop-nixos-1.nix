@@ -6,8 +6,6 @@
 
 {
   imports = [
-    # Services
-    ../../services/nebula.nix
     # Applications
     ../../applications/codium.nix
     # Users
@@ -36,6 +34,8 @@
   #   enable = true;
   #   crossOnly = true;
   # };
+
+  services.nebula.networks.nebula0 = true;
 
   # Enable ModemManager
   networking.modemmanager.enable = true;

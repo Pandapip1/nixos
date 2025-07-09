@@ -9,11 +9,8 @@ let
   hostname = config.networking.hostName;
 in
 {
-  environment.systemPackages = with pkgs; [
-    nebula
-  ];
   services.nebula.networks.nebula0 = {
-    enable = true;
+    enable = lib.mkDefault false;
     ca = "${self}/config/nebula/ca.crt";
     cert = "${self}/config/nebula/${hostname}.crt";
     key = "/etc/secrets/nebula/${hostname}.key";
@@ -49,9 +46,11 @@ in
       punchy.punch = true;
     };
   };
-  secrets.nebula.ownership = {
-    # TODO: Upstream patch to allow setting per-network user & group, right now hardcode
-    user = "nebula-nebula0";
-    group = "nebula-nebula0";
+  secrets = lib.mkIf config.services.nebula.networks.nebula0.enable {
+    nebula.ownership = {
+      # TODO: Upstream patch to allow setting per-network user & group, right now hardcode
+      user = "nebula-nebula0";
+      group = "nebula-nebula0";
+    };
   };
 }
