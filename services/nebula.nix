@@ -1,34 +1,54 @@
-{ self, config, pkgs, ... }:
+{
+  self,
+  config,
+  pkgs,
+  ...
+}:
 
 let
   hostname = config.networking.hostName;
-in rec {
+in
+{
   environment.systemPackages = with pkgs; [
     nebula
   ];
-  systemd.services."nebula@nebula0-fixed" = {
+  services.nebula.networks.nebula0 = {
     enable = true;
-    description = "Fixed nebula VPN service for nebula0";
-    wants = [ "basic.target" "network-online.target" "nss-lookup.target" "time-sync.target" ];
-    after = [ "basic.target" "network.target" "network-online.target" ];
-    before = [ "sshd.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = let ExecStart = systemd.services."nebula@nebula0".serviceConfig.ExecStart; in {
-      Type = "notify";
-      NotifyAccess = "main";
-      SyslogIdentifier = "nebula0";
-      ExecReload = "/run/current-system/sw/bin/kill -HUP $MAINPID";
-      ExecStart = "/run/current-system/sw/bin/nebula -config ${
-        builtins.toFile "nebula-config-${hostname}.yml" (
-          "pki:\n" +
-          "  ca: ${builtins.toFile "nebula-ca.crt" (builtins.readFile "${self}/config/nebula/ca.crt")}\n" +
-          "  cert: ${builtins.toFile "nebula-${hostname}.crt" (builtins.readFile "${self}/config/nebula/${hostname}.crt")}\n" +
-          "  key: /etc/secrets/nebula/${hostname}.key\n\n" +
-          builtins.readFile "${self}/config/nebula/config-${hostname}.yml"
-        )
-      }";
-      Restart = "always";
+    settings = {
+      ca = "${self}/config/nebula/ca.crt";
+      cert = "${self}/config/nebula/${hostname}.crt";
+      key = "/etc/secrets/nebula/${hostname}.key";
+      staticHostMap = {
+        "10.0.0.1" = [
+          "64.23.155.119:4242"
+          "lighthouse.3webs.org:4242"
+        ];
+      };
+      lighthouses = [
+        "10.0.0.1"
+      ];
+      relays = [
+        "10.0.0.1"
+      ];
+      firewall = {
+        outbound = [
+          {
+            host = "any";
+            port = "any";
+            proto = "any";
+          }
+        ];
+        inbound = [
+          {
+            host = "any";
+            port = "any";
+            proto = "any";
+          }
+        ];
+      };
+      settings = {
+        punchy.punch = true;
+      };
     };
-    unitConfig.StartLimitIntervalSec = 0;
   };
 }
