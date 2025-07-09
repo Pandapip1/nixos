@@ -8,9 +8,7 @@
   imports = [
     # Services
     ../../services/nebula.nix
-    ../../services/cups.nix
     # Applications
-    # ../applications/chromium.nix
     ../../applications/codium.nix
     # Users
     ../../users/gavin.nix

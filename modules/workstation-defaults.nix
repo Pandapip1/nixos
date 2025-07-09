@@ -79,5 +79,17 @@
       };
       packages = builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts);
     };
+
+    # Printing
+    services.printing = {
+      enable = true;
+      startWhenNeeded = true;
+      drivers = with pkgs; [
+        cups-pdf-to-pdf
+        gutenprint
+        hplipWithPlugin
+        cups-idprt-tspl
+      ];
+    };
   };
 }
