@@ -6,9 +6,6 @@
 
 {
   imports = [
-    # Users
-    ../../users/gavin.nix
-    # Hardware
     nixos-hardware.nixosModules.lenovo-thinkpad-t480s
   ];
 

@@ -7,10 +7,6 @@
 
 {
   imports = [
-    # Users
-    ../../users/gavin.nix
-    ../../users/priyanka.nix
-    # Hardware
     nixos-hardware.nixosModules.common-cpu-amd
     nixos-hardware.nixosModules.common-cpu-amd-pstate # TODO: Does this do anything
     nixos-hardware.nixosModules.common-gpu-amd
@@ -76,6 +72,9 @@
       "Indexing-Enabled" = false;
     };
   };
+
+  # Enable priyanka's account
+  users.users.priyanka.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
