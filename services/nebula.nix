@@ -49,7 +49,7 @@ in
       punchy.punch = true;
     };
   };
-  secrets.nebula.owenership = {
+  secrets.nebula.ownership = {
     # TODO: Upstream patch to allow setting per-network user & group, right now hardcode
     user = "nebula-nebula0";
     group = "nebula-nebula0";
