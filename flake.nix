@@ -64,6 +64,68 @@
     }@inputs:
     let
       inherit (nixpkgs) lib;
+      readDirRecursive =
+        path:
+        lib.mapAttrs (
+          path': type:
+          (if (type == "directory" || type == "symlink") then readDirRecursive "${path}/${path'}" else type)
+        ) (builtins.readDir path);
+      initValueAtPath =
+        path: value:
+        if lib.length path == 0 then
+          value
+        else
+          { ${lib.head path} = initValueAtPath (lib.tail path) value; };
+      attrNamesRecursive = lib.mapAttrsToList (
+        name: value:
+        if lib.isAttrs value then
+          lib.map (path: [ name ] ++ path) (lib.attrNamesRecursive value)
+        else
+          [ name ]
+      );
+      attrValuesRecursive =
+        attrs:
+        lib.foldlAttrs (
+          acc: _: value:
+          acc ++ (if lib.isAttrs value then attrValuesRecursive value else [ value ])
+        ) [ ] attrs;
+      filterAttrsRecursive' =
+        filter: attrs:
+        lib.mapAttrs (
+          name: value:
+          if lib.isAttrs value then
+            filterAttrsRecursive' (path: value': filter ([ name ] ++ path) value') value
+          else
+            value
+        ) (lib.filterAttrs (name: value: (lib.isAttrs value) || (filter [ name ] value)) attrs);
+      mapAttrsRecursive' =
+        mapping: attrs:
+        lib.foldlAttrs (
+          acc: name: value:
+          let
+            result =
+              if lib.isAttrs value then
+                mapAttrsRecursive' (path': value': mapping ([ name ] ++ path') value') value
+              else
+                let
+                  mapped = mapping [ name ] value;
+                in
+                initValueAtPath mapped.path mapped.value;
+          in
+          lib.recursiveUpdate acc result
+        ) { } attrs;
+      filterAndMapAttrsRecursive' =
+        filter: mapping: attrs:
+        mapAttrsRecursive' mapping (filterAttrsRecursive' filter attrs);
+      collectDirRecursive =
+        dir:
+        filterAndMapAttrsRecursive'
+          (path: value: (lib.hasSuffix ".nix" (lib.last path)) && value == "regular")
+          (path: _: {
+            path = (lib.dropEnd 1 path) ++ [ (lib.removeSuffix ".nix" (lib.last path)) ];
+            value = lib.concatStringsSep "/" ([ dir ] ++ path);
+          })
+          (readDirRecursive dir);
       hostsDir = "${self}/hosts";
       modulesDir = "${self}/modules";
       hosts = lib.mapAttrs (
@@ -73,7 +135,7 @@
         )
       ) (builtins.readDir hostsDir);
       systems = lib.attrNames hosts;
-      modules = map (s: "${modulesDir}/${s}") (lib.attrNames (builtins.readDir modulesDir));
+      modules = attrValuesRecursive (collectDirRecursive modulesDir);
       inputModules = with inputs; [
         stevenblack-hosts.nixosModule
       ];
