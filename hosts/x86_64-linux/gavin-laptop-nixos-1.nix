@@ -35,7 +35,7 @@
   #   crossOnly = true;
   # };
 
-  services.nebula.networks.nebula0 = true;
+  services.nebula.networks.nebula0.enable = true;
 
   # Enable ModemManager
   networking.modemmanager.enable = true;

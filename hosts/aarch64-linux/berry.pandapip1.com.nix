@@ -221,7 +221,7 @@
   nix.settings.auto-optimise-store = true;
 
   # Enable nebula network
-  services.nebula.networks.nebula0 = true;
+  services.nebula.networks.nebula0.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
