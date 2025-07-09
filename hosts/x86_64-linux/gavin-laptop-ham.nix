@@ -7,11 +7,6 @@
 
 {
   imports = [
-    # Services
-    # TODO: Add certs for nebula
-    #../../services/nebula.nix
-    # Applications
-    ../../applications/codium.nix
     # Users
     ../../users/gavin.nix
     ../../users/priyanka.nix

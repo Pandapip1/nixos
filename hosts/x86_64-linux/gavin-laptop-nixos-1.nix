@@ -6,8 +6,6 @@
 
 {
   imports = [
-    # Applications
-    ../../applications/codium.nix
     # Users
     ../../users/gavin.nix
     # Hardware
@@ -110,6 +108,8 @@
     ];
     acceleration = false; # No ROCm or CUDA on my laptop with an intel iGPU :(
   };
+
+  programs.vscode.enable = true;
 
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
   services.undervolt = {
