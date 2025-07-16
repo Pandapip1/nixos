@@ -17,9 +17,6 @@
       ms-vscode-remote.remote-ssh
       ms-vscode-remote.remote-ssh-edit
       github.codespaces
-      # Accessibility
-      github.copilot
-      github.copilot-chat
       # Languages
       ms-python.python
       james-yu.latex-workshop
@@ -29,6 +26,8 @@
       chrischinchilla.vscode-pandoc
       # Language Packs
       vscjava.vscode-java-pack
+      # "AI"
+      vscode-extensions.continue.continue
     ];
   };
 }
