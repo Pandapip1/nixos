@@ -102,6 +102,11 @@
       "deepseek-r1"
       "gemma3n"
       "llama2-uncensored"
+
+      # For Continue
+      "nomic-embed-text:latest"
+      "llama3.1:8b"
+      "qwen2.5-coder:1.5b-base"
     ];
     acceleration = false; # No ROCm or CUDA on my laptop with an intel iGPU :(
   };
