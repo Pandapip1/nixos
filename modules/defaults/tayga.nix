@@ -7,15 +7,27 @@
   services.tayga = {
     enable = true;
     # TODO: Upstream
-    package = pkgs.tayga.overrideAttrs (finalAttrs: _: {
+    package = with pkgs; stdenv.mkDerivation (finalAttrs: {
+      pname = "tayga";
       version = "0.9.5";
 
-      src = pkgs.fetchFromGitHub {
+      src = fetchFromGitHub {
         owner = "apalrd";
         repo = "tayga";
         tag = finalAttrs.version;
         hash = "sha256-xOm4fetFq2UGuhOojrT8WOcX78c6MLTMVbDv+O62x2E=";
       };
+
+      nativeBuildInputs = [ gnumake ];
+
+      installPhase = ''
+        runHook preInstall
+
+        mkdir -p $out/bin
+        cp tayga $out/bin
+
+        runHook postInstall
+      '';
     });
     ipv4 = {
       address = "172.31.255.0";
@@ -23,7 +35,7 @@
         address = "172.31.255.1";
       };
       pool = {
-        address = "172.31.255.1";
+        address = "172.31.255.0";
         prefixLength = 24;
       };
     };
