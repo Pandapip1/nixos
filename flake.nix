@@ -177,7 +177,6 @@
                           overlays = inputOverlays;
                         };
                       }
-                      "${self}/common.nix"
                       "${hostsDir}/${system}/${fqdn}.nix"
                     ]
                     ++ modules
