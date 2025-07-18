@@ -36,10 +36,7 @@
     package = pkgs.nixVersions.latest;
   };
 
-  nixpkgs.config = {
-    allowUnfree = true;
-    warnUndeclaredOptions = true;
-  };
+  nixpkgs.config.warnUndeclaredOptions = true;
 
   documentation = {
     enable = lib.mkDefault true;
@@ -77,8 +74,6 @@
     startAt = "daily";
   };
   systemd.timers.nix-gc.timerConfig.Persistent = lib.mkForce true;
-
-  hardware.enableAllFirmware = lib.mkDefault true;
 
   i18n = {
     supportedLocales = [ "all" ];
