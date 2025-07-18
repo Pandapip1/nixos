@@ -40,7 +40,7 @@
 
     # Enable kubo, an IPFS client
     services.kubo = {
-      enable = lib.mkDefault true;
+      # enable = lib.mkDefault true;
       autoMount = lib.mkDefault true;
       enableGC = lib.mkDefault true;
       localDiscovery = lib.mkDefault false;
