@@ -141,24 +141,6 @@
     };
   };
 
-  # DNS / mDNS
-  services.resolved = {
-    enable = true;
-  };
-  services.avahi = {
-    enable = true;
-    nssmdns4 = false; # Handled by systemd-resolved
-    nssmdns6 = false; # Handled by systemd-resolved
-    publish = {
-      enable = true;
-      addresses = true;
-      domain = true;
-      hinfo = true;
-      userServices = true;
-      workstation = true;
-    };
-  };
-
   # Use Adwaita theme
   # qt = {
   #   enable = true;
