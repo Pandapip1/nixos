@@ -25,7 +25,26 @@ in
 {
   boot.kernel.sysctl = flattenAttrs {
     dev.tty.ldisc_autoload = 0;
-    fs.protected_fifos = 2;
-    fs.protected_regular = 2;
+
+    # Enable some filesystem protections for potentially vulnerable programs interacting with world-writable files
+    fs = {
+      protected_fifos = 2;
+      protected_regular = 2;
+    };
+
+    # Disable ICMP redirects
+    net = {
+      ipv4.conf = {
+        all = {
+          accept_redirects = 0;
+          send_redirects = 0;
+        };
+        default.accept_redirects = 0;
+      };
+      ipv6.conf = {
+        all.accept_redirects = 0;
+        default.accept_redirects = 0;
+      }
+    };
   };
 }
