@@ -44,7 +44,7 @@ in
       ipv6.conf = {
         all.accept_redirects = 0;
         default.accept_redirects = 0;
-      }
+      };
     };
   };
 }
