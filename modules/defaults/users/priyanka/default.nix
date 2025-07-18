@@ -10,10 +10,10 @@
     enable = lib.mkDefault false;
     isNormalUser = true;
     description = "priyanka";
-    extraGroups = [
-      "audio"
-      "plugdev"
-    ];
+    # extraGroups = [
+    #   "audio"
+    #   "plugdev"
+    # ];
     packages = with pkgs; [ ];
   };
 }
