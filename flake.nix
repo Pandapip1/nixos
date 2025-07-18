@@ -138,6 +138,10 @@
         comma.overlays.default
         nix-index-database.overlays.nix-index
         nur.overlays.default
+        (_: prev: {
+          geoclue2 = prev.enableDebugging prev.geoclue2;
+          wireplumber = prev.enableDebugging prev.wireplumber;
+        })
       ];
 
       concatAttrSets = attrs: lib.foldl' (a: b: a // b) { } attrs;
