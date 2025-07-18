@@ -11,7 +11,7 @@ in
 {
   options.programs.comma = {
     enable = lib.mkEnableOption "comma";
-    package = lib.mkPackageOption pkgs "comma";
+    package = lib.mkPackageOption pkgs "comma" { };
     enableBashIntegration = lib.mkEnableOption "comma command-not-found handler for bash" // {
       default = true;
     };
