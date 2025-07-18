@@ -2,11 +2,11 @@
   services = {
     unbound = {
       enable = true;
-      resolveLocalQueries = false; # We are doing this through resolved
+      resolveLocalQueries = true;
       settings = {
         server = {
           interface = [ "::1" ];
-          port = 5354; # 5353 used by avahi
+          port = 53;
           verbosity = 1;
         };
       };
@@ -25,18 +25,6 @@
       # Take over mDNS resolving responsibilities
       nssmdns4 = true;
       nssmdns6 = true;
-    };
-    resolved = {
-      enable = true;
-      llmnr = "false"; # Handled by avahi
-      dns = [
-        "[::1]:5354" # Unbound
-      ];
-      fallbackDns = [ ]; # Disable fallback for security
-
-      # Unbound supports DNSSEC and DNS over TLS. Might as well revalidate, doesn't cost that much.
-      dnssec = "allow-downgrade";
-      dnsovertls = "opportunistic"; 
     };
   };
 }
