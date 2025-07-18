@@ -12,9 +12,9 @@ in
   options.programs.nixpkgs-vet = {
     enable = lib.mkEnableOption "nixpkgs-vet";
     package = lib.mkPackageOption pkgs "nixpkgs-vet" { };
-    nixPackage = lib.mkPackageOption pkgs "nix" {
+    nixPackage = (lib.mkPackageOption pkgs "nix" { }) // {
       default = config.nix.package;
-      defaultText = literalExpression "config.nix.package";
+      defaultText = lib.literalExpression "config.nix.package";
     };
   };
 
