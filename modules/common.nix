@@ -67,11 +67,6 @@
     kernelPackages = pkgs.linuxPackages_latest;
   };
 
-  # Auto nix-index
-  programs.nix-index = {
-    enable = true;
-  };
-
   # Auto GC every day
   systemd.services.nix-gc = let
     configurationLimit = 16;
@@ -116,6 +111,10 @@
   programs.comma = {
     enable = true;
     package = pkgs.comma-with-db;
+  };
+  programs.nix-index = {
+    enable = true;
+    package = pkgs.nix-index-with-db;
   };
 
   # Local hosts blocklist
