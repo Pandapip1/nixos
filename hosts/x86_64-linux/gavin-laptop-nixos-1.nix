@@ -83,6 +83,8 @@
   services.speechd.enable = true;
   programs.qgroundcontrol.enable = true;
 
+  programs.nixpkgs-vet.enable = true;
+
   # AI Stuff
   services.open-webui = {
     enable = true;
