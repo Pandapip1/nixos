@@ -51,7 +51,7 @@ in
       command-not-found.enable = lib.mkIf (
         cfg.enableBashIntegration || cfg.enableZshIntegration || cfg.enableFishIntegration
       ) (lib.mkDefault false);
-      programs.nix-index = {
+      nix-index = {
         enableBashIntegration = lib.mkIf (cfg.enableBashIntegration) (lib.mkDefault false);
         enableZshIntegration = lib.mkIf (cfg.enableZshIntegration) (lib.mkDefault false);
         enableFishIntegration = lib.mkIf (cfg.enableFishIntegration) (lib.mkDefault false);
