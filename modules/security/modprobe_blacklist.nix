@@ -1,9 +1,11 @@
 {
-  boot.modprobeConfig.useUbuntuModuleBlacklist = true;
-  boot.blacklistedKernelModules = [
-    "tipc"
-    "rds"
-    "sctp"
-    "dccp"
-  ];
+  boot = {
+    modprobeConfig.useUbuntuModuleBlacklist = true;
+    forbiddenKernelModules = {
+      tipc = true;
+      rds = true;
+      sctp = true;
+      dccp = true;
+    };
+  };
 }
