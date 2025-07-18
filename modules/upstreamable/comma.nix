@@ -24,8 +24,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ cfg.package ];
     programs = {
-      environment.systemPackages = [ cfg.package ];
       bash.interactiveShellInit = lib.mkIf cfg.enableBashIntegration ''
         source ${cfg.package}/etc/profile.d/comma-command-not-found.sh
       '';
