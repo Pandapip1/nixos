@@ -67,36 +67,10 @@
     kernelPackages = pkgs.linuxPackages_latest;
   };
 
-  # Install comma command-not-found
-  programs.bash.interactiveShellInit = ''
-    source ${pkgs.comma-with-db}/etc/profile.d/command-not-found.sh
-  '';
-
-  programs.zsh.interactiveShellInit = ''
-    source ${pkgs.comma-with-db}/etc/profile.d/command-not-found.sh
-  '';
-
-  # See https://github.com/bennofs/nix-index/issues/126
-  programs.fish.interactiveShellInit = let
-    wrapper = pkgs.writeScript "command-not-found" ''
-      #!${lib.getExe pkgs.bash}
-      source ${pkgs.comma-with-db}/etc/profile.d/command-not-found.sh
-      command_not_found_handle "$@"
-    '';
-  in ''
-    function __fish_command_not_found_handler --on-event fish_command_not_found
-        ${wrapper} $argv
-    end
-  '';
-
   # Auto nix-index
   programs.nix-index = {
     enable = true;
-    enableZshIntegration = false;
-    enableFishIntegration = false;
-    enableBashIntegration = false;
   };
-  programs.command-not-found.enable = false;
 
   # Auto GC every day
   systemd.services.nix-gc = let
@@ -139,10 +113,10 @@
     nftables.enable = true;
   };
 
-  environment.systemPackages = with pkgs; [
-    vim
-    comma-with-db
-  ];
+  programs.comma = {
+    enable = true;
+    package = pkgs.comma-with-db;
+  };
 
   # Local hosts blocklist
   networking.stevenBlackHosts = {
