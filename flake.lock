@@ -129,15 +129,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1751170039,
-        "narHash": "sha256-3EKpUmyGmHYA/RuhZjINTZPU+OFWko0eDwazUOW64nw=",
-        "owner": "nix-community",
+        "lastModified": 1752848744,
+        "narHash": "sha256-ZPCgnVUYmwn5nehYGDcAULf9/FZR3xs1q47yTKGJHIo=",
+        "owner": "Pandapip1",
         "repo": "nix-index-database",
-        "rev": "9c932ae632d6b5150515e5749b198c175d8565db",
+        "rev": "8c7a6474296e380830f21ea58f21bd7b09b27416",
         "type": "github"
       },
       "original": {
-        "owner": "nix-community",
+        "owner": "Pandapip1",
+        "ref": "fix-comma",
         "repo": "nix-index-database",
         "type": "github"
       }

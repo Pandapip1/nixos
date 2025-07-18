@@ -29,7 +29,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-index-database = {
-      url = "github:nix-community/nix-index-database";
+      url = "github:Pandapip1/nix-index-database/fix-comma";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     comma = {
