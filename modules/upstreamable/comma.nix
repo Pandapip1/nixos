@@ -32,20 +32,13 @@ in
       zsh.interactiveShellInit = lib.mkIf cfg.enableZshIntegration ''
         source ${cfg.package}/etc/profile.d/comma-command-not-found.sh
       '';
-      # See https://github.com/bennofs/nix-index/issues/126
-      fish.interactiveShellInit =
-        let
-          wrapper = pkgs.writeScript "command-not-found" ''
-            #!${lib.getExe pkgs.bash}
-            source ${pkgs.comma-with-db}/etc/profile.d/command-not-found.sh
-            command_not_found_handle "$@"
-          '';
-        in
-        ''
-          function __fish_command_not_found_handler --on-event fish_command_not_found
-              ${wrapper} $argv
-          end
-        '';
+      # TODO: Add to its own seperate comma-command-not-found.fish
+      fish.interactiveShellInit = ''
+        function __fish_command_not_found_handler --on-event fish_command_not_found
+          ${lib.getExe cfg.package} --ask "$@"
+          return $argv
+        end
+      '';
 
       # Disable *other* command-not-found handlers
       command-not-found.enable = lib.mkIf (
