@@ -123,7 +123,6 @@
           (readDirRecursive dir);
       hostsDir = "${self}/hosts";
       modulesDir = "${self}/modules";
-      overlaysDir = "${self}/overlays";
       hosts = lib.mapAttrs (
         system: _:
         map (s: lib.substring 0 (lib.stringLength s - 4) s) (
@@ -132,7 +131,6 @@
       ) (builtins.readDir hostsDir);
       systems = lib.attrNames hosts;
       modules = attrValuesRecursive (collectDirRecursive modulesDir);
-      overlays = lib.map import (attrValuesRecursive (collectDirRecursive overlaysDir));
       inputModules = with inputs; [
         stevenblack-hosts.nixosModule
       ];
@@ -171,7 +169,7 @@
                         nixpkgs = {
                           hostPlatform = system;
                           buildPlatform = builtins.currentSystem or system;
-                          overlays = overlays ++ inputOverlays;
+                          overlays = inputOverlays;
                         };
                       }
                       "${hostsDir}/${system}/${fqdn}.nix"
