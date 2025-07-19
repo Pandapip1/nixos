@@ -4,7 +4,7 @@
 }:
 
 let
-  inherit (prev) lib;
+  inherit (pkgs) lib;
 in
 {
   nixpkgs.overlays = [
