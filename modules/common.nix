@@ -148,13 +148,6 @@
   #   style = "adwaita-dark";
   # };
 
-  # Renice daemon so that KDE plasma can stop freaking freezing
-  services.ananicy = {
-    enable = true;
-    package = pkgs.ananicy-cpp;
-    rulesProvider = pkgs.ananicy-rules-cachyos;
-  };
-
   # Provides debug symbols for troubleshooting purposes
   services.nixseparatedebuginfod.enable = true;
 }
