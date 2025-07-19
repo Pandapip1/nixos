@@ -12,8 +12,6 @@
   imports = [
     srvos.nixosModules.server
     srvos.nixosModules.hardware-amazon
-    # Users
-    ../../users/gavin.nix
   ];
 
   # Max jobs 2; use a single core for each of them
