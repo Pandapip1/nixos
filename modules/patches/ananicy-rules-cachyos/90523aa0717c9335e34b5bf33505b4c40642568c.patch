@@ -1,0 +1,17 @@
+From 90523aa0717c9335e34b5bf33505b4c40642568c Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sat, 5 Jul 2025 22:59:26 -0400
+Subject: [PATCH] Add fail2ban-server rule
+
+---
+ 00-default/Services/fail2ban.rules | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 00-default/Services/fail2ban.rules
+
+diff --git a/00-default/Services/fail2ban.rules b/00-default/Services/fail2ban.rules
+new file mode 100644
+index 0000000..3e5a881
+--- /dev/null
++++ b/00-default/Services/fail2ban.rules
+@@ -0,0 +1 @@
++{ name: "fail2ban-server", "type": "IN_DIFF" }

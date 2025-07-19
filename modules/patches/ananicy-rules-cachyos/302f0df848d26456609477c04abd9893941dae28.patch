@@ -1,0 +1,17 @@
+From 302f0df848d26456609477c04abd9893941dae28 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sat, 5 Jul 2025 22:37:35 -0400
+Subject: [PATCH] Add nginx rule
+
+---
+ 00-default/Services/nginx.rules | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 00-default/Services/nginx.rules
+
+diff --git a/00-default/Services/nginx.rules b/00-default/Services/nginx.rules
+new file mode 100644
+index 0000000..bb1f2bf
+--- /dev/null
++++ b/00-default/Services/nginx.rules
+@@ -0,0 +1 @@
++{ "name": "nginx", "type": "LowLatency_RT" }
