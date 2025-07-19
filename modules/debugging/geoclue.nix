@@ -22,5 +22,5 @@ in
       );
     })
   ];
-  services.geoclue2.package = "geoclue2-with-asan";
+  services.geoclue2.package = pkgs.geoclue2-with-asan;
 }

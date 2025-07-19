@@ -12,5 +12,5 @@ in
       wireplumber-debug = prev.enableDebugging prev.wireplumber;
     })
   ];
-  services.pipewire.wireplumber.package = "wireplumber-debug";
+  services.pipewire.wireplumber.package = pkgs.wireplumber-debug;
 }
