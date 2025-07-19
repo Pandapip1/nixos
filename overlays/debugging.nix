@@ -3,7 +3,7 @@ let
   inherit (prev) lib;
 in
 {
-  geoclue2 = prev.enableDebugging prev.geoclue2.overrideAttrs (
+  geoclue2 = prev.enableDebugging (prev.geoclue2.overrideAttrs (
     _: previousAttrs: {
       mesonFlags = [
         (lib.mesonOption "b_sanitize" "address")
@@ -11,6 +11,6 @@ in
         (lib.mesonBool "b_pie" true)
       ] ++ previousAttrs.mesonFlags;
     }
-  );
+  ));
   wireplumber = prev.enableDebugging prev.wireplumber;
 }
