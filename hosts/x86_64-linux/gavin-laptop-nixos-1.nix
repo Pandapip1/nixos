@@ -25,10 +25,10 @@
   };
 
   # Enable nixbuild.net, but only for building to other systems
-  # nixbuild-net = {
-  #   enable = true;
-  #   crossOnly = true;
-  # };
+  nixbuild-net = {
+    enable = true;
+    crossOnly = true;
+  };
 
   services.nebula.networks.nebula0.enable = true;
 
