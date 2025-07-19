@@ -39,6 +39,8 @@ in
       IdentityFile ${cfg.identity.key}
     '';
 
+    secrets.nixbuild.ownership.user = "root";
+
     programs.ssh.knownHosts = {
       nixbuild = {
         hostNames = [ "eu.nixbuild.net" ];
