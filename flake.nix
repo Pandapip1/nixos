@@ -123,6 +123,7 @@
           (readDirRecursive dir);
       hostsDir = "${self}/hosts";
       modulesDir = "${self}/modules";
+      overlaysDir = "${self}/overlays";
       hosts = lib.mapAttrs (
         system: _:
         map (s: lib.substring 0 (lib.stringLength s - 4) s) (
@@ -131,6 +132,7 @@
       ) (builtins.readDir hostsDir);
       systems = lib.attrNames hosts;
       modules = attrValuesRecursive (collectDirRecursive modulesDir);
+      overlays = attrValuesRecursive (collectDirRecursive overlaysDir);
       inputModules = with inputs; [
         stevenblack-hosts.nixosModule
       ];
@@ -138,10 +140,6 @@
         comma.overlays.default
         nix-index-database.overlays.nix-index
         nur.overlays.default
-        (_: prev: {
-          geoclue2 = prev.enableDebugging prev.geoclue2;
-          wireplumber = prev.enableDebugging prev.wireplumber;
-        })
       ];
 
       concatAttrSets = attrs: lib.foldl' (a: b: a // b) { } attrs;
@@ -173,7 +171,7 @@
                         nixpkgs = {
                           hostPlatform = system;
                           buildPlatform = builtins.currentSystem or system;
-                          overlays = inputOverlays;
+                          overlays = overlays ++ inputOverlays;
                         };
                       }
                       "${hostsDir}/${system}/${fqdn}.nix"
