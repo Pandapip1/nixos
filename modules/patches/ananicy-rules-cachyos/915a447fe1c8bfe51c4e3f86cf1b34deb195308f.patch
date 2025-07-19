@@ -1,0 +1,17 @@
+From 915a447fe1c8bfe51c4e3f86cf1b34deb195308f Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sat, 5 Jul 2025 22:35:28 -0400
+Subject: [PATCH] Add sshd rule
+
+---
+ 00-default/Services/sshd.rules | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 00-default/Services/sshd.rules
+
+diff --git a/00-default/Services/sshd.rules b/00-default/Services/sshd.rules
+new file mode 100644
+index 0000000..3054e92
+--- /dev/null
++++ b/00-default/Services/sshd.rules
+@@ -0,0 +1 @@
++{ "name": "sshd", "type": "LowLatency_RT" }
