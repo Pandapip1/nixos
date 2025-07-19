@@ -16,7 +16,12 @@ in
               (lib.mesonOption "b_sanitize" "address")
               (lib.mesonBool "b_lundef" false)
               (lib.mesonBool "b_pie" true)
+              (lib.mesonBool "gtk-doc" false)
             ] ++ previousAttrs.mesonFlags;
+
+            postInstall = ''
+              mkdir -p $devdoc
+            '';
           }
         )
       );
