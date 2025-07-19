@@ -34,26 +34,29 @@ in
 
   config = {
     system.activationScripts.etcSecretsPermissions = {
-      text = let
-        ogGroup = val.ownership.group;
-        group = if ogGroup == null then "root" else ogGroup;
-        filePerms = if ogGroup == null then "0400" else "0440";
-        dirPerms = if ogGroup == null then "0511" else "0551";
-      in ''
+      text = ''
         echo "Setting up /etc/secrets permissions..."
 
         mkdir -p /etc/secrets
         chown -R root:root /etc/secrets
 
         # Set permissions
-        find /etc/secrets -type f -exec chmod ${filePerms} {} \;
-        find /etc/secrets -type d -exec chmod ${dirPerms} {} \;
+        find /etc/secrets -type f -exec chmod 0400 {} \;
+        find /etc/secrets -type d -exec chmod 0511 {} \;
 
         # Custom ownership
         ${lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (
-            path: val: "chown -R ${val.ownership.user}:${group} '/etc/secrets/${path}'"
-          ) cfg
+          lib.mapAttrsToList (path: val: ''
+            find '/etc/secrets/${path}' -type f -exec chmod ${
+              if val.ownership.group == null then "0400" else "0440"
+            } {} \;
+            find '/etc/secrets/${path}' -type d -exec chmod ${
+              if val.ownership.group == null then "0511" else "0551"
+            } {} \;
+            chown -R ${val.ownership.user}:${
+              if val.ownership.group == null then "root" else val.ownership.group
+            } '/etc/secrets/${path}'
+          '') cfg
         )}
       '';
     };
