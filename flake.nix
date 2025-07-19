@@ -132,7 +132,7 @@
       ) (builtins.readDir hostsDir);
       systems = lib.attrNames hosts;
       modules = attrValuesRecursive (collectDirRecursive modulesDir);
-      overlays = attrValuesRecursive (collectDirRecursive overlaysDir);
+      overlays = lib.map import (attrValuesRecursive (collectDirRecursive overlaysDir));
       inputModules = with inputs; [
         stevenblack-hosts.nixosModule
       ];
