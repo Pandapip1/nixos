@@ -11,23 +11,15 @@
 {
   imports = [
     srvos.nixosModules.server
-    srvos.nixosModules.hardware-amazon
   ];
 
-  # Max jobs 2; use a single core for each of them
-  # Availability more important than build speed, but 2 jobs is a 100% speedup so worth it
-  nix.settings = {
-    max-jobs = 2;
-    cores = 1;
+  boot.loader = {
+    systemd-boot = {
+      enable = true;
+      configurationLimit = 16;
+    };
+    efi.canTouchEfiVariables = true;
   };
-
-  # Simply not necessary
-  hardware.enableAllFirmware = false;
-
-  ec2.efi = true;
-
-  # Berry is underpowered, use external builder
-  nixbuild-net.enable = true;
 
   # Some definitions in `security.sudo.extraRules` refer to users other than 'root' or groups other than 'wheel'. Disable `config.security.sudo.execWheelOnly`, or adjust the rules.
   # https://github.com/nix-community/srvos/issues/655
