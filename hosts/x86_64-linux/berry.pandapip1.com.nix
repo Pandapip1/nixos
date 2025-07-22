@@ -76,6 +76,10 @@
     };
   };
 
+  services.openssh = {
+    enable = true;
+  };
+
   # Get key for berry.pandapip1.com
   security.acme = {
     acceptTerms = true;
