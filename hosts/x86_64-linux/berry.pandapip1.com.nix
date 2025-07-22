@@ -115,6 +115,7 @@
     };
     # TODO: configure
   };
+  systemd.services.keycloak.requires = [ "set-random-pg-password-keycloak.service" ];
   # Currently just used for postgres auth
   # See https://github.com/NixOS/nixpkgs/issues/422823
   users.users.keycloak = {
@@ -174,7 +175,6 @@
     ];
     # TODO: Set up initialScript?
   };
-  systemd.services.postgresql.requires = [ "set-random-password-keycloak.service" ];
 
   # Nginx for proxying
   services.nginx = {
