@@ -78,11 +78,10 @@
   security.acme = {
     acceptTerms = true;
     defaults.email = "gavinnjohn@gmail.com";
-    certs."berry.pandapip1.com" = {
-      dnsProvider = "cloudflare";
-      credentialsFile = "/etc/secrets/cloudflare/cloudflare.ini";
-      domain = "berry.pandapip1.com";
-      extraDomainNames = [ "*.berry.pandapip1.com" ];
+    certs = {
+      "berry.pandapip1.com" = {};
+      "node-red.berry.pandapip1.com" = {};
+      "keycloak.berry.pandapip1.com" = {};
     };
   };
 
@@ -194,12 +193,12 @@
 
     virtualHosts = {
       "berry.pandapip1.com" = {
-        useACMEHost = "berry.pandapip1.com";
+        enableACME = true;
         forceSSL = true;
         root = "${self}/config/static/berry.pandapip1.com";
       };
       "node-red.berry.pandapip1.com" = {
-        useACMEHost = "berry.pandapip1.com";
+        enableACME = true;
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.node-red.port}";
@@ -207,7 +206,7 @@
         };
       };
       "keycloak.berry.pandapip1.com" = {
-        useACMEHost = "berry.pandapip1.com";
+        enableACME = true;
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
