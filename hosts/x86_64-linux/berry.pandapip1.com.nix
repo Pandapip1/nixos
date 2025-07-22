@@ -129,34 +129,45 @@
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = false;
-      DynamicUser = true;
+      User = "root";
+      CapabilityBoundingSet = [
+        "CAP_DAC_OVERRIDE"
+        "CAP_CHOWN"
+        "CAP_FOWNER"
+      ];
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      ProtectKernelModules = true;
+      ProtectKernelTunables = true;
+      ProtectControlGroups = true;
+      PrivateTmp = true;
+      ProtectProc = "invisible";
+      NoNewPrivileges = true;
+      BindReadOnlyPaths = [
+        "/etc/passwd"
+      ];
       BindPaths = [
         "/etc/shadow"
         "/run/user"
       ];
-      BindReadOnlyPaths = [
-        "/etc/passwd"
-        "/etc/group"
-      ];
-      CapabilityBoundingSet = [
-        # Needed to write to /etc/shadow
-        "CAP_DAC_OVERRIDE"
-        # Needed to set the UID / GID of the randomPassword file
-        "CAP_CHOWN"
-        "CAP_FOWNER"
-      ];
     };
     script = ''
-      set -e
+      set -euo pipefail
+
       user="keycloak"
       pw=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
       hash="$(${lib.getExe pkgs.mkpasswd} "$pw")"
-      ${lib.getExe' pkgs.shadow "usermod"} -p "$hash" "$user"
       uid="$(id -u "$user")"
+      gid="$(id -g "$user")"
+
+      ${lib.getExe' pkgs.shadow "usermod"} -p "$hash" "$user"
+
       mkdir -p "/run/user/$uid"
+      chown "$uid:$gid" "/run/user/$uid"
+
       echo "$pw" > "/run/user/$uid/randomPassword"
       chmod 400 "/run/user/$uid/randomPassword"
-      chown "$uid:$(id -g "$user")" "/run/user/$uid/randomPassword"
+      chown "$uid:$gid" "/run/user/$uid/randomPassword"
     '';
   };
 
