@@ -1,10 +1,6 @@
-{ lib, config, pkgs, nixpkgs, srvos, ... }:
+{ lib, config, pkgs, nixpkgs, ... }:
 
 {
-  imports = [
-    srvos.nixosModules.common
-  ];
-
   nix = {
     settings = {
       trusted-substituters = [

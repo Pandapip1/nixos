@@ -43,10 +43,6 @@
         flake-parts.follows = "flake-parts";
       };
     };
-    srvos = {
-      url = "github:nix-community/srvos";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =

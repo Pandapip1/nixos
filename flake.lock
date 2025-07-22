@@ -208,29 +208,8 @@
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
         "nur": "nur",
-        "srvos": "srvos",
         "stevenblack-hosts": "stevenblack-hosts",
         "treefmt-nix": "treefmt-nix"
-      }
-    },
-    "srvos": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1752715576,
-        "narHash": "sha256-CA8WzNOh7/bgxD7I0xZN0ZFqlsOWkfvHxlbXr+UvaQs=",
-        "owner": "nix-community",
-        "repo": "srvos",
-        "rev": "403c3ef33457ed306a91214acb78913e47b0f093",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "srvos",
-        "type": "github"
       }
     },
     "stevenblack-hosts": {
