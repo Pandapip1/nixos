@@ -47,6 +47,7 @@ in
         # Custom ownership
         ${lib.concatStringsSep "\n" (
           lib.mapAttrsToList (path: val: ''
+            mkdir -p '/etc/secrets/${path}'
             find '/etc/secrets/${path}' -type f -exec chmod ${
               if val.ownership.group == null then "0400" else "0440"
             } {} \;
