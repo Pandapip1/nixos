@@ -133,7 +133,7 @@
       Type = "oneshot";
       RemainAfterExit = true;
       RuntimeDirectoryPreserve = "yes";
-      User = "postgres";
+      User = "keycloak";
       RuntimeDirectory = "pg-passwords";
     };
 
