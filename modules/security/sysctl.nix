@@ -61,12 +61,12 @@ in
         default.accept_redirects = 0;
       };
     };
+
+    # Log invalid packets
+    net.ipv4.conf.all.log_martians = 1;
+    net.ipv4.conf.default.log_martians = 1;
+
+    # Enable reverse path filtering
+    net.ipv4.conf.all.rp_filter = 1;
   };
-
-  # Log invalid packets
-  net.ipv4.conf.all.log_martians = 1;
-  net.ipv4.conf.default.log_martians = 1;
-
-  # Enable reverse path filtering
-  net.ipv4.conf.all.rp_filter = 1;
 }
