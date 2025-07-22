@@ -153,7 +153,7 @@
       ];
     };
     script = ''
-      set -euo pipefail
+      set -euxo pipefail
 
       user="keycloak"
       pw=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
