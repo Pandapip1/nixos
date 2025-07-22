@@ -155,13 +155,17 @@
     script = ''
       set -euxo pipefail
 
+      mkpasswd="${lib.getExe pkgs.mkpasswd}"
+      usermod="${lib.getExe' pkgs.shadow "usermod"}"
+
       user="keycloak"
-      pw=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
-      hash="$(${lib.getExe pkgs.mkpasswd} "$pw")"
       uid="$(id -u "$user")"
       gid="$(id -g "$user")"
 
-      ${lib.getExe' pkgs.shadow "usermod"} -p "$hash" "$user"
+      pw=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
+      hash="$("$mkpasswd" "$pw")"
+
+      "$usermod" -p "$hash" "$user"
 
       mkdir -p "/run/user/$uid"
       chown "$uid:$gid" "/run/user/$uid"
