@@ -41,7 +41,7 @@
     {
       groups = [ "wheel" ];
       commands = [ "ALL" ];
-      options = "NOPASSWD";
+      options = [ "NOPASSWD" ];
     }
   ];
 
