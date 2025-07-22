@@ -36,6 +36,9 @@
     }
   ];
 
+  # TODO: Remove once everything is sorted out
+  services.getty.autologinUser = "root";
+
   networking = {
     useDHCP = false;
     interfaces.eno1 = {
