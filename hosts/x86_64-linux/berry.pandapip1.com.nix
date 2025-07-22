@@ -108,7 +108,7 @@
       type = "postgresql";
       name = "keycloak";
       username = "keycloak";
-      passwordFile = "/run/user/${toString config.users.users.keycloak.uid}/randomPassword";
+      passwordFile = "/run/pg-keycloak-pw";
       host = "localhost";
       port = config.services.postgresql.settings.port;
       createLocally = false;
@@ -118,40 +118,35 @@
   # Currently just used for postgres auth
   # See https://github.com/NixOS/nixpkgs/issues/422823
   users.users.keycloak = {
-    uid = 996;
-    group = "nogroup";
     isSystemUser = true;
+    group = "keycloak";
   };
-  systemd.services.set-random-password-keycloak = {
-    description = "Set random password for user keycloak";
-    after = [ "systemd-user-sessions.service" ];
+  users.groups.keycloak = {};
+  systemd.services.set-random-pg-password-keycloak = {
+    description = "Set random keycloak password for PostgreSQL";
+    after = [ "postgresql.service" ];
+    requires = [ "postgresql.service" ];
     wantedBy = [ "multi-user.target" ];
+
     serviceConfig = {
       Type = "oneshot";
-      RemainAfterExit = false;
-      User = "root";
+      RemainAfterExit = true;
+      RuntimeDirectoryPreserve = "yes";
+      User = "postgres";
+      RuntimeDirectory = "pg-password";
     };
+
     script = ''
       set -euxo pipefail
 
-      usermod="${lib.getExe' pkgs.shadow "usermod"}"
-      openssl="${lib.getExe pkgs.openssl}"
-
-      user="keycloak"
-      uid="$(id -u "$user")"
-      gid="$(id -g "$user")"
+      psql=${lib.getExe pkgs.posgresql "psql"}
 
       pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
-      hash=$("$openssl" passwd -6 "$pw")
-      "$usermod" -p "$hash" "$user"
+      echo "$pw" > /run/pg-passwords/pg-keycloak-pw
+      chmod 400 /run/pg-passwords/pg-keycloak-pw
 
-      mkdir -p "/run/user/$uid"
-      chown "$uid:$gid" "/run/user/$uid"
-
-      echo "$pw" > "/run/user/$uid/randomPassword"
-      chmod 400 "/run/user/$uid/randomPassword"
-      chown "$uid:$gid" "/run/user/$uid/randomPassword"
+      $psql -v ON_ERROR_STOP=1 -c "ALTER USER keycloak WITH PASSWORD '$pw';"
     '';
   };
 
@@ -179,7 +174,7 @@
     ];
     # TODO: Set up initialScript?
   };
-  systemd.services.postgresql.after = [ "set-random-password-keycloak.service" ];
+  systemd.services.postgresql.requires = [ "set-random-password-keycloak.service" ];
 
   # Nginx for proxying
   services.nginx = {
