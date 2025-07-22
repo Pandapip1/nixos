@@ -135,7 +135,7 @@
         "CAP_CHOWN"
         "CAP_FOWNER"
       ];
-      ProtectSystem = "strict";
+      ProtectSystem = "full";
       ProtectHome = true;
       ProtectKernelModules = true;
       ProtectKernelTunables = true;
@@ -143,14 +143,13 @@
       PrivateTmp = true;
       ProtectProc = "invisible";
       NoNewPrivileges = true;
-      BindReadOnlyPaths = [
+      TemporaryFileSystem = "/etc:rw";
+      ReadOnlyPaths = [
         "/dev/urandom"
         "/etc/passwd"
       ];
-      BindPaths = [
+      ReadWritePaths = [
         "/etc/shadow"
-        "/etc/shadow.lock"
-        "/etc/passwd.lock"
         "/run/user"
       ];
     };
