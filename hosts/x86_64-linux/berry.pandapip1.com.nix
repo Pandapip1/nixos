@@ -21,6 +21,40 @@
     efi.canTouchEfiVariables = true;
   };
 
+  fileSystems = {
+    "/" = {
+      device = "/dev/disk/by-label/BERRY_ROOT";
+      fsType = "btrfs";
+    };
+    "/boot" = {
+      device = "/dev/disk/by-label/BERRY_BOOT";
+      fsType = "vfat";
+      options = [
+        "fmask=0022"
+        "dmask=0022"
+      ];
+    };
+  };
+  swapDevices = [
+    {
+      device = "/dev/disk/by-label/swap";
+    }
+  ];
+
+  networking = {
+    useDHCP = false;
+    interfaces.eno1 = {
+      ipv4.addresses = [{
+        address = "23.94.10.178";
+        prefixLength = 30;
+      }];
+    };
+    networking.defaultGateway = {
+      address = "23.94.10.177";
+      interface = "eno1";
+    };
+  };
+
   # Some definitions in `security.sudo.extraRules` refer to users other than 'root' or groups other than 'wheel'. Disable `config.security.sudo.execWheelOnly`, or adjust the rules.
   # https://github.com/nix-community/srvos/issues/655
   security.sudo.execWheelOnly = lib.mkForce false;
