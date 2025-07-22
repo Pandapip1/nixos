@@ -108,7 +108,7 @@
       type = "postgresql";
       name = "keycloak";
       username = "keycloak";
-      passwordFile = "/run/user/${config.users.users.keycloak.uid}/randomPassword";
+      passwordFile = "/run/user/${toString config.users.users.keycloak.uid}/randomPassword";
       host = "localhost";
       port = config.services.postgresql.settings.port;
       createLocally = false;
