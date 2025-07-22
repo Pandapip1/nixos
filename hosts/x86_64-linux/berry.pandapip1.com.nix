@@ -36,9 +36,6 @@
     }
   ];
 
-  # Use systemd-sysusers
-  systemd.sysusers.enable = true;
-
   # We're using SSH keys, so NOPASSWD is needed
   security.sudo.wheelNeedsPassword = lib.mkForce false;
 
