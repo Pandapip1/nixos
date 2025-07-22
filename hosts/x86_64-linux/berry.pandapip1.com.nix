@@ -151,7 +151,7 @@
       user="keycloak"
       pw=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
       hash="$(${lib.getExe pkgs.mkpasswd} "$pw")"
-      ${lib.getExe' pkgs.su "usermod"} -p "$hash" "$user"
+      ${lib.getExe' pkgs.shadow "usermod"} -p "$hash" "$user"
       uid="$(id -u "$user")"
       mkdir -p "/run/user/$uid"
       echo "$pw" > "/run/user/$uid/randomPassword"
