@@ -78,11 +78,6 @@
   security.acme = {
     acceptTerms = true;
     defaults.email = "gavinnjohn@gmail.com";
-    certs = {
-      "berry.pandapip1.com" = {};
-      "node-red.berry.pandapip1.com" = {};
-      "keycloak.berry.pandapip1.com" = {};
-    };
   };
 
   # Nodered for workflow orchestration
