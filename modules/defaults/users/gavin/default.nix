@@ -9,6 +9,8 @@
   users.users.gavin = {
     enable = lib.mkDefault true;
     isNormalUser = true;
+    useDefaultShell = true;
+    createHome = true;
     description = "gavin";
     extraGroups = [
       "networkmanager"
