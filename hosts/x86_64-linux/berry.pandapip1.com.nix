@@ -163,9 +163,7 @@
 
       pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
-      echo "$user:$pw" > /tmp/chpw
-      cat /tmp/chpw
-      "$chpasswd" < /tmp/chpw
+      echo "$user:$pw" | "$chpasswd"
 
       mkdir -p "/run/user/$uid"
       chown "$uid:$gid" "/run/user/$uid"
