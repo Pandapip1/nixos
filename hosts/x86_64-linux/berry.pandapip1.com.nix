@@ -108,7 +108,7 @@
       type = "postgresql";
       name = "keycloak";
       username = "keycloak";
-      passwordFile = "/etc/secrets/keycloak/db_password"; # TODO: Hook up keycloak user with etc-secrets.nix
+      passwordFile = "/run/user/${config.users.users.keycloak.uid}/randomPassword";
       host = "localhost";
       port = config.services.postgresql.settings.port;
       createLocally = false;
@@ -118,7 +118,45 @@
   # Currently just used for postgres auth
   # See https://github.com/NixOS/nixpkgs/issues/422823
   users.users.keycloak = {
+    uid = 996;
     isSystemUser = true;
+  };
+  systemd.services.set-random-password-keycloak = {
+    description = "Set random password for user keycloak";
+    after = [ "systemd-user-sessions.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = false;
+      DynamicUser = true;
+      BindPaths = [
+        "/etc/shadow"
+        "/run/user"
+      ];
+      BindReadOnlyPaths = [
+        "/etc/passwd"
+        "/etc/group"
+      ];
+      CapabilityBoundingSet = [
+        # Needed to write to /etc/shadow
+        "CAP_DAC_OVERRIDE"
+        # Needed to set the UID / GID of the randomPassword file
+        "CAP_CHOWN"
+        "CAP_FOWNER"
+      ];
+    };
+    script = ''
+      set -e
+      user="keycloak"
+      pw=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
+      hash="$(${lib.getExe pkgs.mkpasswd} "$pw")"
+      ${lib.getExe' pkgs.su "usermod"} -p "$hash" "$user"
+      uid="$(id -u "$user")"
+      mkdir -p "/run/user/$uid"
+      echo "$pw" > "/run/user/$uid/randomPassword"
+      chmod 400 "/run/user/$uid/randomPassword"
+      chown "$uid:$(id -g "$user")" "/run/user/$uid/randomPassword"
+    '';
   };
 
   # Postgres for Keycloak and other data needed by berry's various services
