@@ -49,7 +49,7 @@
         prefixLength = 30;
       }];
     };
-    networking.defaultGateway = {
+    defaultGateway = {
       address = "23.94.10.177";
       interface = "eno1";
     };
