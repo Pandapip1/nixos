@@ -130,28 +130,6 @@
       Type = "oneshot";
       RemainAfterExit = false;
       User = "root";
-      CapabilityBoundingSet = [
-        "CAP_DAC_OVERRIDE"
-        "CAP_CHOWN"
-        "CAP_FOWNER"
-      ];
-      ProtectSystem = "full";
-      ProtectHome = true;
-      ProtectKernelModules = true;
-      ProtectKernelTunables = true;
-      ProtectControlGroups = true;
-      PrivateTmp = true;
-      ProtectProc = "invisible";
-      NoNewPrivileges = true;
-      TemporaryFileSystem = "/etc:rw";
-      ReadOnlyPaths = [
-        "/dev/urandom"
-        "/etc/passwd"
-      ];
-      ReadWritePaths = [
-        "/etc/shadow"
-        "/run/user"
-      ];
     };
     script = ''
       set -euxo pipefail
