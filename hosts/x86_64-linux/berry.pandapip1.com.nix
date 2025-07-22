@@ -149,6 +149,8 @@
       ];
       BindPaths = [
         "/etc/shadow"
+        "/etc/shadow.lock"
+        "/etc/passwd.lock"
         "/run/user"
       ];
     };
