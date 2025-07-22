@@ -225,22 +225,9 @@
     443
   ];
 
-  # In-A-Dyn for dyndns
-  services.inadyn = {
-    enable = true;
-    # TODO: make declarative
-    configFile = "/etc/secrets/inadyn/inadyn.conf";
-  };
-  secrets.inadyn.ownership = {
-    inherit (config.services.inadyn) user group;
-  };
-
   # Allow nginx user to see ACME certs
   # "Certificate berry.pandapip1.com (group=acme) must be readable by service(s) nginx.service (user=nginx groups=nginx), nginx-config-reload.service (user=root groups=)"
   users.users.nginx.extraGroups = [ "acme" ];
-
-  # Makes berry even slower but we're disk constrained so it makes sense to
-  nix.settings.auto-optimise-store = true;
 
   # Enable nebula network
   services.nebula.networks.nebula0.enable = true;
