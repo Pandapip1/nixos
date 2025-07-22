@@ -119,6 +119,7 @@
   # See https://github.com/NixOS/nixpkgs/issues/422823
   users.users.keycloak = {
     uid = 996;
+    group = "nogroup";
     isSystemUser = true;
   };
   systemd.services.set-random-password-keycloak = {
