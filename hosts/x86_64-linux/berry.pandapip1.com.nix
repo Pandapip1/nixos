@@ -155,7 +155,8 @@
     script = ''
       set -euxo pipefail
 
-      chpasswd="${lib.getExe' pkgs.shadow "chpasswd"}"
+      usermod="${lib.getExe' pkgs.shadow "usermod"}"
+      openssl="${lib.getExe pkgs.openssl}"
 
       user="keycloak"
       uid="$(id -u "$user")"
@@ -163,7 +164,8 @@
 
       pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
-      echo "$user:$pw" | "$chpasswd"
+      hash=$("$openssl" passwd -6 "$pw")
+      "$usermod" -p "$hash" "$user"
 
       mkdir -p "/run/user/$uid"
       chown "$uid:$gid" "/run/user/$uid"
