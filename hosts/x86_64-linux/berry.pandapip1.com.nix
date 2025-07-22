@@ -179,6 +179,7 @@
     ];
     # TODO: Set up initialScript?
   };
+  systemd.services.postgresql.after = [ "set-random-password-keycloak.service" ];
 
   # Nginx for proxying
   services.nginx = {
