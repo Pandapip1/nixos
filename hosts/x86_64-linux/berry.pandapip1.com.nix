@@ -134,7 +134,7 @@
       RemainAfterExit = true;
       RuntimeDirectoryPreserve = "yes";
       User = "postgres";
-      RuntimeDirectory = "pg-password";
+      RuntimeDirectory = "pg-passwords";
     };
 
     script = ''
