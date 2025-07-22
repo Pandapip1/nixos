@@ -161,7 +161,7 @@
       uid="$(id -u "$user")"
       gid="$(id -g "$user")"
 
-      pw=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)
+      pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
       echo "$user:$pw" > /tmp/chpw
       cat /tmp/chpw
