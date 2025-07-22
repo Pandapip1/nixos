@@ -119,9 +119,7 @@
   # See https://github.com/NixOS/nixpkgs/issues/422823
   users.users.keycloak = {
     isSystemUser = true;
-    group = "keycloak";
   };
-  users.groups.keycloak = {};
 
   # Postgres for Keycloak and other data needed by berry's various services
   # TODO: Add config.services.postgresql.user and config.services.postgresql.group to set those in particular
