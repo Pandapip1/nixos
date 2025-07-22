@@ -144,6 +144,7 @@
       ProtectProc = "invisible";
       NoNewPrivileges = true;
       BindReadOnlyPaths = [
+        "/dev/urandom"
         "/etc/passwd"
       ];
       BindPaths = [
