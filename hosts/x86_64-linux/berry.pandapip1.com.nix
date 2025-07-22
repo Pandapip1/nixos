@@ -36,6 +36,15 @@
     }
   ];
 
+  # We're using SSH keys, so NOPASSWD is needed
+  security.sudo.extraRules = [
+    {
+      groups = [ "wheel" ];
+      commands = [ "ALL" ];
+      options = "NOPASSWD";
+    }
+  ];
+
   # TODO: Remove once everything is sorted out
   services.getty.autologinUser = "root";
 
