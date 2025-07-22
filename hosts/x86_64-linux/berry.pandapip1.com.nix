@@ -155,7 +155,7 @@
     script = ''
       set -euxo pipefail
 
-      chpasswd="${lib.getExe' pkgs.shadow "usermod"}"
+      chpasswd="${lib.getExe' pkgs.shadow "chpasswd"}"
 
       user="keycloak"
       uid="$(id -u "$user")"
