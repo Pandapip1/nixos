@@ -139,7 +139,7 @@
     script = ''
       set -euxo pipefail
 
-      psql=${lib.getExe pkgs.posgresql "psql"}
+      psql=${lib.getExe pkgs.postgresql "psql"}
 
       pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
