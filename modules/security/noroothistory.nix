@@ -1,12 +1,11 @@
 {
-  environment.etc."profile.d".no-root-history = {
-    text = ''
-      if [ "$(id -u)" -eq 0 ]; then
-        unset HISTFILE
-        export HISTSIZE=0
-        export HISTFILESIZE=0
-      fi
-    '';
-    mode = "0555";
-  };
+  environment.shellInit = ''
+    # Disable storing root's executed commands
+    if [ "$(id -u)" -eq 0 ]; then
+      HISTSIZE=0
+      HISTFILESIZE=0
+      export HISTSIZE
+      export HISTFILESIZE
+    fi
+  '';
 }
