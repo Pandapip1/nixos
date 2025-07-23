@@ -99,6 +99,7 @@
     enable = true;
     settings = {
       hostname = "https://keycloak.berry.pandapip1.com";
+      proxy-headers = "forwarded"; # We are using a reverse proxy
       http-host = "::1"; # We are using a reverse proxy
       http-enabled = true; # We are using a reverse proxy
       http-port = 7412; # Random number
