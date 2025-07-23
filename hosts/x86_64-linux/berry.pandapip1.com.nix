@@ -147,13 +147,14 @@
           runHook postInstall
         '';
 
+        # Work around https://github.com/brakmic/passport-keycloak-oauth2-oidc-portable/issues/5
         postFixup = ''
           ln -s $out/passport-keycloak-oauth2-oidc-portable/lib/cjs $out/passport-keycloak-oauth2-oidc-portable/cjs
         '';
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        outputHash = lib.fakeHash;
+        outputHash = "sha256-2NoGGng3puDFifuVSpx5m1BbQq3p6f/IiA47ZbKrcNI=";
       };
     };
   };
