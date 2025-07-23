@@ -126,6 +126,8 @@
         '';
 
         nativeBuildInputs = with pkgs; [
+          jq
+          moreutils
           nodejs
           nodePackages.npm
         ];
@@ -150,11 +152,12 @@
         # Work around https://github.com/brakmic/passport-keycloak-oauth2-oidc-portable/issues/5
         postFixup = ''
           ln -s $out/passport-keycloak-oauth2-oidc-portable/lib/cjs $out/passport-keycloak-oauth2-oidc-portable/cjs
+          jq 'del(.type)' $out/passport-keycloak-oauth2-oidc-portable/package.json | sponge $out/passport-keycloak-oauth2-oidc-portable/package.json
         '';
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        outputHash = "sha256-2NoGGng3puDFifuVSpx5m1BbQq3p6f/IiA47ZbKrcNI=";
+        outputHash = lib.fakeHash;
       };
     };
   };
