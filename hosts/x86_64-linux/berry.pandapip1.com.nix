@@ -219,7 +219,7 @@
       # Security in depth is hard :/
       map $server_name $cookie_path {
         default "/; Secure; HttpOnly; SameSite=Strict";
-        keycloak.berry.pandapip1.com "/; Secure; HttpOnly; SameSite=None";
+        keycloak.berry.pandapip1.com "/; Secure; SameSite=None";
       }
       proxy_cookie_path / $cookie_path;
     '';
