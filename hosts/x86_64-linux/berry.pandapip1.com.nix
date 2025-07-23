@@ -100,6 +100,7 @@
     settings = {
       hostname = "https://keycloak.berry.pandapip1.com";
       proxy-headers = "xforwarded"; # We are using a reverse proxy
+      proxy = "edge";
       http-host = "::1"; # We are using a reverse proxy
       http-enabled = true; # We are using a reverse proxy
       http-port = 7412; # Random number
