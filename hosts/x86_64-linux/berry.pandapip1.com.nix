@@ -147,9 +147,13 @@
           runHook postInstall
         '';
 
+        postFixup = ''
+          ln -s $out/passport-keycloak-oauth2-oidc-portable/lib/cjs $out/passport-keycloak-oauth2-oidc-portable/cjs
+        '';
+
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        outputHash = "sha256-4E8084NBeaCjOPbIkFVoSvHlTgCZb3SBCFCCxHwr8eI=";
+        outputHash = lib.fakeHash;
       };
     };
   };
