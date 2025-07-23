@@ -112,6 +112,45 @@
         systemd
       ]);
     };
+    NODE_PATH = pkgs.stdenvNoCC.mkDerivation {
+      pname = "node-red-settings-deps";
+
+      src = pkgs.writeTextDir "package.json" ''
+        {
+          "name": "settings-js-deps",
+          "version": "1.0.0",
+          "private": true,
+          "dependencies": {
+            "passport-keycloak-oauth2-oidc": "~1.0.5"
+          }
+        }
+      '';
+
+      nativeBuildInputs = with pkgs; [
+        nodejs
+        nodePackages.npm
+      ];
+
+      dontConfigure = true;
+      dontBuild = true;
+
+      installPhase = ''
+        runHook preInstall
+
+        HOME=$TMPDIR
+        mkdir -p $out
+        cd $src
+        npm config set cache $TMPDIR/.npm
+        npm install --ignore-scripts --no-audit --legacy-peer-deps
+        cp -r node_modules $out/
+
+        runHook postInstall
+      '';
+
+      outputHashMode = "recursive";
+      outputHashAlgo = "sha256";
+      outputHash = lib.fakeHash;
+    };
   };
 
   # OpenBao for central management of APIs
