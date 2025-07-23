@@ -195,7 +195,7 @@
       # Add HSTS header with preloading to HTTPS requests.
       # Adding this header to HTTP requests is discouraged
       map $scheme $hsts_header {
-          https   "max-age=31536000; includeSubdomains; preload";
+        https   "max-age=31536000; includeSubdomains; preload";
       }
       add_header Strict-Transport-Security $hsts_header;
 
@@ -206,7 +206,12 @@
       add_header 'Referrer-Policy' 'origin-when-cross-origin';
 
       # Disable embedding as a frame
-      add_header X-Frame-Options DENY;
+      # Why is nginx like this? This is so stupid
+      map $server_name $x_frame_options {
+        default "DENY";
+        keycloak.berry.pandapip1.com "SAMEORIGIN";
+      }
+      add_header X-Frame-Options $x_frame_options;
 
       # Prevent injection of code in other mime types (XSS Attacks)
       add_header X-Content-Type-Options nosniff;
@@ -235,11 +240,6 @@
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
           proxyWebsockets = true;
-          # Required for correct Keycloak operation
-          extraConfig = ''
-            # Reenable embedding as a frame in same-origin
-            add_header X-Frame-Options SAMEORIGIN always;
-          '';
         };
       };
     };
