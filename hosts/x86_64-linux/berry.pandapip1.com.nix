@@ -217,8 +217,13 @@
       # Prevent injection of code in other mime types (XSS Attacks)
       add_header X-Content-Type-Options nosniff;
 
-      # This might create errors
-      proxy_cookie_path / "/; secure; HttpOnly; SameSite=strict";
+      # Security in depth is hard :/
+      map $server_name $cookie_path {
+        default "/; Secure; HttpOnly; SameSite=Strict";
+        # TODO: Can HttpOnly, Secure, or SameSite be readded?
+        keycloak.berry.pandapip1.com "/";
+      }
+      proxy_cookie_path / $cookie_path;
     '';
 
     virtualHosts = {
