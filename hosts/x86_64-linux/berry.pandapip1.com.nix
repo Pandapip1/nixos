@@ -98,7 +98,7 @@
   services.keycloak = {
     enable = true;
     settings = {
-      hostname = "keycloak.berry.pandapip1.com";
+      hostname = "https://keycloak.berry.pandapip1.com";
       http-host = "::1"; # We are using a reverse proxy
       http-enabled = true; # We are using a reverse proxy
       http-port = 7412; # Random number
