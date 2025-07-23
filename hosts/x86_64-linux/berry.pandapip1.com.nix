@@ -87,6 +87,32 @@
     withNpmAndGcc = true;
     configFile = "${self}/config/nodered/settings.js";
   };
+  programs.nix-ld.enable = true;
+  systemd.services.node-red = {
+    path = with pkgs; [
+      git
+      bash
+    ];
+    environment = {
+      NIX_LD = lib.fileContents "${pkgs.stdenv.cc}/nix-support/dynamic-linker";
+      NIX_LD_LIBRARY_PATH = lib.makeLibraryPath (with pkgs; [
+        zlib
+        zstd
+        stdenv.cc.cc
+        curl
+        openssl
+        attr
+        libssh
+        bzip2
+        libxml2
+        acl
+        libsodium
+        util-linux
+        xz
+        systemd
+      ]);
+    };
+  };
 
   # OpenBao for central management of APIs
   services.openbao = {
