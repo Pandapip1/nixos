@@ -235,6 +235,11 @@
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
           proxyWebsockets = true;
+          # Required for correct Keycloak operation
+          extraConfig = ''
+            # Reenable embedding as a frame in same-origin
+            add_header X-Frame-Options SAMEORIGIN;
+          '';
         };
       };
     };
