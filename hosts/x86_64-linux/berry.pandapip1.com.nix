@@ -142,14 +142,14 @@
           mkdir -p $out
           npm config set cache $HOME/.npm
           npm install --ignore-scripts --no-audit --legacy-peer-deps
-          cp -r node_modules $out/
+          cp -r node_modules/. $out/
 
           runHook postInstall
         '';
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        outputHash = "sha256-3skYXtAcanTDT+BjYZsDHiqzPewlGEYjuTDWUDrDK+I=";
+        outputHash = lib.fakeHash;
       };
     };
   };
