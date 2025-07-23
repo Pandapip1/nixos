@@ -238,7 +238,7 @@
           # Required for correct Keycloak operation
           extraConfig = ''
             # Reenable embedding as a frame in same-origin
-            add_header X-Frame-Options SAMEORIGIN;
+            add_header X-Frame-Options SAMEORIGIN always;
           '';
         };
       };
