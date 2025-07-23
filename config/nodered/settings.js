@@ -74,16 +74,31 @@ module.exports = {
     * property can be used. See https://nodered.org/docs/security.html for details.
     */
     adminAuth: {
-        type: "credentials",
+        type: "strategy",
+        strategy: {
+            name: "keycloak",
+            label: 'Sign in with Keycloak',
+            icon: "fa-key",
+            strategy: require("passport-keycloak-oauth2-oidc").Strategy,
+            options: {
+                clientID: 'node-red',
+                realm: 'master',
+                publicClient: 'true',
+                sslRequired: 'external',
+                authServerURL: 'https://keycloak.berry.pandapip1.com/',
+                callbackURL: 'https://node-red.berry.pandapip1.com/auth/strategy/callback'
+            },
+            verify: function(token, tokenSecret, profile, done) {
+                done(null, profile);
+            }
+        },
         users: [
-            // {
-            //     username: "admin",
-            //     permissions: "*"
-            // }
-        ],
-        default: {
-            permissions: [] // Nothing
-        }
+            // TODO: Properly integrate w/ KeyCloak
+            {
+                username: "gavin",
+                permissions: [ "*" ]
+            }
+        ]
     },
     
     /** The following property can be used to enable HTTPS
