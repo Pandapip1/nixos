@@ -149,7 +149,7 @@
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        outputHash = lib.fakeHash;
+        outputHash = "sha256-3skYXtAcanTDT+BjYZsDHiqzPewlGEYjuTDWUDrDK+I=";
       };
     };
   };
