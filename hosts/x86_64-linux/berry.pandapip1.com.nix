@@ -177,7 +177,6 @@
       http-host = "::1"; # We are using a reverse proxy
       http-enabled = true; # We are using a reverse proxy
       http-port = 7412; # Random number
-      logLevel = "DEBUG";
     };
     database = {
       type = "postgresql";
