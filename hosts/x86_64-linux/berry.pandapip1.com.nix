@@ -112,7 +112,7 @@
         systemd
       ]);
       NODE_PATH = pkgs.stdenvNoCC.mkDerivation {
-        pname = "node-red-settings-deps";
+        name = "node-red-settings-deps";
 
         src = pkgs.writeTextDir "package.json" ''
           {
