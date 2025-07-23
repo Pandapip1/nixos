@@ -136,7 +136,8 @@
         installPhase = ''
           runHook preInstall
 
-          HOME=$TMPDIR
+          set -x
+          HOME=$(mktemp -d)
           mkdir -p $out
           cd $src
           npm config set cache $TMPDIR/.npm
