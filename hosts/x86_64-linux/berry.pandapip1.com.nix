@@ -120,7 +120,7 @@
             "version": "1.0.0",
             "private": true,
             "dependencies": {
-              "passport-keycloak-oauth2-oidc": "~1.0.5"
+              "passport-keycloak-oauth2-oidc-portable": "~2.6.1"
             }
           }
         '';
@@ -149,7 +149,7 @@
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        outputHash = "sha256-34sIB14OUs2q0ClM2Bd1jh+okFhzx1lzu5x+eBm70dQ=";
+        outputHash = lib.fakeHash;
       };
     };
   };

@@ -79,12 +79,11 @@ module.exports = {
             name: "keycloak",
             label: 'Sign in with Keycloak',
             icon: "fa-key",
-            strategy: require("passport-keycloak-oauth2-oidc").Strategy,
+            strategy: require("passport-keycloak-oauth2-oidc-portable").KeycloakStrategy,
             options: {
                 clientID: 'node-red',
                 realm: 'master',
-                publicClient: 'true',
-                sslRequired: 'external',
+                publicClient: true,
                 authServerURL: 'https://keycloak.berry.pandapip1.com/',
                 callbackURL: 'https://node-red.berry.pandapip1.com/auth/strategy/callback'
             },
