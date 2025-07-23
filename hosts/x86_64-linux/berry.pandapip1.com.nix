@@ -140,8 +140,7 @@
           export HOME=$(mktemp -d)
           export NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
           mkdir -p $out
-          cd $src
-          npm config set cache $TMPDIR/.npm
+          npm config set cache $HOME/.npm
           npm install --ignore-scripts --no-audit --legacy-peer-deps
           cp -r node_modules $out/
 
