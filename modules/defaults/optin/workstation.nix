@@ -92,5 +92,9 @@
         cups-idprt-tspl
       ];
     };
+
+    # Use COSMIC greeter with KDE plasma :)
+    services.displayManager.cosmic-greeter.enable = true;
+    services.desktopManager.plasma6.enable = true;
   };
 }

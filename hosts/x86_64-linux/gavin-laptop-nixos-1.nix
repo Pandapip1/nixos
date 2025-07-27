@@ -71,11 +71,8 @@
   # GNOME settings daemon
   services.gnome.gnome-settings-daemon.enable = true;
 
-  # COSMIC DE
-  services.graphical-desktop.enable = true;
-  services.displayManager.cosmic-greeter.enable = true;
+  # COSMIC DE (to test multi-session)
   services.desktopManager.cosmic.enable = true;
-  programs.gnupg.agent.pinentryPackage = pkgs.pinentry-qt;
 
   hardware.hackrf.enable = true;
   hardware.rtl-sdr.enable = true;
