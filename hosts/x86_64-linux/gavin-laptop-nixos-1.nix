@@ -68,6 +68,9 @@
     dockerSocket.enable = true;
   };
 
+  # Testing inputplumber
+  services.inputplumber.enable = true;
+
   # GNOME settings daemon
   services.gnome.gnome-settings-daemon.enable = true;
 
