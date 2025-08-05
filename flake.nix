@@ -67,7 +67,6 @@
         callPackage = path: _: path;
         directory = hostsDir;
       };
-      systems = lib.attrNames hosts;
       modules = attrValuesRecursive (
         lib.packagesFromDirectoryRecursive {
           callPackage = path: _: path;
@@ -87,41 +86,39 @@
       nixosConfigurations = lib.mergeAttrsList (
         map (
           system:
-          lib.listToAttrs (
-            lib.mapAttrs' (
-              fqdn: hostModulePath:
-              let
-                splitName = lib.splitString "." fqdn;
-                hostName = lib.head splitName;
-                domain =
-                  if (lib.length splitName == 1) then null else lib.concatStringsSep "." (lib.tail splitName);
-              in
-              {
-                name = hostName;
-                value = lib.nixosSystem {
-                  inherit system;
-                  specialArgs = inputs;
-                  modules =
-                    [
-                      {
-                        networking = {
-                          inherit hostName domain;
-                        };
-                        nixpkgs = {
-                          hostPlatform = system;
-                          buildPlatform = builtins.currentSystem or system;
-                          overlays = inputOverlays;
-                        };
-                      }
-                      hostModulePath
-                    ]
-                    ++ modules
-                    ++ inputModules;
-                };
-              }
-            ) hosts."${system}"
-          )
-        ) systems
+          lib.mapAttrs' (
+            fqdn: hostModulePath:
+            let
+              splitName = lib.splitString "." fqdn;
+              hostName = lib.head splitName;
+              domain =
+                if (lib.length splitName == 1) then null else lib.concatStringsSep "." (lib.tail splitName);
+            in
+            {
+              name = hostName;
+              value = lib.nixosSystem {
+                inherit system;
+                specialArgs = inputs;
+                modules =
+                  [
+                    {
+                      networking = {
+                        inherit hostName domain;
+                      };
+                      nixpkgs = {
+                        hostPlatform = system;
+                        buildPlatform = builtins.currentSystem or system;
+                        overlays = inputOverlays;
+                      };
+                    }
+                    hostModulePath
+                  ]
+                  ++ modules
+                  ++ inputModules;
+              };
+            }
+          ) hosts."${system}"
+        ) (lib.attrNames hosts)
       );
     };
 }
