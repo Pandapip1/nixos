@@ -12,13 +12,15 @@
   };
 
   config = lib.mkIf config.defaults.workstation {
+    # Bring in more defaults
+    defaults.audio = true;
+
     services.pcscd.enable = true;
     
     hardware.mcelog.enable = true;
     hardware.gpgSmartcards.enable = true;
     hardware.bluetooth.enable = true;
     hardware.trackpoint.enable = true;
-    services.pulseaudio.enable = false; # Use pipewire instead
     hardware.flipperzero.enable = true;
     hardware.usb-modeswitch.enable = true;
 
