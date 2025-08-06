@@ -26,7 +26,7 @@
 
   # Enable nixbuild.net, but only for building to other systems
   nixbuild-net = {
-    enable = true;
+    # enable = true;
     crossOnly = true;
   };
 
