@@ -27,7 +27,7 @@
       # Language Packs
       vscjava.vscode-java-pack
       # "AI"
-      continue.continue
+      # continue.continue
     ];
   };
 }
