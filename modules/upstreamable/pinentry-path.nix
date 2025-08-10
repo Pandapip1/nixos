@@ -5,9 +5,8 @@
   ...
 }:
 
-lib.mkIf (config.programs.gnupg.agent.enable && config.programs.gnupg.agent.pinentryPackage != null)
-  {
-    environment.systemPackages = [
-      (pkgs.writeScriptBin "pinentry" ''exec ${lib.getBin config.programs.gnupg.agent.pinentryPackage} "$@"'')
-    ];
-  }
+{
+  environment.systemPackages = lib.optional (
+    config.programs.gnupg.agent.enable && config.programs.gnupg.agent.pinentryPackage != null
+  ) config.programs.gnupg.agent.pinentryPackage;
+}
