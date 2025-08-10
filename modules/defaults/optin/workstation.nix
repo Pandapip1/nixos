@@ -114,6 +114,6 @@
       };
     };
     # And pinentry
-    programs.gnupg.agent.pinentryPackage = pkgs.pinentry-gnome3;
+    programs.gnupg.agent.pinentryPackage = pkgs.pinentry-gtk2;
   };
 }
