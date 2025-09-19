@@ -4,6 +4,6 @@
 }:
 
 {
-  users.defaultUserShell = pkgs.zsh;
-  programs.zsh.enable = true;
+  users.defaultUserShell = pkgs.bash;
+  programs.bash.enable = true;
 }
