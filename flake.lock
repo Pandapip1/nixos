@@ -27,6 +27,36 @@
         "type": "github"
       }
     },
+    "denix": {
+      "inputs": {
+        "home-manager": [
+          "home-manager"
+        ],
+        "nix-darwin": "nix-darwin",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "nixpkgs-lib": [
+          "nixpkgs"
+        ],
+        "pre-commit-hooks": [
+          "pre-commit-hooks"
+        ]
+      },
+      "locked": {
+        "lastModified": 1758123851,
+        "narHash": "sha256-sbKwqBOLI423TvXvzlX2UGZR4pE1M8C7KXi0699ImmQ=",
+        "owner": "yunfachi",
+        "repo": "denix",
+        "rev": "d90f816b7b93304e5d5e69d429de0052f64d5149",
+        "type": "github"
+      },
+      "original": {
+        "owner": "yunfachi",
+        "repo": "denix",
+        "type": "github"
+      }
+    },
     "fenix": {
       "inputs": {
         "nixpkgs": [
@@ -123,6 +153,46 @@
         "type": "github"
       }
     },
+    "gitignore": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1709087332,
+        "narHash": "sha256-HG2cCnktfHsKV0s4XW83gU3F57gaTljL9KNSuG6bnQs=",
+        "owner": "hercules-ci",
+        "repo": "gitignore.nix",
+        "rev": "637db329424fd7e46cf4185293b9cc8c88c95394",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "gitignore.nix",
+        "type": "github"
+      }
+    },
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1758296614,
+        "narHash": "sha256-l60D1i0aaSqemy9dL7wP0ePMfcv/oZbeKpvUMY+q0kQ=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "55b1f5b7b191572257545413b98e37abab2fdb00",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
     "naersk": {
       "inputs": {
         "fenix": "fenix",
@@ -143,6 +213,27 @@
         "owner": "nix-community",
         "ref": "master",
         "repo": "naersk",
+        "type": "github"
+      }
+    },
+    "nix-darwin": {
+      "inputs": {
+        "nixpkgs": [
+          "denix",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1751313918,
+        "narHash": "sha256-HsJM3XLa43WpG+665aGEh8iS8AfEwOIQWk3Mke3e7nk=",
+        "owner": "nix-darwin",
+        "repo": "nix-darwin",
+        "rev": "e04a388232d9a6ba56967ce5b53a8a6f713cdfcf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-darwin",
+        "repo": "nix-darwin",
         "type": "github"
       }
     },
@@ -179,6 +270,35 @@
       "original": {
         "owner": "nixos",
         "repo": "nixos-hardware",
+        "type": "github"
+      }
+    },
+    "nixowos": {
+      "inputs": {
+        "denix": [
+          "denix"
+        ],
+        "flake-compat": [
+          "flake-compat"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "pre-commit-hooks": [
+          "pre-commit-hooks"
+        ]
+      },
+      "locked": {
+        "lastModified": 1758181364,
+        "narHash": "sha256-dkLrJIQPdjGFt9uuJ30hCaw5WpNo3UTfa/JaNmyK9V8=",
+        "owner": "yunfachi",
+        "repo": "nixowos",
+        "rev": "84c24908667f45b069807644bed7b501955691bb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "yunfachi",
+        "repo": "nixowos",
         "type": "github"
       }
     },
@@ -221,17 +341,48 @@
         "type": "github"
       }
     },
+    "pre-commit-hooks": {
+      "inputs": {
+        "flake-compat": [
+          "flake-compat"
+        ],
+        "gitignore": [
+          "gitignore"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1758108966,
+        "narHash": "sha256-ytw7ROXaWZ7OfwHrQ9xvjpUWeGVm86pwnEd1QhzawIo=",
+        "owner": "cachix",
+        "repo": "git-hooks.nix",
+        "rev": "54df955a695a84cd47d4a43e08e1feaf90b1fd9b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "cachix",
+        "repo": "git-hooks.nix",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "comma": "comma",
+        "denix": "denix",
         "flake-compat": "flake-compat",
         "flake-parts": "flake-parts",
         "flake-utils": "flake-utils",
         "getFlake": "getFlake",
+        "gitignore": "gitignore",
+        "home-manager": "home-manager",
         "nix-index-database": "nix-index-database",
         "nixos-hardware": "nixos-hardware",
+        "nixowos": "nixowos",
         "nixpkgs": "nixpkgs",
         "nur": "nur",
+        "pre-commit-hooks": "pre-commit-hooks",
         "stevenblack-hosts": "stevenblack-hosts",
         "treefmt-nix": "treefmt-nix"
       }

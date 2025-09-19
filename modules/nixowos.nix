@@ -1,0 +1,3 @@
+{
+  nixowos.enable = true;
+}

@@ -3,6 +3,12 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+      };
+    };
     getFlake = {
       url = "github:ursi/get-flake";
       inputs.flake-compat.follows = "flake-compat";
@@ -43,6 +49,37 @@
         flake-parts.follows = "flake-parts";
       };
     };
+    gitignore = {
+      url = "github:hercules-ci/gitignore.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    pre-commit-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+        gitignore.follows = "gitignore";
+      };
+    };
+    denix = {
+      url = "github:yunfachi/denix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nixpkgs-lib.follows = "nixpkgs";
+        home-manager.follows = "home-manager";
+        # TODO: Get rid of nix-darwin?
+        pre-commit-hooks.follows = "pre-commit-hooks";
+      };
+    };
+    nixowos = {
+      url = "github:yunfachi/nixowos";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+        denix.follows = "denix";
+        pre-commit-hooks.follows = "pre-commit-hooks";
+      };
+    };
   };
 
   outputs =
@@ -75,6 +112,7 @@
       );
       inputModules = with inputs; [
         stevenblack-hosts.nixosModule
+        nixowos.nixosModules.default
       ];
       inputOverlays = with inputs; [
         comma.overlays.default
