@@ -75,10 +75,6 @@
   # GNOME settings daemon
   services.gnome.gnome-settings-daemon.enable = true;
 
-  # COSMIC DE
-  services.desktopManager.plasma6.enable = lib.mkForce false;
-  services.desktopManager.cosmic.enable = true;
-
   hardware.hackrf.enable = true;
   hardware.rtl-sdr.enable = true;
 

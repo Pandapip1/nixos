@@ -97,7 +97,7 @@
 
     # Use COSMIC greeter with KDE plasma :)
     services.displayManager.cosmic-greeter.enable = true;
-    services.desktopManager.plasma6.enable = true;
+    services.desktopManager.cosmic.enable = true;
 
     # Add GNOME polkit agent
     systemd.user.services.polkit-gnome-authentication-agent-1 = {
