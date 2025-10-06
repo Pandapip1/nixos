@@ -69,14 +69,6 @@
         "dmask=0077"
       ];
     };
-    "/tmp" = {
-      fsType = "tmpfs";
-      options = [
-        "nodev"
-        "nosuid"
-        "noexec"
-      ];
-    };
   };
 
   swapDevices = [
