@@ -17,32 +17,59 @@
     enable = true;
   };
 
-
-  programs = {
-    localsend.enable = true;
-  };
-
   boot.initrd.availableKernelModules = [ "ehci_pci" "ahci" "firewire_ohci" "xhci_pci" "usbhid" "usb_storage" "sd_mod" 
 "nvme" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
-  fileSystems."/" =
-    { device = "/dev/disk/by-uuid/369d6beb-b9b5-47c2-a4da-7014787b9fbd";
+  fileSystems = {
+    "/" = {
       fsType = "btrfs";
-      options = [ "subvol=@" ];
+      device = "/dev/disk/by-label/NIXROOT";
+      options = [
+        "subvol=@"
+        "compress=lzo"
+        "noatime"
+      ];
     };
-
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/58FE-67A7";
+    "/boot" = {
       fsType = "vfat";
-      options = [ "fmask=0077" "dmask=0077" ];
+      device = "/dev/disk/by-label/NIXBOOT";
+      options = [
+        "fmask=0077"
+        "dmask=0077"
+      ];
     };
+  };
 
-  swapDevices =
-    [ { device = "/dev/disk/by-uuid/d173a826-59c3-4093-a422-d24396f69e62"; }
+  # AI Stuff
+  services.open-webui = {
+    enable = true;
+    openFirewall = false; # Local-only, thank you
+    host = "localhost"; # Again, still local-only please
+    port = 7890; # Just a random free port
+    environment = {
+      WEBUI_AUTH = "False";
+      GLOBAL_LOG_LEVEL = "CRITICAL";
+    };
+  };
+  services.ollama = {
+    enable = true;
+    host = "localhost"; # Still just localhost thanks
+    # Default port is acceptable
+    loadModels = [
+      "deepseek-r1"
+      "gemma3n"
+      "llama2-uncensored"
+
+      # For Continue
+      "nomic-embed-text:latest"
+      "llama3.1:8b"
+      "qwen2.5-coder:1.5b-base"
     ];
+    acceleration = false; # No ROCm or CUDA on my laptop with an intel iGPU :(
+  };
 
   system.stateVersion = "25.11";
 }

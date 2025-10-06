@@ -97,34 +97,6 @@
 
   programs.nixpkgs-vet.enable = true;
 
-  # AI Stuff
-  # services.open-webui = {
-  #   enable = true;
-  #   openFirewall = false; # Local-only, thank you
-  #   host = "localhost"; # Again, still local-only please
-  #   port = 7890; # Just a random free port
-  #   environment = {
-  #     WEBUI_AUTH = "False";
-  #     GLOBAL_LOG_LEVEL = "CRITICAL";
-  #   };
-  # };
-  # services.ollama = {
-  #   enable = true;
-  #   host = "localhost"; # Still just localhost thanks
-  #   # Default port is acceptable
-  #   loadModels = [
-  #     "deepseek-r1"
-  #     "gemma3n"
-  #     "llama2-uncensored"
-
-  #     # For Continue
-  #     "nomic-embed-text:latest"
-  #     "llama3.1:8b"
-  #     "qwen2.5-coder:1.5b-base"
-  #   ];
-  #   acceleration = false; # No ROCm or CUDA on my laptop with an intel iGPU :(
-  # };
-
   programs.vscode.enable = true;
 
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
