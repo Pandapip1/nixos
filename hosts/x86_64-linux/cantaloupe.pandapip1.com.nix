@@ -11,6 +11,8 @@
 
   defaults.workstation = true;
 
+  # Hardware
+  hardware.amdgpu.opencl.enable
 
   # Zram
   zramSwap = {
@@ -52,8 +54,6 @@
   # AI Stuff
   services.open-webui = {
     enable = true;
-    openFirewall = false; # Local-only, thank you
-    host = "localhost"; # Again, still local-only please
     port = 7890; # Just a random free port
     environment = {
       WEBUI_AUTH = "False";
@@ -62,7 +62,6 @@
   };
   services.ollama = {
     enable = true;
-    host = "localhost"; # Still just localhost thanks
     # Default port is acceptable
     loadModels = [
       "deepseek-r1"
@@ -74,7 +73,8 @@
       "llama3.1:8b"
       "qwen2.5-coder:1.5b-base"
     ];
-    acceleration = false; # No ROCm or CUDA on my laptop with an intel iGPU :(
+    acceleration = "rocm";
+    rocmOverrideGfx = "9.0.6"; # gfx906 (Instinct MI50)
   };
 
   system.stateVersion = "25.11";
