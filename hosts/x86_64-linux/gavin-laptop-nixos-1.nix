@@ -51,17 +51,39 @@
   boot.extraModulePackages = [ ];
   # hardware.spacenavd.enable = true;
 
-  fileSystems."/" = {
-    device = "/dev/disk/by-uuid/941197bb-1946-4607-8a36-0a71f3ccb918";
-    fsType = "ext4";
+  fileSystems = {
+    "/" = {
+      fsType = "btrfs";
+      device = "/dev/disk/by-label/NIXROOT";
+      options = [
+        "subvol=@"
+        "compress=lzo"
+        "noatime"
+      ];
+    };
+    "/boot" = {
+      fsType = "vfat";
+      device = "/dev/disk/by-label/NIXBOOT";
+      options = [
+        "fmask=0077"
+        "dmask=0077"
+      ];
+    };
+    "/tmp" = {
+      fsType = "tmpfs";
+      options = [
+        "nodev"
+        "nosuid"
+        "noexec"
+      ];
+    };
   };
 
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/F854-0FE7";
-    fsType = "vfat";
-  };
-
-  swapDevices = [ ];
+  swapDevices = [
+    {
+      device = "/dev/disk/by-uuid/f430adb7-7416-499b-9e5a-ba7904ba5676";
+    }
+  ];
 
   virtualisation.podman = {
     enable = true;
