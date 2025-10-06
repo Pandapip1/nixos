@@ -73,7 +73,7 @@
 
   swapDevices = [
     {
-      device = "/dev/disk/by-uuid/f430adb7-7416-499b-9e5a-ba7904ba5676";
+      device = "/dev/disk/by-partlabel/swap";
     }
   ];
 

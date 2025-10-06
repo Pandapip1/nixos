@@ -43,6 +43,12 @@
     };
   };
 
+  swapDevices = [
+    {
+      device = "/dev/disk/by-partlabel/swap";
+    }
+  ];
+
   # AI Stuff
   services.open-webui = {
     enable = true;
