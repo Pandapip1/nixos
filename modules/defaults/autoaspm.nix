@@ -1,3 +1,0 @@
-{
-  services.autoaspm.enable = true;
-}
