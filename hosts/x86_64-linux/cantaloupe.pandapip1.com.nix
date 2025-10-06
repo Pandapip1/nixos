@@ -27,17 +27,12 @@
 
   fileSystems = {
     "/" = {
-      fsType = "btrfs";
-      device = "/dev/disk/by-label/NIXROOT";
-      options = [
-        "subvol=@"
-        "compress=lzo"
-        "noatime"
-      ];
+      fsType = "ext4";
+      device = "/dev/disk/by-partlabel/root";
     };
     "/boot" = {
       fsType = "vfat";
-      device = "/dev/disk/by-label/NIXBOOT";
+      device = "/dev/disk/by-partlabel/EFI";
       options = [
         "fmask=0077"
         "dmask=0077"
@@ -47,7 +42,7 @@
 
   swapDevices = [
     {
-      device = "/dev/disk/by-partlabel/swap";
+      device = "/dev/disk/by-label/swap";
     }
   ];
 
