@@ -12,7 +12,7 @@
   defaults.workstation = true;
 
   # Hardware
-  hardware.amdgpu.opencl.enable
+  hardware.amdgpu.opencl.enable = true;
 
   # Zram
   zramSwap = {
