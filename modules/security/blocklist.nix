@@ -1,0 +1,5 @@
+{
+  networking.stevenBlackHosts = {
+    enable = true;
+  };
+}

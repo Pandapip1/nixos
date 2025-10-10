@@ -1,6 +1,7 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }:
 
@@ -9,7 +10,7 @@
     enable = true;
     audio.enable = true;
     alsa.enable = true;
-    alsa.support32Bit = config.nixpkgs.hostPlatform == "x86_64-linux";
+    alsa.support32Bit = pkgs.stdenvNoCC.hostPlatform.isx86_64;
     pulse.enable = true;
     jack.enable = true;
     # systemWide = true; # Not the default and not recommended but makes the most sense to me.
