@@ -1,0 +1,3 @@
+{
+  hardware.trackpoint.enable = true;
+}

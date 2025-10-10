@@ -124,19 +124,9 @@
     enableBrowserSocket = true;
   };
 
-  services.udev.enable = true;
-
   programs.git = {
     enable = true;
     lfs.enable = true;
-  };
-
-  programs.starship = {
-    enable = true;
-    presets = [ "nerd-font-symbols" ];
-    settings = {
-      command_timeout = 2000;
-    };
   };
 
   # Use Adwaita theme

@@ -12,47 +12,10 @@
   };
 
   config = lib.mkIf config.defaults.workstation {
-    # Bring in more defaults
-    defaults.audio = true;
-
-    services.pcscd.enable = true;
-    
-    hardware.mcelog.enable = true;
-    hardware.gpgSmartcards.enable = true;
-    hardware.bluetooth.enable = true;
-    hardware.trackpoint.enable = true;
-    hardware.flipperzero.enable = true;
-    hardware.usb-modeswitch.enable = true;
-
-    services.hardware.bolt.enable = true;
-
-    services.pipewire = {
-      enable = true;
-      alsa.enable = true;
-      alsa.support32Bit = true;
-      pulse.enable = true;
-      jack.enable = true;
-    };
 
     environment.systemPackages = with pkgs; [
       adwaita-icon-theme-legacy
     ];
-
-    location.provider = "geoclue2";
-
-    # Enable kubo, an IPFS client
-    services.kubo = {
-      # enable = lib.mkDefault true;
-      autoMount = lib.mkDefault true;
-      enableGC = lib.mkDefault true;
-      localDiscovery = lib.mkDefault false;
-      # Use port 4030 by default (leave port 8080 alone)
-      # This isn't standard, and was chosen because it's kinda near 4000, which is also used by ipfs
-      settings.Addresses.Gateway = lib.mkDefault [
-        "/ip4/127.0.0.1/tcp/4030"
-        "/ip6/::1/tcp/4030"
-      ];
-    };
 
     # kmscon for fancier hardware-accelerated tty
     services.kmscon = {
@@ -84,18 +47,7 @@
       ]);
     };
 
-    # Printing
-    services.printing = {
-      enable = true;
-      startWhenNeeded = true;
-      drivers = with pkgs; [
-        cups-pdf-to-pdf
-        gutenprint
-        cups-idprt-tspl
-      ];
-    };
-
-    # Use COSMIC greeter with KDE plasma :)
+    # Use COSMIC DE
     services.displayManager.cosmic-greeter.enable = true;
     services.desktopManager.cosmic.enable = true;
 
@@ -113,6 +65,7 @@
         TimeoutStopSec = 10;
       };
     };
+
     # And pinentry
     programs.gnupg.agent.pinentryPackage = pkgs.pinentry-gtk2;
   };
