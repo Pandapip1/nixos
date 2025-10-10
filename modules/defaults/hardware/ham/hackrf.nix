@@ -1,0 +1,3 @@
+{
+  hardware.hackrf.enable = true;
+}
