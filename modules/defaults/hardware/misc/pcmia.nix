@@ -1,3 +1,3 @@
 {
-  hardware.hardware.pcmcia.enable = true;
+  hardware.pcmcia.enable = true;
 }
