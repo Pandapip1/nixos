@@ -1,4 +1,10 @@
 {
+  lib,
+  pkgs,
+  ...
+}:
+
+{
   systemd.services.nix-gc = let
     configurationLimit = 16;
   in lib.mkForce {

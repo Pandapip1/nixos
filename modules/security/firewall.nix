@@ -1,4 +1,6 @@
 {
-  firewall.enable = true;
-  nftables.enable = true;
+  networking = {
+    firewall.enable = lib.mkForce true;
+    nftables.enable = true;
+  };
 }

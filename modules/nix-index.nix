@@ -1,4 +1,9 @@
 {
+  pkgs,
+  ...
+}:
+
+{
   programs.comma = {
     enable = true;
     package = pkgs.comma-with-db;

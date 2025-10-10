@@ -1,4 +1,9 @@
 {
+  lib,
+  ...
+}:
+
+{
   documentation = {
     enable = lib.mkDefault true;
     man = {
