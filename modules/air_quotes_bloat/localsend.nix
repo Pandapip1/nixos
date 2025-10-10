@@ -5,5 +5,5 @@
 }:
 
 {
-  localsend.enable = lib.mkDefault config.services.graphical-desktop.enable;
+  programs.localsend.enable = lib.mkDefault config.services.graphical-desktop.enable;
 }
