@@ -9,8 +9,6 @@
     efi.canTouchEfiVariables = true;
   };
 
-  defaults.workstation = true;
-
   # Hardware
   hardware.amdgpu.opencl.enable = true;
 
