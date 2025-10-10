@@ -1,10 +1,12 @@
 {
   pkgs,
+  config,
   ...
 }:
 
 {
   programs.vscode = {
+    enable = lib.mkDefault config.services.graphical-desktop.enable;
     package = pkgs.vscodium;
     extensions = with pkgs.vscode-extensions; [
       # GitHub Integration

@@ -5,11 +5,11 @@
 
 {
   programs.comma = {
-    enable = true;
+    enable = lib.mkDefault true;
     package = pkgs.comma-with-db;
   };
   programs.nix-index = {
-    enable = true;
+    enable = lib.mkDefault true;
     package = pkgs.nix-index-with-db;
   };
 }

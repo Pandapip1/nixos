@@ -22,11 +22,6 @@
   services.displayManager.cosmic-greeter.enable = true;
   services.desktopManager.cosmic.enable = true;
 
-  # Zram
-  zramSwap = {
-    enable = true;
-  };
-
   # Enable nixbuild.net, but only for building to other systems
   nixbuild-net = {
     # enable = true;
@@ -34,13 +29,6 @@
   };
 
   services.nebula.networks.nebula0.enable = true;
-
-  # Enable ModemManager
-  networking.modemmanager.enable = true;
-
-  programs = {
-    localsend.enable = true;
-  };
 
   boot.initrd.availableKernelModules = [
     "xhci_pci"
@@ -51,7 +39,6 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
-  # hardware.spacenavd.enable = true;
 
   fileSystems = {
     "/" = {
@@ -79,27 +66,12 @@
     }
   ];
 
-  virtualisation.podman = {
-    enable = true;
-    dockerCompat = true;
-    dockerSocket.enable = true;
-  };
-
-  # Testing inputplumber
-  services.inputplumber.enable = true;
-
-  # GNOME settings daemon
-  services.gnome.gnome-settings-daemon.enable = true;
-
-  hardware.hackrf.enable = true;
-  hardware.rtl-sdr.enable = true;
-
-  services.speechd.enable = true;
   programs.qgroundcontrol.enable = true;
 
-  programs.nixpkgs-vet.enable = true;
-
-  programs.vscode.enable = true;
+  environment.systemPackages = with pkgs; [
+    texliveFull
+    act
+  ];
 
   # Undervolt (tested stable using stress-ng --<cpu 8/gpu 32> --verify --timeout 5s at both battery saver and performance power modes)
   services.undervolt = {
@@ -109,7 +81,6 @@
     gpuOffset = -50;
     analogioOffset = 0;
   };
-  services.udev.packages = with pkgs; [ labelle ];
 
   services.autoaspm.enable = lib.mkForce false; # Causes issues on my t480s
 
