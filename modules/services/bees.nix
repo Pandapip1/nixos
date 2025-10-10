@@ -1,4 +1,9 @@
 {
+  pkgs,
+  ...
+}:
+
+{
   services.beesd.filesystems = {
     root = {
       spec = "/";
@@ -7,4 +12,7 @@
       extraOptions = [ "--loadavg-target" "5.0" ];
     };
   };
+  environment.systemPackages = with pkgs; [
+    bees
+  ];
 }
