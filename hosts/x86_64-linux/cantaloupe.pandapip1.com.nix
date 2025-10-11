@@ -66,7 +66,6 @@
       OPENID_PROVIDER_URL = "https://keycloak.berry.pandapip1.com/realms/pandaport/.well-known/openid-configuration";
       OAUTH_PROVIDER_NAME = "PandaPort";
       OAUTH_SCOPES = "openid email profile groups";
-      GLOBAL_LOG_LEVEL = "CRITICAL";
     };
   };
   services.ollama = {
