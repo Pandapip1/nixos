@@ -51,6 +51,7 @@
   # AI Stuff
   services.open-webui = {
     enable = true;
+    host = "0.0.0.0";
     port = 7890; # Just a random free port
     openFirewall = true;
     environment = {
