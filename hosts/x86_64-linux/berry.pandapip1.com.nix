@@ -53,23 +53,6 @@
     };
   };
 
-  documentation = {
-    enable = true;
-    man = {
-      enable = true;
-      man-db.enable = false;
-      mandoc.enable = false; # Broken on aarch64
-      generateCaches = true;
-    };
-    doc.enable = true;
-    dev.enable = true;
-    info.enable = true;
-    nixos = {
-      enable = true;
-      #includeAllModules = true;
-    };
-  };
-
   services.openssh = {
     enable = true;
   };
@@ -267,12 +250,9 @@
       # Prevent injection of code in other mime types (XSS Attacks)
       add_header X-Content-Type-Options nosniff;
 
-      # Security in depth is hard :/
-      map $server_name $cookie_path {
-        default "/; Secure; HttpOnly; SameSite=Strict";
-        keycloak.berry.pandapip1.com "/; Secure; SameSite=None";
-      }
-      proxy_cookie_path / $cookie_path;
+      # Set cookie security
+      proxy_cookie_flags ~ KEYCLOAK_SESSION Secure SameSite=None;
+      proxy_cookie_flags ~ KEYCLOAK_IDENTITY Secure SameSite=None;
     '';
 
     virtualHosts = {

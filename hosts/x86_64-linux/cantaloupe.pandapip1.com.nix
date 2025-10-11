@@ -44,17 +44,33 @@
     }
   ];
 
+  services.openssh = {
+    enable = true;
+  };
+
   # AI Stuff
   services.open-webui = {
     enable = true;
     port = 7890; # Just a random free port
+    openFirewall = true;
     environment = {
-      WEBUI_AUTH = "False";
+      WEBUI_URL = "https://cantaloupe.local:7890";
+      ENABLE_LOGIN_FORM = false;
+      ENABLE_OAUTH_SIGNUP = true;
+      ENABLE_OAUTH_GROUP_MANAGEMENT = true;
+      ENABLE_OAUTH_GROUP_CREATION = true;
+      OAUTH_GROUP_CLAIM = "groups";
+      OAUTH_CLIENT_ID = "65f60599-44c9-476d-91b3-2728a8a9b7f0";
+      OAUTH_CLIENT_SECRET = "ruu00mwn0x1tCzZWukSRjJuRj3zwiWZd"; # TODO: Find a way to avoid publicly sharing the secret; this should be fine as it doesn't have a service account
+      OPENID_PROVIDER_URL = "https://keycloak.berry.pandapip1.com/realms/pandaport/.well-known/openid-configuration";
+      OAUTH_PROVIDER_NAME = "PandaPort";
+      OAUTH_SCOPES = "openid email profile groups";
       GLOBAL_LOG_LEVEL = "CRITICAL";
     };
   };
   services.ollama = {
     enable = true;
+    openFirewall = true; # Make ollama accessible across network
     # Default port is acceptable
     loadModels = [
       "deepseek-r1"
