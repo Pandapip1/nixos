@@ -11,6 +11,7 @@
 
   # Hardware
   hardware.amdgpu.opencl.enable = true;
+  nixpkgs.config.rocmSupport = true;
 
   # Zram
   zramSwap = {
@@ -51,7 +52,7 @@
   # AI Stuff
   services.open-webui = {
     enable = true;
-    host = "0.0.0.0";
+    host = "[::]";
     port = 7890; # Just a random free port
     openFirewall = true;
     environment = {
@@ -70,6 +71,7 @@
   };
   services.ollama = {
     enable = true;
+    host = "[::]";
     openFirewall = true; # Make ollama accessible across network
     # Default port is acceptable
     loadModels = [
