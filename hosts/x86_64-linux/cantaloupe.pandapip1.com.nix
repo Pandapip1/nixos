@@ -60,7 +60,7 @@
       ENABLE_OAUTH_GROUP_MANAGEMENT = "true";
       ENABLE_OAUTH_GROUP_CREATION = "true";
       OAUTH_GROUP_CLAIM = "groups";
-      OAUTH_CLIENT_ID = "65f60599-44c9-476d-91b3-2728a8a9b7f0";
+      OAUTH_CLIENT_ID = "cantaloupe-open-webui";
       OAUTH_CLIENT_SECRET = "ruu00mwn0x1tCzZWukSRjJuRj3zwiWZd"; # TODO: Find a way to avoid publicly sharing the secret; this should be fine as it doesn't have a service account
       OPENID_PROVIDER_URL = "https://keycloak.berry.pandapip1.com/realms/pandaport/.well-known/openid-configuration";
       OAUTH_PROVIDER_NAME = "PandaPort";
