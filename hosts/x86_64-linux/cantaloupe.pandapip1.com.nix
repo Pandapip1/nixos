@@ -54,7 +54,7 @@
     port = 7890; # Just a random free port
     openFirewall = true;
     environment = {
-      WEBUI_URL = "https://cantaloupe.local:7890";
+      WEBUI_URL = "http://cantaloupe.local:7890";
       ENABLE_LOGIN_FORM = "false";
       ENABLE_OAUTH_SIGNUP = "true";
       ENABLE_OAUTH_GROUP_MANAGEMENT = "true";
