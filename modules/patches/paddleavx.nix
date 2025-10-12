@@ -8,5 +8,5 @@
         env.WITH_AVX = "OFF";
       };
     })
-  ]
+  ];
 }
