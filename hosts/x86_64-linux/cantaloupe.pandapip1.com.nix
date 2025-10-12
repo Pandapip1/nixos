@@ -11,15 +11,7 @@
 
   # Hardware
   hardware.amdgpu.opencl.enable = true;
-  nixpkgs = {
-    config.rocmSupport = true;
-    hostPlatform = {
-      gcc = {
-        arch = "sandybridge";
-        tune = "sandybridge";
-      };
-    };
-  };
+  nixpkgs.config.rocmSupport = true;
 
   # Zram
   zramSwap = {
