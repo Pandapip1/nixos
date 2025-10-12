@@ -149,7 +149,9 @@
                         inherit hostName domain;
                       };
                       nixpkgs = {
-                        hostPlatform = system;
+                        hostPlatform = {
+                          inherit system;
+                        };
                         buildPlatform = builtins.currentSystem or system;
                         overlays = inputOverlays;
                       };
