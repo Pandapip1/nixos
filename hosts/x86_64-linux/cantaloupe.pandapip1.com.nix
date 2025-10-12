@@ -11,7 +11,7 @@
 
   # Hardware
   hardware.amdgpu.opencl.enable = true;
-  nixpkgs.config.rocmSupport = true;
+  # nixpkgs.config.rocmSupport = true;
 
   # Zram
   zramSwap = {
