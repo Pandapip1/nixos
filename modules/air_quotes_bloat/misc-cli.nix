@@ -8,5 +8,7 @@
     killall
     btop
     dig
+    usbutils
+    pciutils
   ];
 }
