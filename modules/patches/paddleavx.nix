@@ -1,9 +1,13 @@
 {
+  lib,
+}:
+
+{
   nixpkgs.overlays = [
     (_: prev: {
       python312Packages = prev.python312Packages // {
         safetensors = prev.python312Packages.safetensors.overridePythonAttrs {
-          optional-dependencies = lib.fix (self: {
+          optional-dependencies = lib.fix (self: with prev.python312Packages; {
             numpy = [ numpy ];
             torch = self.numpy ++ [
               torch
@@ -37,7 +41,7 @@
       };
       python313Packages = prev.python313Packages // {
         safetensors = prev.python313Packages.safetensors.overridePythonAttrs {
-          optional-dependencies = lib.fix (self: {
+          optional-dependencies = lib.fix (self: with prev.python313Packages; {
             numpy = [ numpy ];
             torch = self.numpy ++ [
               torch
