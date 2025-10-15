@@ -23,9 +23,12 @@
       # Languages
       ms-python.python
       james-yu.latex-workshop
-      bbenoist.nix
+      jnoortheen.nix-ide
+      # Nix-specific
+      arrterian.nix-env-selector
       # rust-lang.rust-analyzer
       reditorsupport.r
+      reditorsupport.r-syntax
       chrischinchilla.vscode-pandoc
       llvm-vs-code-extensions.vscode-clangd
       ms-vscode.cmake-tools
@@ -46,7 +49,7 @@
       #   };
       # })
       # "AI"
-      # continue.continue
+      continue.continue
     ];
   };
 }
