@@ -10,6 +10,6 @@ lib.mkIf config.services.graphical-desktop.enable {
     vesktop
     caprine
     slacky
-    vesktop
+    telegram-desktop
   ];
 }

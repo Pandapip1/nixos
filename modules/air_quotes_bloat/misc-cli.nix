@@ -10,5 +10,7 @@
     dig
     usbutils
     pciutils
+    gdb
+    nixfmt-rfc-style
   ];
 }
