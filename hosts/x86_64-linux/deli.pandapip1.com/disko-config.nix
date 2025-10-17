@@ -5,7 +5,7 @@
 
 {
   imports = [ disko.nixosModules.default or null ];
-  networking.hostId = "8425e349";
+  networking.hostId = "704589ef";
   disko.devices.disk = {
     root.device = "/dev/disk/by-id/wwn-0x5f8db4c251202202";
     data0.device = "/dev/disk/by-id/wwn-0x5000c500eb1ec5e9";
