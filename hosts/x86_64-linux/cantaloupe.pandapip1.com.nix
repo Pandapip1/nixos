@@ -13,11 +13,6 @@
   hardware.amdgpu.opencl.enable = true;
   nixpkgs.config.rocmSupport = true;
 
-  # Zram
-  zramSwap = {
-    enable = true;
-  };
-
   boot.initrd.availableKernelModules = [ "ehci_pci" "ahci" "firewire_ohci" "xhci_pci" "usbhid" "usb_storage" "sd_mod" 
 "nvme" ];
   boot.initrd.kernelModules = [ ];
