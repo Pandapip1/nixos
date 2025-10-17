@@ -12,6 +12,6 @@
     pciutils
     gdb
     nixfmt-rfc-style
-    wodim
+    cdrkit
   ];
 }
