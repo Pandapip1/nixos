@@ -1,10 +1,10 @@
 {
-  disko,
+  disko ? {},
   ...
 }:
 
 {
-  imports = [ disko.nixosModules.default ];
+  imports = [ disko.nixosModules.default or null ];
   disko.devices = {
     disk = {
       root = {
