@@ -1,4 +1,10 @@
 {
+  disko,
+  ...
+}:
+
+{
+  imports = [ disko.nixosModules.default ];
   disko.devices = {
     disk = {
       root = {
