@@ -24,8 +24,7 @@ in
   # GRUB, since we're stuck on legacy BIOS
   boot.loader.grub = {
     enable = true;
-    device = "/dev/disk/by-id/wwn-0x5f8db4c251202202";
-    devices = lib.mkForce [];
+    devices = lib.mkForce [ "/dev/disk/by-id/wwn-0x5f8db4c251202202" ];
     memtest86.enable = true; # Might as well!
   };
 
