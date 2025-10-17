@@ -46,9 +46,4 @@ in
 
   # Use disko for filesystem management
   imports = [ ./disko-config.nix ];
-  disko.devices.disk = {
-    root.device = "/dev/disk/by-id/wwn-0x5f8db4c251202202";
-    data0.device = "/dev/disk/by-id/wwn-0x5000c500eb1ec5e9";
-    data1.device = "/dev/disk/by-id/wwn-0x5000c500eaee58e8";
-  };
 }
