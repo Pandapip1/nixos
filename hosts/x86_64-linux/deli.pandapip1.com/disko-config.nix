@@ -78,7 +78,7 @@
         type = "zpool";
         mode = "mirror";
         rootFsOptions = {
-          compression = "zstd";
+          compression = "lz4";
           "com.sun:auto-snapshot" = "true";
         };
         postCreateHook = "zfs list -t snapshot -H -o name | grep -E '^data@blank$' || zfs snapshot data@blank";
