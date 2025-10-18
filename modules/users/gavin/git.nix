@@ -8,8 +8,6 @@
         signByDefault = true;
       };
       maintenance.enable = true;
-      git-credential-oauth.enable = true;
-      git-credential-keepassxc.enable = true;
     };
   };
 }
