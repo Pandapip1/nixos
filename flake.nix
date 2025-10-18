@@ -122,6 +122,7 @@
         stevenblack-hosts.nixosModule
         nixowos.nixosModules.default
         autoaspm.nixosModules.default
+        home-manager.nixosModules.default
       ];
       inputOverlays = with inputs; [
         comma.overlays.default
