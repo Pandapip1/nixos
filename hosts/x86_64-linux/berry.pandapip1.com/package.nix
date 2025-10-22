@@ -111,7 +111,7 @@
           export NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
           mkdir -p $out
           npm config set cache $HOME/.npm
-          npm install --ignore-scripts --no-audit --legacy-peer-deps
+          npm install --ignore-scripts --no-audit --legacy-peer-deps --verbose
           cp -r node_modules/. $out/
 
           runHook postInstall
@@ -125,6 +125,7 @@
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
+        # outputHash = "";
       };
     };
   };
