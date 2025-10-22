@@ -125,7 +125,7 @@
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        # outputHash = "";
+        outputHash = lib.fakeHash;
       };
     };
   };
