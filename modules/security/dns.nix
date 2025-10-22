@@ -5,7 +5,7 @@
       resolveLocalQueries = true;
       settings = {
         server = {
-          interface = [ "::1" ];
+          interface = [ "::" ];
           port = 53;
           verbosity = 1;
         };
