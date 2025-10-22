@@ -8,7 +8,7 @@
     programs = {
       gpg = {
         enable = true;
-        homedir = "${home-manager.users.gavin.xdg.dataHome}/gnupg";
+        homedir = "${config.home-manager.users.gavin.xdg.dataHome}/gnupg";
         
         scdaemonSettings = { # Why are the settings here?!?!
           # For some reason YubiKey doesn't like CCID
@@ -58,7 +58,7 @@
         extraConfig = ''
           ttyname $GPG_TTY
           pinentry-program /run/current-system/sw/bin/pinentry
-        ''
+        '';
       };
     };
   };
