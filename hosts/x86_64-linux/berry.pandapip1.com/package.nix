@@ -81,7 +81,14 @@
             "version": "1.0.0",
             "private": true,
             "dependencies": {
-              "passport-keycloak-oauth2-oidc-portable": "~2.6.1"
+              "passport-keycloak-oauth2-oidc-portable": "~2.6.1",
+              "node-red-contrib-credentials": "~0.2.3",
+              "node-red-contrib-oauth2": "~6.2.1",
+              "node-red-contrib-chronos": "~1.29.2",
+              "node-red-contrib-cron-plus": "~2.2.4"
+              "node-red-contrib-postgresql": "~0.15.4"
+              "node-red-contrib-axios": "~1.6.0"
+              "node-red-contrib-calc": "~1.0.6"
             }
           }
         '';
@@ -118,7 +125,6 @@
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        outputHash = "sha256-VfEuP6pzRZZfe0DBE0HU4SXDM9JtxPtn9fVRpzdaNDE=";
       };
     };
   };
