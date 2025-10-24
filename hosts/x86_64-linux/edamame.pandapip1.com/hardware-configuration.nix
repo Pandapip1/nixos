@@ -21,17 +21,15 @@
 
   # Kernel stuff
   boot.initrd.availableKernelModules = [
+    "xhci_pci"
     "ahci"
-    "ohci_pci"
-    "ehci_pci"
-    "pata_atiixp"
-    "mpt3sas"
     "usbhid"
+    "usb_storage"
     "sd_mod"
     "sr_mod"
   ];
   boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-amd" ];
+  boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
   # Use disko for filesystem management
