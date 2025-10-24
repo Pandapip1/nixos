@@ -1,0 +1,3 @@
+{
+  programs.msmtp.enable = true;
+}
