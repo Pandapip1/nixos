@@ -13,7 +13,6 @@
     grub = {
       enable = true;
       efiSupport = true;
-      efiInstallAsRemovable = true;
       devices = lib.mkForce [ "/dev/disk/by-id/ata-P3-256_9X50427070023" ];
       memtest86.enable = true;
     };
