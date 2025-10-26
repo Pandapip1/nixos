@@ -4,7 +4,7 @@
 }:
 
 {
-  environment.systemPackages = [
+  services.displayManager.sessionPackages = [
     (pkgs.makeDesktopItem {
       destination = "/share/wayland-sessions";
       name = "Stardust XR";
