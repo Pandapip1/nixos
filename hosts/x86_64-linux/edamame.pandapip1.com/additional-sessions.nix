@@ -1,6 +1,11 @@
 {
+  pkgs,
+  ...
+}:
+
+{
   environment.systemPackages = [
-    (makeDesktopItem {
+    (pkgs.makeDesktopItem {
       destination = "/share/wayland-sessions";
       name = "Stardust XR";
       comment = "TODO";
@@ -8,7 +13,7 @@
       type = "Application";
       desktopName = "Stardust XR";
     })
-    (makeDesktopItem {
+    (pkgs.makeDesktopItem {
       destination = "/share/wayland-sessions";
       name = "kmscon";
       comment = "TODO";
