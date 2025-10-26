@@ -9,7 +9,7 @@
 {
   options = {
     defaults.powersaving = lib.mkEnableOption "powersaving defaults" // {
-      default = true;
+      # default = true;
     };
   };
 
