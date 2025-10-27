@@ -10,7 +10,7 @@ let
 in
 {
   services.nebula.networks.nebula0 = {
-    enable = lib.mkDefault true;
+    enable = lib.mkDefault false;
     ca = "${self}/config/nebula/ca.crt";
     cert = "${self}/config/nebula/${hostname}.crt";
     key = "/etc/secrets/nebula/${hostname}.key";
