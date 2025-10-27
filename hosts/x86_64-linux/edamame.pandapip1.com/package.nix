@@ -4,7 +4,11 @@
 }:
 
 {
-  imports = [ ./hardware-configuration.nix ];
+  imports = [
+    ./hardware-configuration.nix
+    ./additional-sessions.nix
+    ./stardust.nix
+  ];
 
   # Graphical greeter
   services.displayManager.cosmic-greeter.enable = true;
