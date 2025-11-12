@@ -4,6 +4,8 @@
     openFirewall = true;
     extraPackages = python3packages: with python3packages; [
       gtts
+      zlib-ng
+      isal
     ];
     extraComponents = [
       "default_config"
