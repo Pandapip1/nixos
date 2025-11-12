@@ -1,4 +1,12 @@
 {
+  config,
+  ...
+}:
+
+{
   # Provides debug symbols for troubleshooting purposes
-  services.nixseparatedebuginfod.enable = true;
+  services.nixseparatedebuginfod2 = {
+    enable = true;
+    substituters = config.nix.settings.substituters;
+  };
 }
