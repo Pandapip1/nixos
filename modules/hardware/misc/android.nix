@@ -10,6 +10,5 @@
 
   services.udev.packages = with pkgs; [
     xr-hardware
-    android-udev-rules
   ];
 }
