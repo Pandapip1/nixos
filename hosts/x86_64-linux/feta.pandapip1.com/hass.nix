@@ -2,6 +2,9 @@
   services.home-assistant = {
     enable = true;
     openFirewall = true;
+    extraPackages = python3packages: with python3packages; [
+      gtts
+    ];
     extraComponents = [
       "default_config"
       "esphome"
