@@ -6,6 +6,8 @@
       gtts
       zlib-ng
       isal
+      caldav
+      python-otbr-api
     ];
     extraComponents = [
       "default_config"
