@@ -28,10 +28,19 @@
         }
       ];
     };
-    config.homeassistant = {
-      unit_system = "metric";
-      latitude = 34.1391;
-      longitude = -118.1255;
+    config = {
+      http = {
+        server_host = [
+          "[::]"
+          "0.0.0.0"
+        ];
+        server_port = 8123;
+      };
+      homeassistant = {
+        unit_system = "metric";
+        latitude = 34.1391;
+        longitude = -118.1255;
+      };
     };
   };
 }
