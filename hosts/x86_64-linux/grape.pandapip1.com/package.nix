@@ -9,8 +9,6 @@
     ./graphical.nix
   ];
 
-  optimizations.lean.enable = true;
-
   services.pipewire.systemWide = true;
 
   environment.systemPackages = with pkgs; [

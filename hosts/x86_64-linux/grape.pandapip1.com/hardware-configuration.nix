@@ -6,7 +6,7 @@
 {
   imports = [
     nixos-hardware.nixosModules.common-cpu-intel
-    nixos-hardware.nixosModules.common-pc-laptop-ssd
+    nixos-hardware.nixosModules.common-pc-laptop-hdd
   ];
 
   # This audio device is for the radio, forbid pipewire from touching it
@@ -31,7 +31,7 @@
   boot = {
     loader.grub = {
       enable = true;
-      devices = [ "/dev/disk/by-id/wwn-0x5001b44c6513fb54" ];
+      # devices = [ "/dev/disk/by-id/wwn-0x5001b44c6513fb54" ];
       memtest86.enable = true;
     };
     initrd = {
