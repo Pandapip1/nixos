@@ -12,6 +12,7 @@
     alsa.support32Bit = pkgs.stdenvNoCC.hostPlatform.isx86_64;
     pulse.enable = true;
     jack.enable = true;
+    wireplumber.enable = true;
     # systemWide = true; # Not the default and not recommended but makes the most sense to me.
   };
 
