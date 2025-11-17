@@ -6,7 +6,7 @@
 {
   imports = [ disko.nixosModules.default or null ];
   disko.devices.disk = {
-    # root.device = "/dev/disk/by-id/ata-P3-256_9X50427070023";
+    root.device = "/dev/disk/by-id/ata-ST9750420AS_6WS19RSB";
   };
   disko.devices = {
     disk = {

@@ -31,7 +31,7 @@
   boot = {
     loader.grub = {
       enable = true;
-      # devices = [ "/dev/disk/by-id/wwn-0x5001b44c6513fb54" ];
+      devices = [ "/dev/disk/by-id/ata-ST9750420AS_6WS19RSB" ];
       memtest86.enable = true;
     };
     initrd = {
