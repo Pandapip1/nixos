@@ -9,7 +9,7 @@
     ./graphical.nix
   ];
 
-  nix-gc.configurationLimit = 2; # Disk constrained
+  optimizations.lean.enable = true;
 
   services.pipewire.systemWide = true;
 
