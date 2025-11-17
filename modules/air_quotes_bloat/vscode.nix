@@ -7,7 +7,7 @@
 
 {
   programs.vscode = {
-    enable = lib.mkDefault config.services.graphical-desktop.enable;
+    enable = lib.mkDefault (config.services.graphical-desktop.enable && !(config.optimizations.lean.enable));
     package = pkgs.vscodium;
     extensions = with pkgs.vscode-extensions; [
       # Forge Integrations
