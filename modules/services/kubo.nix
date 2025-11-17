@@ -5,7 +5,7 @@
 
 {
   services.kubo = {
-    enable = lib.mkDefault true;
+    enable = lib.mkDefault false;
     autoMount = lib.mkDefault true;
     enableGC = lib.mkDefault true;
     localDiscovery = lib.mkDefault false;
