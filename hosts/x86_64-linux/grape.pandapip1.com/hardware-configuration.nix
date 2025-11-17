@@ -31,7 +31,7 @@
   boot = {
     loader.grub = {
       enable = true;
-      devices = lib.mkForce [ "/dev/disk/by-id/wwn-0x5001b44c6513fb54" ];
+      devices = [ "/dev/disk/by-id/wwn-0x5001b44c6513fb54" ];
       memtest86.enable = true;
     };
     initrd = {
