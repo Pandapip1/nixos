@@ -151,8 +151,18 @@
                       } --mode destroy,format,mount ${self}/hosts/${system}/${fqdn}/disko-config.nix
                       nixos-install --flake '.#${hostName}' --no-root-passwd
                       # TODO: Make this more parametric
-                      nixos-enter --root /mnt -c passwd -d gavin
-                      nixos-enter --root /mnt -c chage -d 0 gavin
+                      USER=gavin
+                      HASH=$(${
+                        lib.getExe inputs.nixpkgs.legacyPackages.${system}.openssl
+                      } passwd -6 "")
+                      nixos-enter --root /mnt -c awk -v user="$USER" -v hash="$HASH" -F: '
+                      BEGIN { OFS=":" }
+                      $1 == user {
+                          $2 = hash
+                      }
+                      { print }
+                      ' /etc/shadow | nixos-enter --root /mnt -c tee /etc/shadow > /dev/null
+                      nixos-enter --root /mnt -c chage -d 0 $USER
                     '';
               };
             }
