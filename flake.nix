@@ -131,23 +131,28 @@
       ];
     in
     {
-      apps = lib.mergeAttrsList (
-        map (system:
-          lib.mapAttrs' (fqdn: _: 
+      legacyPackages = lib.listToAttrs (
+        lib.map (system: {
+          name = system;
+          value = lib.mapAttrs' (
+            fqdn: _:
             let
               hostName = lib.head (lib.splitString "." fqdn);
             in
             {
-              name = "disko-partition-${hostName}";
+              name = hostName;
               value = {
-                type = "app";
-                program = inputs.nixpkgs.legacyPackages.${system}.writeShellScriptBin "disko-partition-${hostName}" ''
-                  ${lib.getExe inputs.disko.packages.${system}.default} --mode destroy,format,mount ${self}/hosts/${system}/${fqdn}/disko-config.nix
-                '';
+                initial-disko-setup =
+                  inputs.nixpkgs.legacyPackages.${system}.writeShellScriptBin "disko-partition-${hostName}"
+                    ''
+                      ${
+                        lib.getExe inputs.disko.packages.${system}.default
+                      } --mode destroy,format,mount ${self}/hosts/${system}/${fqdn}/disko-config.nix
+                    '';
               };
             }
-          ) hosts."${system}"
-        ) (lib.attrNames hosts)
+          ) hosts."${system}";
+        }) (lib.attrNames hosts)
       );
 
       nixosConfigurations = lib.mergeAttrsList (
@@ -165,24 +170,23 @@
               name = hostName;
               value = lib.nixosSystem {
                 specialArgs = inputs;
-                modules =
-                  [
-                    {
-                      networking = {
-                        inherit hostName domain;
+                modules = [
+                  {
+                    networking = {
+                      inherit hostName domain;
+                    };
+                    nixpkgs = {
+                      hostPlatform = {
+                        inherit system;
                       };
-                      nixpkgs = {
-                        hostPlatform = {
-                          inherit system;
-                        };
-                        buildPlatform = builtins.currentSystem or system;
-                        overlays = inputOverlays;
-                      };
-                    }
-                    hostModulePath
-                  ]
-                  ++ modules
-                  ++ inputModules;
+                      buildPlatform = builtins.currentSystem or system;
+                      overlays = inputOverlays;
+                    };
+                  }
+                  hostModulePath
+                ]
+                ++ modules
+                ++ inputModules;
               };
             }
           ) hosts."${system}"
