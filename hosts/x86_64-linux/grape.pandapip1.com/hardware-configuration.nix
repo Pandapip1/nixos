@@ -5,7 +5,8 @@
 
 {
   imports = [
-    nixos-hardware.nixosModules.common.cpu.intel
+    nixos-hardware.nixosModules.common-cpu-intel
+    nixos-hardware.nixosModules.common-pc-laptop-ssd
   ];
 
   # This audio device is for the radio, forbid pipewire from touching it
