@@ -39,7 +39,7 @@
         "uhci_hcd"
         "ehci_pci"
         "ahci"
-        "firmware_ohci"
+        #"firmware_ohci"
         "sd_mod"
         "sr_mod"
         "sdhci_pci"
