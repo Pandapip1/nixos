@@ -145,7 +145,6 @@
             {
               name = hostName;
               value = lib.nixosSystem {
-                inherit system;
                 specialArgs = inputs;
                 modules =
                   [
