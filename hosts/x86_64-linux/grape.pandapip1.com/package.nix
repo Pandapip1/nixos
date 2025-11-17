@@ -17,4 +17,6 @@
     xastir
     direwolf-unstable
   ];
+
+  system.stateVersion = "25.11";
 }
