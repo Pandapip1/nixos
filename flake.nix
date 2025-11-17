@@ -142,16 +142,13 @@
             {
               name = hostName;
               value = {
-                initial-disko-setup =
-                  inputs.nixpkgs.legacyPackages.${system}.writeShellScriptBin "disko-partition-${hostName}"
-                    ''
-                      ${
-                        lib.getExe inputs.disko.packages.${system}.default
-                      } --mode destroy,format,mount ${self}/hosts/${system}/${fqdn}/disko-config.nix
-                    '';
                 install-nixos =
                   inputs.nixpkgs.legacyPackages.${system}.writeShellScriptBin "install-nixos-${hostName}"
                     ''
+                      set -euox pipefail
+                      ${
+                        lib.getExe inputs.disko.packages.${system}.default
+                      } --mode destroy,format,mount ${self}/hosts/${system}/${fqdn}/disko-config.nix
                       nixos-install --flake '.#${hostName}' --no-root-passwd
                       # TODO: Make this more parametric
                       nixos-enter --root /mnt -c passwd -d gavin
