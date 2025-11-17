@@ -1,8 +1,10 @@
 {
   home-manager.users.gavin = {
     programs.git = {
-      userName = "Gavin John";
-      userEmail = "gavinnjohn@gmail.com";
+      settings.user = {
+        name = "Gavin John";
+        email = "gavinnjohn@gmail.com";
+      };
       signing = {
         format = "gpg";
         signByDefault = true;
