@@ -9,7 +9,6 @@
       # enable = true;
       host = "[::]";
       port = 7890; # Just a random free port
-      openFirewall = true;
       environment = {
         WEBUI_URL = "http://cantaloupe.local:7890";
         ENABLE_LOGIN_FORM = "false";
