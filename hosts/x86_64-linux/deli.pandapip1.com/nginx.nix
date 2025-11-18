@@ -8,10 +8,10 @@
     acceptTerms = true;
     defaults.email = "gavinnjohn@gmail.com";
     certs = {
-      "cantaloupe.pandapip1.com" = {
+      "deli.pandapip1.com" = {
         dnsProvider = "cloudflare";
         environmentFile = "/etc/secrets/acme/cloudflare-api-key";
-        extraDomainNames = [ "*.cantaloupe.pandapip1.com" ];
+        extraDomainNames = [ "*.deli.pandapip1.com" ];
       };
     };
   };
@@ -60,10 +60,10 @@
     '';
 
     virtualHosts = {
-      "cantaloupe.pandapip1.com" = {
+      "deli.pandapip1.com" = {
         enableACME = true;
         forceSSL = true;
-        root = "${self}/config/static/cantaloupe.pandapip1.com";
+        root = "${self}/config/static/deli.pandapip1.com";
       };
     };
   };

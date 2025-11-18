@@ -3,8 +3,6 @@
     ./hardware-configuration.nix
     ./ai.nix
     ./nginx.nix
-    ./linux-isos.nix
-    ./jellyfin.nix
   ];
 
   services.openssh = {

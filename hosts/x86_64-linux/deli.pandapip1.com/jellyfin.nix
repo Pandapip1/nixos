@@ -6,7 +6,7 @@
     };
 
     nginx.virtualHosts = {
-      "jellyfin.cantaloupe.pandapip1.com" = {
+      "jellyfin.deli.pandapip1.com" = {
         enableACME = true;
         forceSSL = true;
         locations."/" = {

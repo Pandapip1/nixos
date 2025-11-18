@@ -57,64 +57,64 @@
       };
     };
     nginx.virtualHosts = {
-      "lidarr.cantaloupe.pandapip1.com" = {
-        useACMEHost = "cantaloupe.pandapip1.com";
+      "lidarr.deli.pandapip1.com" = {
+        useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.lidarr.settings.server.port}";
           proxyWebsockets = true;
         };
       };
-      "radarr.cantaloupe.pandapip1.com" = {
-        useACMEHost = "cantaloupe.pandapip1.com";
+      "radarr.deli.pandapip1.com" = {
+        useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.radarr.settings.server.port}";
           proxyWebsockets = true;
         };
       };
-      "readarr.cantaloupe.pandapip1.com" = {
-        useACMEHost = "cantaloupe.pandapip1.com";
+      "readarr.deli.pandapip1.com" = {
+        useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.readarr.settings.server.port}";
           proxyWebsockets = true;
         };
       };
-      "sonarr.cantaloupe.pandapip1.com" = {
-        useACMEHost = "cantaloupe.pandapip1.com";
+      "sonarr.deli.pandapip1.com" = {
+        useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.sonarr.settings.server.port}";
           proxyWebsockets = true;
         };
       };
-      "whisparr.cantaloupe.pandapip1.com" = {
-        useACMEHost = "cantaloupe.pandapip1.com";
+      "whisparr.deli.pandapip1.com" = {
+        useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.whisparr.settings.server.port}";
           proxyWebsockets = true;
         };
       };
-      "prowlarr.cantaloupe.pandapip1.com" = {
-        useACMEHost = "cantaloupe.pandapip1.com";
+      "prowlarr.deli.pandapip1.com" = {
+        useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.prowlarr.settings.server.port}";
           proxyWebsockets = true;
         };
       };
-      "jellyseerr.cantaloupe.pandapip1.com" = {
-        useACMEHost = "cantaloupe.pandapip1.com";
+      "jellyseerr.deli.pandapip1.com" = {
+        useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.jellyseerr.port}";
           proxyWebsockets = true;
         };
       };
-      "bazarr.cantaloupe.pandapip1.com" = {
-        useACMEHost = "cantaloupe.pandapip1.com";
+      "bazarr.deli.pandapip1.com" = {
+        useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.bazarr.listenPort}";
