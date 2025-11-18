@@ -2,6 +2,7 @@
   services = {
     jellyfin = {
       enable = true;
+      openFirewall = true;
     };
 
     nginx.virtualHosts = {

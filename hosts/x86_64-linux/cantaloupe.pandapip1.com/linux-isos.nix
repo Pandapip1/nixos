@@ -7,27 +7,35 @@
   services = {
     lidarr = {
       enable = true;
+      openFirewall = true;
     };
     radarr = {
       enable = true;
+      openFirewall = true;
     };
     readarr = {
       enable = true;
+      openFirewall = true;
     };
     sonarr = {
       enable = true;
+      openFirewall = true;
     };
     whisparr = {
       enable = true;
+      openFirewall = true;
     };
     prowlarr = {
       enable = true;
+      openFirewall = true;
     };
     jellyseerr = {
       enable = true;
+      openFirewall = true;
     };
     bazarr = {
       enable = true;
+      openFirewall = true;
     };
     recyclarr = {
       enable = true;
