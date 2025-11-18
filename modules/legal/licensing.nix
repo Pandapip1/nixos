@@ -15,7 +15,10 @@
       "vscode-extension-github-codespaces"
       # TODO: This should be moved to lib.licenses
       "open-webui"
+      "nrfconnect"
+      "segger-jlink"
     ];
+    segger-jlink.acceptLicense = true;
   };
 
   # Would use even non redistributable firmware if it were compatible with allowUnfree = false
