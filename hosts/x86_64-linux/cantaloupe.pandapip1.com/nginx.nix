@@ -1,4 +1,9 @@
 {
+  self,
+  ...
+}:
+
+{
   security.acme = {
     acceptTerms = true;
     defaults.email = "gavinnjohn@gmail.com";
