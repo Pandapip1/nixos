@@ -6,7 +6,7 @@
 {
   services = {
     open-webui = {
-      enable = true;
+      # enable = true;
       host = "[::]";
       port = 7890; # Just a random free port
       openFirewall = true;
