@@ -61,7 +61,7 @@
 
     virtualHosts = {
       "cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         root = "${self}/config/static/cantaloupe.pandapip1.com";
       };

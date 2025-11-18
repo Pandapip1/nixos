@@ -61,7 +61,7 @@
 
     virtualHosts = {
       "deli.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
         root = "${self}/config/static/deli.pandapip1.com";
       };

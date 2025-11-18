@@ -43,7 +43,7 @@
     };
     nginx.virtualHosts = {
       "open-webui.cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.open-webui.port}";
