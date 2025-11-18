@@ -19,6 +19,7 @@
       "sun"
       "zha"
       "zone"
+      "mobile_app"
     ];
     lovelaceConfig = {
       title = "My Home";
