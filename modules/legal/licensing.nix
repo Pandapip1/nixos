@@ -16,6 +16,7 @@
       # TODO: This should be moved to lib.licenses
       "open-webui"
       "nrfconnect"
+      "nrf-udev"
       "segger-jlink"
     ];
     segger-jlink.acceptLicense = true;
