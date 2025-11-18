@@ -2,6 +2,8 @@
   imports = [
     ./hardware-configuration.nix
     ./ai.nix
+    ./nginx.nix
+    ./linux-isos.nix
   ];
 
   services.openssh = {
