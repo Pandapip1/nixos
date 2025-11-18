@@ -50,10 +50,5 @@
     extraModulePackages = [];
   };
 
-  fileSystems."/" = {
-    device = "/dev/disk/by-uuid/76f1c9de-99a8-4145-9ca6-d7cabed7f419";
-    fsType = "ext4";
-  };
-
   swapDevices = [];
 }
