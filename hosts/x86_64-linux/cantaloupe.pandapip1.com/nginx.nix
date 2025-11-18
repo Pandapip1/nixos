@@ -1,4 +1,16 @@
 {
+  security.acme = {
+    acceptTerms = true;
+    defaults.email = "gavinnjohn@gmail.com";
+    certs = {
+      "cantaloupe.pandapip1.com" = {
+        dnsProvider = "cloudflare";
+        environmentFile = "/etc/secrets/acme/cloudflare-api-key";
+        extraDomainNames = [ "*.cantaloupe.pandapip1.com" ];
+      };
+    };
+  };
+
   services.nginx = {
     enable = true;
 
@@ -50,4 +62,14 @@
       };
     };
   };
+
+  # Open port 80 and 443
+  networking.firewall.allowedTCPPorts = [
+    80
+    443
+  ];
+
+  # Allow nginx user to see ACME certs
+  # "Certificate berry.pandapip1.com (group=acme) must be readable by service(s) nginx.service (user=nginx groups=nginx), nginx-config-reload.service (user=root groups=)"
+  users.users.nginx.extraGroups = [ "acme" ];
 }

@@ -45,7 +45,7 @@
     };
     nginx.virtualHosts = {
       "lidarr.cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.lidarr.settings.server.port}";
@@ -53,7 +53,7 @@
         };
       };
       "radarr.cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.radarr.settings.server.port}";
@@ -61,7 +61,7 @@
         };
       };
       "readarr.cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.readarr.settings.server.port}";
@@ -69,7 +69,7 @@
         };
       };
       "sonarr.cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.sonarr.settings.server.port}";
@@ -77,7 +77,7 @@
         };
       };
       "whisparr.cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.whisparr.settings.server.port}";
@@ -85,7 +85,7 @@
         };
       };
       "prowlarr.cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.prowlarr.settings.server.port}";
@@ -93,7 +93,7 @@
         };
       };
       "jellyseerr.cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.jellyseerr.port}";
@@ -101,7 +101,7 @@
         };
       };
       "bazarr.cantaloupe.pandapip1.com" = {
-        enableACME = true;
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.bazarr.listenPort}";
