@@ -21,7 +21,7 @@
       enable = true;
     };
     prowlarr = {
-      enable = true
+      enable = true;
     };
     jellyseerr = {
       enable = true;
