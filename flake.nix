@@ -154,7 +154,7 @@
                       USER=gavin
                       HASH=$(${
                         lib.getExe inputs.nixpkgs.legacyPackages.${system}.openssl
-                      } passwd -6 "")
+                      } passwd -6 $USER)
                       nixos-enter --root /mnt -c awk -v user="$USER" -v hash="$HASH" -F: '
                       BEGIN { OFS=":" }
                       $1 == user {
@@ -163,6 +163,14 @@
                       { print }
                       ' /etc/shadow | nixos-enter --root /mnt -c tee /etc/shadow > /dev/null
                       nixos-enter --root /mnt -c chage -d 0 $USER
+                    '';
+                mount-installation =
+                  inputs.nixpkgs.legacyPackages.${system}.writeShellScriptBin "mount-installation-${hostName}"
+                    ''
+                      set -euox pipefail
+                      ${
+                        lib.getExe inputs.disko.packages.${system}.default
+                      } --mode mount ${self}/hosts/${system}/${fqdn}/disko-config.nix
                     '';
               };
             }
