@@ -16,6 +16,8 @@
     };
   };
 
+  secrets.nixbuild.acme.user = "acme";
+
   services.nginx = {
     enable = true;
 
