@@ -11,6 +11,7 @@
     ./hardware-configuration.nix
     ./linux-isos.nix
     ./jellyfin.nix
+    ./nginx.nix
   ];
 
   services.openssh = {
