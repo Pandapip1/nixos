@@ -11,8 +11,8 @@ in
 {
   services.nebula.networks.nebula0 = {
     enable = lib.mkDefault false;
-    ca = "${self}/config/nebula/ca.crt";
-    cert = "${self}/config/nebula/${hostname}.crt";
+    ca = "${self}/global_config/nebula/ca.crt";
+    cert = "${self}/hosts/${config.nixpkgs.hostPlatform.system}/${config.networking.hostname}.${config.networking.domain}/config/nebula/${hostname}.crt";
     key = "/etc/secrets/nebula/${hostname}.key";
     staticHostMap = {
       "10.0.0.1" = [

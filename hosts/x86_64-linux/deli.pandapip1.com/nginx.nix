@@ -63,7 +63,7 @@
       "deli.pandapip1.com" = {
         useACMEHost = "deli.pandapip1.com";
         forceSSL = true;
-        root = "${self}/config/static/deli.pandapip1.com";
+        root = .config/static/deli.pandapip1.com;
       };
     };
   };

@@ -67,7 +67,7 @@
   services.node-red = {
     enable = true;
     openFirewall = false; # Do NOT expose node-red
-    configFile = "${self}/config/nodered/settings.js";
+    configFile = ./config/nodered/settings.js;
   };
   programs.nix-ld.enable = true;
   systemd.services.node-red = {
@@ -266,7 +266,7 @@
       "berry.pandapip1.com" = {
         enableACME = true;
         forceSSL = true;
-        root = "${self}/config/static/berry.pandapip1.com";
+        root = ./config/static/berry.pandapip1.com;
       };
       "node-red.berry.pandapip1.com" = {
         enableACME = true;

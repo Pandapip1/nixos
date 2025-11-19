@@ -63,7 +63,7 @@
       "cantaloupe.pandapip1.com" = {
         useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
-        root = "${self}/config/static/cantaloupe.pandapip1.com";
+        root = ./config/static/cantaloupe.pandapip1.com;
       };
     };
   };
