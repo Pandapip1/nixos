@@ -1,5 +1,5 @@
 {
-  services.displayManager.sddm.enable = true;
-  services.desktopManager.plasma6.enable = true;
-  services.desktopManager.plasma6.enableQt5Integration = true;
+  services.displayManager.cosmic-greeter.enable = true;
+  services.desktopManager.cosmic.enable = true;
+  services.gnome.gnome-keyring.enable = false;
 }
