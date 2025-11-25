@@ -14,6 +14,15 @@
   environment.systemPackages = with pkgs; [
     xastir
     direwolf-unstable
+    wsjtx
+    gnuradio
+    gqrx
+    gpredict
+    hamlib_4
+    grig
+    cubicsdr
+    rtl-sdr
+    sdrangel
   ];
 
   system.stateVersion = "25.11";
