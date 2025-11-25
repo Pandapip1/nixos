@@ -28,10 +28,6 @@ in
     memtest86.enable = true; # Might as well!
   };
 
-  # Disable Zram
-  # Sure, we only have DDR2 800MHz, but we have 8 channels and a CPU that can do computation in theory but not really in practice
-  zramSwap.enable = lib.mkForce false;
-
   # Kernel stuff
   boot.kernelPackages = lib.mkForce latestZFSKernelPackage; # ZFS support is mandatory
   boot.initrd.availableKernelModules = [
