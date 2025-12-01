@@ -19,7 +19,7 @@
   };
 
   # Kernel stuff
-  boot.kernelParams = [ "snd_hda_intel.dmic_detect=0" ];
+  boot.kernelParams = [ "snd-intel-dspcfg.dsp_driver=1" ];
   boot.initrd.availableKernelModules = [
     "xhci_pci"
     "ahci"
