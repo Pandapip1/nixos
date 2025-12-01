@@ -60,11 +60,9 @@
       };
     };
   };
-  # Cursed cursed so deeply cursed
-  # To get local playback I route via a localhost DNLA server eek
-  systemd.user.services.gmrender = {
+  systemd.user.services.vlc = {
     enable = true;
-    description = "DLNA Media Renderer";
+    description = "VLC Media Player";
     wantedBy = [
       "default.target"
     ];
@@ -80,13 +78,9 @@
 
     serviceConfig = {
       ExecStart = ''
-        ${lib.getExe' pkgs.gmrender-resurrect "gmediarender"} \
-          --friendly-name "Feta DLNA Speaker" \
-          --gstout-audiosink alsasink \
-          --gstout-audiodevice pipewire \
-          --gstout-videosink none \
-          --mime-filter audio \
-          --logfile=stdout
+        ${lib.getExe pkgs.vlc} \
+        --intf dummy \
+        --rc-host=localhost:4212
       '';
       Restart = "always";
     };
