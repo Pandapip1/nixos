@@ -19,6 +19,7 @@
   };
 
   # Kernel stuff
+  boot.kernelParams = [ "snd_hda_intel.dmic_detect=0" ];
   boot.initrd.availableKernelModules = [
     "xhci_pci"
     "ahci"
