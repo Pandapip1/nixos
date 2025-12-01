@@ -8,9 +8,10 @@
       isal
       caldav
       python-otbr-api
+      snapcast
+      mpd2
     ];
     extraComponents = [
-      "default_config"
       "esphome"
       "tile"
       "matter"
@@ -20,6 +21,7 @@
       "zha"
       "zone"
       "mobile_app"
+      "snapcast"
     ];
     lovelaceConfig = {
       title = "My Home";
@@ -51,4 +53,7 @@
       };
     };
   };
+  # Cursed cursed so deeply cursed
+  # To get local playback I route via a localhost snapserver eek
+  services.snapserver.enable = true;
 }
