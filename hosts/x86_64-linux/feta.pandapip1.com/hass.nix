@@ -91,4 +91,5 @@
     };
   };
   users.users.hass.extraGroups = [ "audio" ];
+  services.pipewire.systemWide = true; # needed. for reasons.
 }
