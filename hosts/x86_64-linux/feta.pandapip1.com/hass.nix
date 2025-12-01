@@ -58,6 +58,11 @@
         latitude = 34.1391;
         longitude = -118.1255;
       };
+      media_player = [
+        {
+          platform = "vlc";
+        }
+      ];
     };
   };
   systemd.user.services.vlc = {
