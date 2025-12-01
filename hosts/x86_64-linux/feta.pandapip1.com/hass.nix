@@ -65,31 +65,6 @@
       ];
     };
   };
-  systemd.user.services.vlc = {
-    enable = true;
-    description = "VLC Media Player";
-    wantedBy = [
-      "default.target"
-    ];
-    after = [
-      "default.target"
-      "pipewire.service"
-      "pipewire-pulse.service"
-    ];
-    wants = [
-      "pipewire.service"
-      "pipewire-pulse.service"
-    ];
-
-    serviceConfig = {
-      ExecStart = ''
-        ${lib.getExe pkgs.vlc} \
-        --intf dummy \
-        --rc-host=localhost:4212
-      '';
-      Restart = "always";
-    };
-  };
   users.users.hass.extraGroups = [ "audio" ];
   services.pipewire.systemWide = true; # needed. for reasons.
 }
