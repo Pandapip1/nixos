@@ -90,4 +90,5 @@
       Restart = "always";
     };
   };
+  users.users.hass.extraGroups = [ "audio" ];
 }
