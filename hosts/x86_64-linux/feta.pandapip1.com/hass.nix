@@ -55,5 +55,8 @@
   };
   # Cursed cursed so deeply cursed
   # To get local playback I route via a localhost snapserver eek
-  services.snapserver.enable = true;
+  services.snapserver = {
+    enable = true;
+    settings.stream.source = "tcp://[::1]:8532?name=LocalPlayback";
+  };
 }
