@@ -63,6 +63,7 @@
   # Cursed cursed so deeply cursed
   # To get local playback I route via a localhost DNLA server eek
   systemd.user.services.gmrender = {
+    enable = true;
     description = "DLNA Media Renderer";
     wantedBy = [
       "default.target"
