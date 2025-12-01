@@ -1,4 +1,9 @@
 {
+  lib,
+  ...
+}:
+
+{
   services.home-assistant = {
     enable = true;
     openFirewall = true;
@@ -22,6 +27,7 @@
       "zone"
       "mobile_app"
       "snapcast"
+      "dlna_dmr"
     ];
     lovelaceConfig = {
       title = "My Home";
@@ -54,9 +60,31 @@
     };
   };
   # Cursed cursed so deeply cursed
-  # To get local playback I route via a localhost snapserver eek
-  services.snapserver = {
-    enable = true;
-    settings.stream.source = "tcp://0.0.0.0?port=4953&name=snapbroadcast";
+  # To get local playback I route via a localhost DNLA server eek
+  systemd.user.services.gmrender = {
+    description = "DLNA Media Renderer";
+    wantedBy = [
+      "default.target"
+    ];
+    after = [
+      "default.target"
+      "pipewire.service"
+      "pipewire-pulse.service"
+    ];
+    wants = [
+      "pipewire.service"
+      "pipewire-pulse.service"
+    ];
+
+    serviceConfig = {
+      ExecStart = ''
+        ${lib.getExe' pkgs.gmrender-resurrect "gmediarender"} \
+          --friendly-name="Feta DLNA Speaker" \
+          --gstout-audio=true \
+          --gstout-video=false \
+          --alsa-audio-device=default
+      '';
+      Restart = "always";
+    };
   };
 }
