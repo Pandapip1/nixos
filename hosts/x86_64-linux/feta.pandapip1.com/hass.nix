@@ -57,6 +57,6 @@
   # To get local playback I route via a localhost snapserver eek
   services.snapserver = {
     enable = true;
-    settings.stream.source = "tcp://[::1]:8532?name=LocalPlayback";
+    settings.stream.source = "tcp://0.0.0.0?port=4953&name=snapbroadcast";
   };
 }
