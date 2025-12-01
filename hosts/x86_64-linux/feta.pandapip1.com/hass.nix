@@ -81,10 +81,12 @@
     serviceConfig = {
       ExecStart = ''
         ${lib.getExe' pkgs.gmrender-resurrect "gmediarender"} \
-          --friendly-name="Feta DLNA Speaker" \
-          --gstout-audio=true \
-          --gstout-video=false \
-          --alsa-audio-device=default
+          --friendly-name "Feta DLNA Speaker" \
+          --gstout-audiosink alsasink \
+          --gstout-audiodevice pipewire \
+          --gstout-videosink none \
+          --mime-filter audio \
+          --logfile=stdout
       '';
       Restart = "always";
     };
