@@ -171,9 +171,6 @@
     requires = [ "postgresql.service" ];
     wantedBy = [ "multi-user.target" ];
 
-    user = "keycloak";
-    group = "keycloak";
-
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -189,10 +186,11 @@
 
       pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
+      $psql -v ON_ERROR_STOP=1 -c "ALTER USER keycloak WITH PASSWORD '$pw';"
+
+      chmod 600 /run/pg-passwords/pg-keycloak-pw
       echo "$pw" > /run/pg-passwords/pg-keycloak-pw
       chmod 400 /run/pg-passwords/pg-keycloak-pw
-
-      $psql -v ON_ERROR_STOP=1 -c "ALTER USER keycloak WITH PASSWORD '$pw';"
     '';
   };
 
