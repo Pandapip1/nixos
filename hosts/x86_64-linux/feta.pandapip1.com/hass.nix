@@ -73,6 +73,7 @@
           password = "TODO";
         }
       ];
+      mobile_app = {};
     };
   };
   users.users.hass.extraGroups = [
