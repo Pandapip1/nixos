@@ -6,7 +6,7 @@
 
 {
   boot = {
-    kernelPackages = lib.mkDefault pkgs.linuxPackages_latest_rt; # RT is a performance hit but I really like the fact that it's more consistent
+    kernelPackages = lib.mkDefault (pkgs.linuxPackagesFor pkgs.linux-rt_latest);
     initrd.systemd.enable = true;
   };
 }
