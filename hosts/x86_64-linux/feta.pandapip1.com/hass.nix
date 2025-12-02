@@ -65,6 +65,9 @@
       ];
     };
   };
-  users.users.hass.extraGroups = [ "audio" ];
+  users.users.hass.extraGroups = [
+    "audio"
+    "pipewire" # https://github.com/NixOS/nixpkgs/issues/466987
+  ];
   services.pipewire.systemWide = true; # needed. for reasons.
 }
