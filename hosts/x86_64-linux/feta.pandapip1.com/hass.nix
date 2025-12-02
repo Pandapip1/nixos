@@ -65,11 +65,17 @@
         }
       ];
       media_source = {};
+      device_tracker = [
+        {
+          platform = "ddwrt";
+          host = "192.168.1.1";
+          username = "hassuser";
+          password = "TODO";
+        }
+      ];
     };
   };
   users.users.hass.extraGroups = [
     "audio"
-    "pipewire" # https://github.com/NixOS/nixpkgs/issues/466987
   ];
-  services.pipewire.systemWide = true; # needed. for reasons.
 }
