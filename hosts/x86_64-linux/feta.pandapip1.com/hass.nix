@@ -29,6 +29,7 @@
       "mobile_app"
       "snapcast"
       "dlna_dmr"
+      "media_source"
     ];
     lovelaceConfig = {
       title = "My Home";
@@ -63,6 +64,7 @@
           platform = "vlc";
         }
       ];
+      media_source = {};
     };
   };
   users.users.hass.extraGroups = [
