@@ -20,6 +20,7 @@
       "dialout"
       "podman"
       "plugdev"
+      "audio"
     ] ++ lib.optional config.services.kubo.enable config.services.kubo.group;
     packages = with pkgs; [ ];
     openssh = {
