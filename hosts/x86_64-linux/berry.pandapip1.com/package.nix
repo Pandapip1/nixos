@@ -171,6 +171,9 @@
     requires = [ "postgresql.service" ];
     wantedBy = [ "multi-user.target" ];
 
+    user = "keycloak";
+    group = "keycloak";
+
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
