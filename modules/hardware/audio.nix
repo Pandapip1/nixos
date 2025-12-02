@@ -55,7 +55,7 @@
             }
           ]
         '')
-      ]
+      ];
     };
     systemWide = true; # Not the default and not recommended but makes the most sense to me.
   };
