@@ -79,4 +79,15 @@
   users.users.hass.extraGroups = [
     "audio"
   ];
+  services.openthread-border-router = {
+    enable = true;
+    rest.listenAddress = "[::]";
+    web.listenAddress = "[::]";
+    radio = {
+      device = "/dev/ttyUSB1";
+      baudRate = 460800;
+      flowControl = true;
+    };
+  };
+  networking.nftables.enable = lib.mkForce false; # Use iptables
 }
