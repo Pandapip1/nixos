@@ -88,8 +88,8 @@
       listenAddress = "[::]";
     };
     radio = {
-      device = "/dev/ttyUSB1";
-      baudRate = 460800;
+      device = "/dev/ttyACM0";
+      baudRate = 115200;
     };
   };
   networking.nftables.enable = lib.mkForce false; # Use iptables
