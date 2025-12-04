@@ -82,6 +82,7 @@
   ];
   services.openthread-border-router = {
     enable = true;
+    backboneInterface = "enp1s0";
     rest.listenAddress = "[::]";
     web = {
       enable = true;
