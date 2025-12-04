@@ -74,6 +74,7 @@
         }
       ];
       mobile_app = {};
+      matter = {};
     };
   };
   users.users.hass.extraGroups = [
