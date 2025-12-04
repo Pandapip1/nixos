@@ -82,7 +82,10 @@
   services.openthread-border-router = {
     enable = true;
     rest.listenAddress = "[::]";
-    web.listenAddress = "[::]";
+    web = {
+      enable = true;
+      listenAddress = "[::]";
+    };
     radio = {
       device = "/dev/ttyUSB1";
       baudRate = 460800;
