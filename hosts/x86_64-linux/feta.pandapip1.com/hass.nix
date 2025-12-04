@@ -94,4 +94,5 @@
     };
   };
   networking.nftables.enable = lib.mkForce false; # Use iptables
+  services.matter-server.enable = true;
 }
