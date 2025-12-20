@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    systems.url = "github:nix-systems/default";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs = {
@@ -79,9 +80,11 @@
       url = "github:yunfachi/nixowos";
       inputs = {
         nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
         flake-compat.follows = "flake-compat";
         denix.follows = "denix";
-        pre-commit-hooks.follows = "pre-commit-hooks";
+        git-hooks-nix.follows = "pre-commit-hooks";
+        systems.follows = "systems";
       };
     };
     autoaspm = {
