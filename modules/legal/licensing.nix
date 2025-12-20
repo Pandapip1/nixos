@@ -6,6 +6,7 @@
 {
   nixpkgs.config = {
     allowlistedLicenses = (with lib.licenses; [
+      sfl
     ]);
     allowUnfreePredicate = pkg: lib.elem (lib.getName pkg) [
       # TODO: It's unclear what license these are under
