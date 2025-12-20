@@ -49,6 +49,9 @@
     },
     "denix": {
       "inputs": {
+        "git-hooks": [
+          "pre-commit-hooks"
+        ],
         "home-manager": [
           "home-manager"
         ],
@@ -59,20 +62,22 @@
         "nixpkgs-lib": [
           "nixpkgs"
         ],
-        "pre-commit-hooks": [
-          "pre-commit-hooks"
+        "robotnix": "robotnix",
+        "systems": [
+          "systems"
         ]
       },
       "locked": {
-        "lastModified": 1758123851,
-        "narHash": "sha256-sbKwqBOLI423TvXvzlX2UGZR4pE1M8C7KXi0699ImmQ=",
+        "lastModified": 1766234265,
+        "narHash": "sha256-g7TGJa4xu0tvAoew1E33u+NctxQJUBhtYJu7esbb2E0=",
         "owner": "yunfachi",
         "repo": "denix",
-        "rev": "d90f816b7b93304e5d5e69d429de0052f64d5149",
+        "rev": "63b10a0292578a62fd90396f03b948f402f0f387",
         "type": "github"
       },
       "original": {
         "owner": "yunfachi",
+        "ref": "rewrite",
         "repo": "denix",
         "type": "github"
       }
@@ -257,25 +262,17 @@
       }
     },
     "nix-darwin": {
-      "inputs": {
-        "nixpkgs": [
-          "denix",
-          "nixpkgs"
-        ]
-      },
       "locked": {
-        "lastModified": 1751313918,
-        "narHash": "sha256-HsJM3XLa43WpG+665aGEh8iS8AfEwOIQWk3Mke3e7nk=",
-        "owner": "nix-darwin",
-        "repo": "nix-darwin",
-        "rev": "e04a388232d9a6ba56967ce5b53a8a6f713cdfcf",
-        "type": "github"
+        "path": "missingFlake/nix-darwin",
+        "type": "path"
       },
       "original": {
-        "owner": "nix-darwin",
-        "repo": "nix-darwin",
-        "type": "github"
-      }
+        "path": "missingFlake/nix-darwin",
+        "type": "path"
+      },
+      "parent": [
+        "denix"
+      ]
     },
     "nix-index-database": {
       "inputs": {
@@ -412,6 +409,19 @@
         "repo": "git-hooks.nix",
         "type": "github"
       }
+    },
+    "robotnix": {
+      "locked": {
+        "path": "missingFlake/robotnix",
+        "type": "path"
+      },
+      "original": {
+        "path": "missingFlake/robotnix",
+        "type": "path"
+      },
+      "parent": [
+        "denix"
+      ]
     },
     "root": {
       "inputs": {

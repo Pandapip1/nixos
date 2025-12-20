@@ -67,13 +67,15 @@
       };
     };
     denix = {
-      url = "github:yunfachi/denix";
+      url = "github:yunfachi/denix/rewrite";
       inputs = {
         nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
         nixpkgs-lib.follows = "nixpkgs";
         home-manager.follows = "home-manager";
-        # TODO: Get rid of nix-darwin?
-        pre-commit-hooks.follows = "pre-commit-hooks";
+        # nix-darwin.follows = "nix-darwin";
+        # robotnix.follows = "robotnix";
+        git-hooks.follows = "pre-commit-hooks";
       };
     };
     nixowos = {
