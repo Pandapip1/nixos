@@ -11,5 +11,7 @@ lib.mkIf (config.services.graphical-desktop.enable && !(config.optimizations.lea
     caprine
     slacky
     telegram-desktop
+    element-desktop
+    mattermost-desktop
   ];
 }
