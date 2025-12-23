@@ -9,7 +9,7 @@ on:
 
 jobs:
   update-flakes:
-    runs-on: docker
+    runs-on: codeberg-tiny-lazy
     strategy:
       matrix:
         input:
