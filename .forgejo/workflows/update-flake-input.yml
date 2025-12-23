@@ -9,7 +9,7 @@ on:
 
 jobs:
   update-flakes:
-    runs-on: forgejo/runner:latest
+    runs-on: alpine-latest
     strategy:
       matrix:
         input:
