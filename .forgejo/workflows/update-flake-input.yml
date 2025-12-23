@@ -9,7 +9,7 @@ on:
 
 jobs:
   update-flakes:
-    runs-on: alpine-latest
+    runs-on: docker
     strategy:
       matrix:
         input:
