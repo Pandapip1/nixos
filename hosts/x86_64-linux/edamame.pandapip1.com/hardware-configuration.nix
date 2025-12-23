@@ -1,3 +1,3 @@
 {
-  boot.loader.grub.devices = "/dev/TODO";
+  boot.loader.grub.device = "/dev/TODO";
 }
