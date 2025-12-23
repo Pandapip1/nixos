@@ -10,7 +10,7 @@ on:
 
 jobs:
   update-flakes:
-    runs-on: codeberg-tiny-lazy
+    runs-on: codeberg-medium-lazy
     strategy:
       matrix:
         input:
