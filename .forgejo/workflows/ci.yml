@@ -8,7 +8,7 @@ on:
 
 jobs:
   nix-flake-check:
-    runs-on: codeberg-tiny
+    runs-on: codeberg-small
 
     steps:
       - name: Checkout repository
