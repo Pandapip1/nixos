@@ -14,6 +14,14 @@
       github.vscode-pull-request-github # github
       github.vscode-github-actions # github
       gitlab.gitlab-workflow # gitlab
+      (pkgs.vscode-utils.buildVscodeMarketplaceExtension {
+        mktplcRef = {
+          name = "vscode-pull-request-codeberg";
+          publisher = "medenor-fr";
+          version = "1.4.0";
+          hash = "sha256-oT4JmZVRGP9aafY+rncTlBakeV63A4JJE6u3i2tRRd4=";
+        };
+      })
       # Remote Development
       ms-azuretools.vscode-docker
       ms-vscode-remote.remote-ssh
