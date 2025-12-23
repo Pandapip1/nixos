@@ -31,7 +31,7 @@ jobs:
           set -eux pipefail
           git config --global user.name "forgejo-actions[bot]"
           git config --global user.email "bot@forgejo.local"
-          git remote list
+          git remote get-url origin
 
       - name: Exit early if rebase branch does not exist
         if: ${{ github.event_name == 'push' }}
