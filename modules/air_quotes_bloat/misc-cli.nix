@@ -13,5 +13,6 @@
     gdb
     nixfmt-rfc-style
     cdrkit
+    tree
   ];
 }
