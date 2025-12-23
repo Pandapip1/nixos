@@ -284,11 +284,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1758312047,
-        "narHash": "sha256-dtbQ1+Wz2d141vtJOwLpO8vTBRWnSdJLlLaiHSHzTvw=",
+        "lastModified": 1765266937,
+        "narHash": "sha256-DeHYd0Pq0LH1JuTgYmYoNEm8AWDVHCa0ARQVFPZFmcE=",
         "owner": "Pandapip1",
         "repo": "nix-index-database",
-        "rev": "76eb2c94c12755cb53e11ea69b3cfd1af0b9bb1b",
+        "rev": "92d47bb2053c7185ba51523b9409ead244b4e7a4",
         "type": "github"
       },
       "original": {
