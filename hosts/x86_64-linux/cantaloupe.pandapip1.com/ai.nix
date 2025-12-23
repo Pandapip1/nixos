@@ -1,5 +1,6 @@
 {
   config,
+  pkgs,
   ...
 }:
 
@@ -25,6 +26,8 @@
     };
     ollama = {
       enable = true;
+      # package = pkgs.ollama-rocm;
+      package = pkgs.ollama-vulkan;
       host = "[::]";
       openFirewall = true; # Make ollama accessible across network
       # Default port is acceptable
@@ -38,8 +41,7 @@
         "llama3.1:8b"
         "qwen2.5-coder:1.5b-base"
       ];
-      acceleration = "rocm";
-      rocmOverrideGfx = "9.0.6"; # gfx906 (Instinct MI50)
+      # rocmOverrideGfx = "9.0.6"; # gfx906 (Instinct MI50)
     };
     nginx.virtualHosts = {
       "open-webui.cantaloupe.pandapip1.com" = {
