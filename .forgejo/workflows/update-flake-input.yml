@@ -39,7 +39,7 @@ jobs:
           BRANCH_NAME="update-flake-${{ matrix.input }}"
           if ! git ls-remote --exit-code --heads origin "$BRANCH_NAME"; then
             echo "Branch $BRANCH_NAME does not exist; exiting."
-            exit 0
+            exit 1
           else
             echo "Branch $BRANCH_NAME exists; continuing."
           fi
@@ -58,7 +58,7 @@ jobs:
           BRANCH_NAME="update-flake-${{ matrix.input }}"
           git checkout -B "$BRANCH_NAME"
           git add flake.lock
-          git commit -m "Update flake input ${{ matrix.input }}" || (echo "No changes to commit" && exit 0)
+          git commit -m "Update flake input ${{ matrix.input }}" || (echo "No changes to commit" && exit 1)
           git push -u origin "$BRANCH_NAME" --force
 
       - name: Create or update Pull Request
