@@ -5,7 +5,7 @@
 
 {
   imports = [
-    # ./hardware-configuration.nix
+    ./hardware-configuration.nix
     ./additional-sessions.nix
     ./stardust.nix
   ];
