@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   update-flakes:
@@ -22,6 +23,9 @@ jobs:
           - nur
           - autoaspm
     steps:
+      - name: Checkout repository
+        uses: https://data.forgejo.org/actions/checkout@v4
+
       - name: Exit early if rebase branch does not exist
         if: ${{ github.event_name == 'push' }}
         run: |
@@ -30,14 +34,11 @@ jobs:
             echo "Branch $BRANCH_NAME does not exist; exiting."
             exit 0
           fi
-      
+
       - name: Set up git
         run: |
-          git config user.name "forgejo-actions[bot]"
-          git config user.email "bot@forgejo.local"
-
-      - name: Checkout repository
-        uses: https://data.forgejo.org/actions/checkout@v4
+          git config --global user.name "forgejo-actions[bot]"
+          git config --global user.email "bot@forgejo.local"
 
       - name: Set up Nix
         uses: https://github.com/cachix/install-nix-action@v31.9.0
