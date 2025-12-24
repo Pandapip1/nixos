@@ -1,0 +1,3 @@
+{
+  services.inputplumber.enable = true;
+}
