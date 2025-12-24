@@ -5,7 +5,7 @@
     settings.experimental-features = [ "nix-command" "flakes" ];
     channel.enable = false;
     package = pkgs.nixVersions.latest;
-    nixPath = [
+    nixPath = lib.mkForce [
       "nixpkgs=flake:nixpkgs"
       "nur=flake:nur"
       "configuration=${pkgs.writeText "configuration.nix" ''
