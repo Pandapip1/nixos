@@ -42,7 +42,8 @@
     services = {
       gpg-agent = {
         enable = true;
-        enableScDaemon = true;
+        enableScDaemon = true; # Use internal CCID
+
 
         # SSH forwarding
         enableSshSupport = true;
