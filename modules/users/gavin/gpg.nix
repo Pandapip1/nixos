@@ -10,11 +10,6 @@
         enable = true;
         # TODO: For some reason everything is still using the files in ~/.gnupg
         homedir = "${config.home-manager.users.gavin.xdg.dataHome}/gnupg";
-        
-        scdaemonSettings = { # Why are the settings here?!?!
-          # For some reason YubiKey doesn't like CCID
-          disable-ccid = true;
-        };
 
         settings = {
           keyserver = [
@@ -43,7 +38,7 @@
     services = {
       gpg-agent = {
         enable = true;
-        enableScDaemon = true; # Use internal CCID
+        enableScDaemon = true;
 
 
         # SSH forwarding
