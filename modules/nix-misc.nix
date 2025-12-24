@@ -8,12 +8,8 @@
     nixPath = lib.mkForce [
       "nixpkgs=flake:nixpkgs"
       "nur=flake:nur"
-      "configuration=${pkgs.writeText "configuration.nix" ''
-        let
-          flake = builtins.getFlake (toString ${self.outPath});
-        in
-          nixosConfigurations.${config.networking.hostName}.config
-      ''}"
+      # `nix-instantiate --eval -E '(import <config>)'` will get the config for the current machine
+      "config=${pkgs.writeText "configuration.nix" "(builtins.getFlake (toString ${self.outPath})).nixosConfigurations.${config.networking.hostName}.config"}"
     ];
     registry = let
       mkRegistryEntry = name: path: {
