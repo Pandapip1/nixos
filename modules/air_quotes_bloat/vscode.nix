@@ -58,4 +58,10 @@
       continue.continue
     ];
   };
+
+  # Needed because rust-analyzer has no way to override paths
+  environment.systemPackages = with pkgs; [
+    cargo
+    rustc
+  ];
 }
