@@ -15,5 +15,6 @@
     cdrkit
     tree
     vulnix
+    lynis
   ];
 }
