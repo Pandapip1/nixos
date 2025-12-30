@@ -47,6 +47,7 @@
         };
       })
       rust-lang.rust-analyzer
+      vadimcn.vscode-lldb
       # (pkgs.vscode-utils.buildVscodeMarketplaceExtension {
       #   mktplcRef = {
       #     name = "pddltools";
