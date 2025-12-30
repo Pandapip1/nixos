@@ -46,7 +46,7 @@
           hash = "sha256-ZsGBzfLzRFzSWx4vttfXPb6gSrFBy+QUDz9hkAdKMCw=";
         };
       })
-      # rust-lang.rust-analyzer
+      rust-lang.rust-analyzer
       # (pkgs.vscode-utils.buildVscodeMarketplaceExtension {
       #   mktplcRef = {
       #     name = "pddltools";
