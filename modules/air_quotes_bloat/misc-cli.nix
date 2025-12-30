@@ -14,5 +14,6 @@
     nixfmt-rfc-style
     cdrkit
     tree
+    vulnix
   ];
 }
