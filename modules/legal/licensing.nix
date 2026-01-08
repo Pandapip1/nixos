@@ -19,6 +19,8 @@
       "nrfconnect"
       "nrf-udev"
       "segger-jlink"
+      "quartus-prime-lite"
+      "quartus-prime-lite-unwrapped"
     ];
     segger-jlink.acceptLicense = true;
   };

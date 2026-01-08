@@ -73,6 +73,7 @@
     texliveFull
     act
     nrfconnect
+    quartus-prime-lite
     # TODO: Make and upstream proper packaging
     (writeScriptBin "smolslimeconfigurator" ''
       ${lib.getExe (python3.withPackages (pythonPackages: with pythonPackages; [
