@@ -188,7 +188,9 @@
 
       $psql -v ON_ERROR_STOP=1 -c "ALTER USER keycloak WITH PASSWORD '$pw';"
 
-      chmod 600 /run/pg-passwords/pg-keycloak-pw
+      if [ -f /run/pg-passwords/pg-keycloak-pw ]; then
+        chmod 600 /run/pg-passwords/pg-keycloak-pw
+      fi
       echo "$pw" > /run/pg-passwords/pg-keycloak-pw
       chmod 400 /run/pg-passwords/pg-keycloak-pw
     '';
