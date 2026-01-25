@@ -30,19 +30,27 @@
                 mountOptions = [ "umask=0077" ];
               };
             };
+            root = {
+              size = "100%";
+              content = {
+                type = "filesystem";
+                format = "xfs";
+                mountpoint = "/";
+              };
+            };
+          };
+        };
+      };
+      optaneswap = {
+        type = "disk";
+        content = {
+          type = "gpt";
+          partitions = {
             swap = {
               size = "24G";
               content = {
                 type = "swap";
                 resumeDevice = true;
-              };
-            };
-            root = {
-              size = "100%";
-              content = {
-                type = "filesystem";
-                format = "btrfs";
-                mountpoint = "/";
               };
             };
           };
