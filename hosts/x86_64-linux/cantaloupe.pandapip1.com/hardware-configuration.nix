@@ -1,40 +1,26 @@
 {
+  # GRUB, because I prefer GRUB to systemd-boot
   boot.loader = {
-    systemd-boot = {
-      enable = true;
-      configurationLimit = 16;
-    };
     efi.canTouchEfiVariables = true;
+    grub = {
+      enable = true;
+      efiSupport = true;
+      devices = lib.mkForce [ "/dev/disk/by-id/nvme-Samsung_SSD_990_EVO_Plus_1TB_S7U5NJ0Y601088H" ];
+      memtest86.enable = true;
+    };
   };
 
-  # Hardware
-  hardware.amdgpu.opencl.enable = true;
-  nixpkgs.config.rocmSupport = true;
-
-  boot.initrd.availableKernelModules = [ "ehci_pci" "ahci" "firewire_ohci" "xhci_pci" "usbhid" "usb_storage" "sd_mod" 
-"nvme" ];
+  # Kernel stuff
+  boot.kernelParams = [ ];
+  boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "nvme" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
-  fileSystems = {
-    "/" = {
-      fsType = "ext4";
-      device = "/dev/disk/by-partlabel/root";
-    };
-    "/boot" = {
-      fsType = "vfat";
-      device = "/dev/disk/by-partlabel/EFI";
-      options = [
-        "fmask=0077"
-        "dmask=0077"
-      ];
-    };
-  };
+  # Use disko for filesystem management
+  imports = [ ./disko-config.nix ];
 
-  swapDevices = [
-    {
-      device = "/dev/disk/by-label/swap";
-    }
-  ];
+  # Hardware
+  hardware.amdgpu.opencl.enable = true;
+  nixpkgs.config.rocmSupport = true;
 }
