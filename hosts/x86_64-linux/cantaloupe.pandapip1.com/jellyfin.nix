@@ -6,8 +6,8 @@
     };
 
     nginx.virtualHosts = {
-      "jellyfin.deli.pandapip1.com" = {
-        useACMEHost = "deli.pandapip1.com";
+      "jellyfin.cantaloupe.pandapip1.com" = {
+        useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:8096"; # Default jellyfin port

@@ -2,6 +2,8 @@
   imports = [
     ./hardware-configuration.nix
     ./ai.nix
+    ./linux-isos.nix
+    ./jellyfin.nix
     ./nginx.nix
   ];
 
