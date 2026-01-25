@@ -7,7 +7,7 @@
   imports = [ disko.nixosModules.default or null ];
   disko.devices.disk = {
     root.device = "/dev/disk/by-id/nvme-Samsung_SSD_990_EVO_Plus_1TB_S7U5NJ0Y601088H";
-    optaneswap.device = "/dev/disk/by-id/ata-INTEL_MEMPEK1J016GAL_PHBT90940AMX016N";
+    # optaneswap.device = "/dev/disk/by-id/ata-INTEL_MEMPEK1J016GAL_PHBT90940AMX016N";
   };
   disko.devices = {
     disk = {
@@ -41,21 +41,21 @@
           };
         };
       };
-      optaneswap = {
-        type = "disk";
-        content = {
-          type = "gpt";
-          partitions = {
-            swap = {
-              size = "100%";
-              content = {
-                type = "swap";
-                resumeDevice = true;
-              };
-            };
-          };
-        };
-      };
+      # optaneswap = {
+      #   type = "disk";
+      #   content = {
+      #     type = "gpt";
+      #     partitions = {
+      #       swap = {
+      #         size = "100%";
+      #         content = {
+      #           type = "swap";
+      #           resumeDevice = true;
+      #         };
+      #       };
+      #     };
+      #   };
+      # };
     };
   };
 }
