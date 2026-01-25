@@ -11,7 +11,7 @@
     # data0.device = "/dev/disk/by-id/ata-ST8000DM004-2U9188_ZR16BF7F";
     # data1.device = "/dev/disk/by-id/ata-ST8000DM004-2U9188_ZR16EMW1";
   };
-  fileSystems."/data".options = [ "nofail" ]; # TODO find out why we need this!
+  # fileSystems."/data".options = [ "nofail" ]; # TODO find out why we need this!
   # Notably, https://github.com/nix-community/disko/blob/3a9450b26e69dcb6f8de6e2b07b3fc1c288d85f5/tests/zfs.nix#L12 also needs this
   disko.devices = {
     disk = {
