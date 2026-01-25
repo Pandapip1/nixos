@@ -47,7 +47,7 @@
           type = "gpt";
           partitions = {
             swap = {
-              size = "24G";
+              size = "100%";
               content = {
                 type = "swap";
                 resumeDevice = true;
