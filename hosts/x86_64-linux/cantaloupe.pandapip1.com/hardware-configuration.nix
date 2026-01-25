@@ -26,6 +26,7 @@ in
     grub = {
       enable = true;
       efiSupport = true;
+      efiInstallAsRemovable = true;
       devices = lib.mkForce [ "/dev/disk/by-id/ata-FTM24C325H_P717614-NBC6-B30B002" ];
       memtest86.enable = true;
     };
