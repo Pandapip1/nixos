@@ -11,7 +11,7 @@
     usbutils
     pciutils
     gdb
-    nixfmt-rfc-style
+    nixfmt
     cdrkit
     tree
     vulnix
