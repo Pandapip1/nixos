@@ -14,18 +14,19 @@
       Type = "oneshot";
       ExecStart = ''
         ${lib.getExe pkgs.bash} -lc '
-          echo "Waiting for cosmic-comp..."
-          while ! pgrep -x cosmic-comp >/dev/null; do
+          BIN_NAME=".cosmic-comp-wrapped"
+          echo "Waiting for $BIN_NAME..."
+          while ! pgrep -x $BIN_NAME >/dev/null; do
             sleep 0.05
           done
 
-          PID=$(pgrep -x cosmic-comp | head -n1)
-          echo "Promoting cosmic-comp (PID=$PID) to SCHED_RR"
+          PID=$(pgrep -x $BIN_NAME | head -n1)
+          echo "Promoting $BIN_NAME (PID=$PID) to SCHED_RR"
 
           ${lib.getExe' pkgs.rtkit "rtkitctl"} \
             --pid=$PID \
             --rr \
-            --priority=30
+            --priority=15
         '
       '';
     };
