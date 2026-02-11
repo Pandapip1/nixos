@@ -4,6 +4,18 @@
   ...
 }:
 
+let
+  allNotoFonts = lib.filter (x: x != null) (
+    map (
+      n:
+      let
+        t = builtins.tryEval pkgs.${n};
+      in
+      if t.success && lib.attrsets.isDerivation t.value then t.value else null
+    ) (lib.filter (n: lib.hasPrefix "noto-fonts" n) (builtins.attrNames pkgs))
+  );
+  allNerdFonts = builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts);
+in
 {
   fonts = {
     enableDefaultPackages = true;
@@ -19,15 +31,11 @@
       };
       useEmbeddedBitmaps = true;
     };
-    packages = (builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts)) ++ (lib.attrValues (
-      lib.filterAttrs
-        (name: value:
-          lib.hasPrefix "noto-fonts" name &&
-          lib.isDerivation value
-        )
-        pkgs
-    )) ++ (with pkgs; [
-      orbitron
-    ]);
+    packages =
+      allNerdFonts
+      ++ allNotoFonts
+      ++ (with pkgs; [
+        orbitron
+      ]);
   };
 }
