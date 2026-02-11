@@ -19,7 +19,14 @@
       };
       useEmbeddedBitmaps = true;
     };
-    packages = (builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts)) ++ (with pkgs; [
+    packages = (builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts)) ++ (lib.attrValues (
+      lib.filterAttrs
+        (name: value:
+          lib.hasPrefix "noto-fonts" name &&
+          lib.isDerivation value
+        )
+        pkgs
+    )) ++ (with pkgs; [
       orbitron
     ]);
   };
