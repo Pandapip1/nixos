@@ -34,7 +34,7 @@ in
   # Kernel stuff
   boot.kernelPackages = lib.mkForce latestZFSKernelPackage; # ZFS support is mandatory
   boot.kernelParams = [ ];
-  boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "nvme" "usbhid" "usb_storage" "sd_mod" ];
+  boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "ehci_pci" "mpt3sas" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
