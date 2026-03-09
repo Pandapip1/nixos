@@ -16,5 +16,6 @@
     tree
     vulnix
     lynis
+    poppler-utils
   ];
 }
