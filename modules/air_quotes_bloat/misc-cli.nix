@@ -17,5 +17,6 @@
     vulnix
     lynis
     poppler-utils
+    screen
   ];
 }
