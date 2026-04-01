@@ -22,6 +22,7 @@
       "quartus-prime-lite"
       "quartus-prime-lite-unwrapped"
       "steam"
+      "steam-unwrapped"
     ];
     segger-jlink.acceptLicense = true;
   };
