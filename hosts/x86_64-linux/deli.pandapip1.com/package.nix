@@ -12,12 +12,12 @@
   services.desktopManager.cosmic.enable = true;
   services.gnome.gnome-keyring.enable = false; # For some reason enabling cosmic enables gnome keyring. I want to use keepassxc thank you very much.
 
-  programs.opengamepadui = {
-    enable = true;
-    inputplumber.enable = true;
-    powerstation.enable = true;
-    gamescopeSession.enable = true;
-  };
+  # programs.opengamepadui = {
+  #   enable = true;
+  #   inputplumber.enable = true;
+  #   powerstation.enable = true;
+  #   gamescopeSession.enable = true;
+  # };
 
   programs.steam = {
     enable = true;
