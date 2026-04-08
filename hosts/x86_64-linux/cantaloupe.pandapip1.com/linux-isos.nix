@@ -135,4 +135,11 @@
       };
     };
   };
+  # Permission nonsense
+  users.groups.qbittorrent-download-access = {
+    members = [
+      "qbittorrent"
+      "radarr"
+    ];
+  };
 }
