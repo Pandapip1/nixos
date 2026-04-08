@@ -4,7 +4,6 @@
   pkgs,
   ...
 }:
-
 let
   cfg = config.secrets;
 in
@@ -33,33 +32,33 @@ in
   };
 
   config = {
-    system.activationScripts.etcSecretsPermissions = {
-      text = ''
-        echo "Setting up /etc/secrets permissions..."
+    systemd.tmpfiles.rules =
+      let
+        # Base rules for /etc/secrets itself
+        baseRules = [
+          "d /etc/secrets 0511 root root - -"
+        ];
 
-        mkdir -p /etc/secrets
-        chown -R root:root /etc/secrets
-
-        # Set permissions
-        find /etc/secrets -type f -exec chmod 0400 {} \;
-        find /etc/secrets -type d -exec chmod 0511 {} \;
-
-        # Custom ownership
-        ${lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (path: val: ''
-            mkdir -p '/etc/secrets/${path}'
-            find '/etc/secrets/${path}' -type f -exec chmod ${
-              if val.ownership.group == null then "0400" else "0440"
-            } {} \;
-            find '/etc/secrets/${path}' -type d -exec chmod ${
-              if val.ownership.group == null then "0511" else "0551"
-            } {} \;
-            chown -R ${val.ownership.user}:${
-              if val.ownership.group == null then "root" else val.ownership.group
-            } '/etc/secrets/${path}'
-          '') cfg
-        )}
-      '';
-    };
+        # Per-path rules for each configured secret
+        pathRules = lib.concatLists (
+          lib.mapAttrsToList (path: val:
+            let
+              user = val.ownership.user;
+              group = if val.ownership.group == null then "root" else val.ownership.group;
+              fileMode = if val.ownership.group == null then "0400" else "0440";
+              dirMode = if val.ownership.group == null then "0511" else "0551";
+            in
+            [
+              # Create the directory with correct ownership/permissions
+              "d /etc/secrets/${path} ${dirMode} ${user} ${group} - -"
+              # Set permissions on existing files (z = relabel without create)
+              "z /etc/secrets/${path} ${dirMode} ${user} ${group} - -"
+              # Recursively relabel contents
+              "Z /etc/secrets/${path} ${fileMode} ${user} ${group} - -"
+            ]
+          ) cfg
+        );
+      in
+      baseRules ++ pathRules;
   };
 }
