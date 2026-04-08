@@ -37,6 +37,10 @@
       enable = true;
       openFirewall = true;
     };
+    qbittorrent = {
+      enable = true;
+      openFirewall = true;
+    };
     recyclarr = {
       enable = true;
       configuration = {
@@ -118,6 +122,14 @@
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.bazarr.listenPort}";
+          proxyWebsockets = true;
+        };
+      };
+      "qbittorrent.cantaloupe.pandapip1.com" = {
+        useACMEHost = "cantaloupe.pandapip1.com";
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://localhost:${toString config.services.qbittorrent.webuiPort}";
           proxyWebsockets = true;
         };
       };
