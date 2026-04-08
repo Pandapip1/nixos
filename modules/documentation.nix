@@ -10,7 +10,7 @@
       enable = lib.mkDefault true;
       man-db.enable = lib.mkDefault false;
       mandoc.enable = lib.mkDefault true; # BSD-compatible
-      generateCaches = lib.mkDefault true;
+      cache.enable = lib.mkDefault true;
     };
     doc.enable = lib.mkDefault true;
     dev.enable = lib.mkDefault true;
