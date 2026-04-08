@@ -67,6 +67,14 @@
         forceSSL = true;
         root = ./config/static/cantaloupe.pandapip1.com;
       };
+      # Default: reject all requests to unknown vhosts
+      default = {
+        default = true;
+        serverName = "_";
+        locations."/" = {
+          return = "444";
+        };
+      };
     };
   };
 
