@@ -7,15 +7,15 @@
 
 let
   hostname = config.networking.hostName;
+  fqdn = if (config.networking.domain == null) then config.networking.hostName else "${config.networking.hostName}.${config.networking.domain}";
 in
 {
+  environment.etc."nebula/${hostname}.crt".source = "${self}/hosts/${config.nixpkgs.hostPlatform.system}/${fqdn}/config/nebula/${hostname}.crt";
+  environment.etc."nebula/ca.crt".source = "${self}/global_config/nebula/ca.crt";
   services.nebula.networks.nebula0 = {
     enable = lib.mkDefault false;
-    ca = "${self}/global_config/nebula/ca.crt";
-    cert = let
-      fqdn = if (config.networking.domain == null) then config.networking.hostName else "${config.networking.hostName}.${config.networking.domain}";
-    in
-      "${self}/hosts/${config.nixpkgs.hostPlatform.system}/${fqdn}/config/nebula/${hostname}.crt";
+    ca = "/etc/nebula/ca.crt";
+    cert = "/etc/nebula/${hostname}.crt";
     key = "/etc/secrets/nebula/${hostname}.key";
     staticHostMap = {
       "10.0.0.1" = [
