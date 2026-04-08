@@ -68,9 +68,13 @@
         root = ./config/static/cantaloupe.pandapip1.com;
       };
       # Default: reject all requests to unknown vhosts
+      # Unfortunately no easy way to do this with just a single flag, hence this nonsense
       default = {
         default = true;
         serverName = "_";
+        useACMEHost = "cantaloupe.pandapip1.com";
+        addSSL = true;
+        extraConfig = "ssl_reject_handshake on;";
         locations."/" = {
           return = "444";
         };
