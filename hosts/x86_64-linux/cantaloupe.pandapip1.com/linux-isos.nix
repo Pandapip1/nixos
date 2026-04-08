@@ -29,7 +29,7 @@
       enable = true;
       openFirewall = true;
     };
-    jellyseerr = {
+    seerr = {
       enable = true;
       openFirewall = true;
     };
@@ -109,11 +109,11 @@
           proxyWebsockets = true;
         };
       };
-      "jellyseerr.cantaloupe.pandapip1.com" = {
+      "seerr.cantaloupe.pandapip1.com" = {
         useACMEHost = "cantaloupe.pandapip1.com";
         forceSSL = true;
         locations."/" = {
-          proxyPass = "http://localhost:${toString config.services.jellyseerr.port}";
+          proxyPass = "http://localhost:${toString config.services.seerr.port}";
           proxyWebsockets = true;
         };
       };
