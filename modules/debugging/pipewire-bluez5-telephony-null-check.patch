@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: (local patch)
+Date: Sat, 12 Apr 2026 00:00:00 +0000
+Subject: [PATCH] spa/bluez5: guard telephony_ag_new against null backend->telephony
+
+telephony_new() can legitimately return NULL when the telephony D-Bus
+service is disabled or fails to acquire its bus name (e.g. no session
+bus, or org.pipewire.telephony already registered). backend->telephony
+is then NULL, but rfcomm_hfp_hf() unconditionally passes it to
+telephony_ag_new() which immediately dereferences it via
+SPA_CONTAINER_OF, causing a segfault at offset +0x28.
+
+Guard the entire telephony_ag initialisation block with a
+backend->telephony != NULL check so that HFP HF connections can
+still complete (sans telephony integration) when the telephony
+backend is unavailable.
+
+Fixes: wireplumber crash loop on systems without a session D-Bus
+telephony service.
+---
+ spa/plugins/bluez5/backend-native.c | 20 ++++++++++----------
+ 1 file changed, 11 insertions(+), 9 deletions(-)
+
+diff --git a/spa/plugins/bluez5/backend-native.c b/spa/plugins/bluez5/backend-native.c
+index 1111111..2222222 100644
+--- a/spa/plugins/bluez5/backend-native.c
++++ b/spa/plugins/bluez5/backend-native.c
+@@ -2421,17 +2421,19 @@ static bool rfcomm_hfp_hf(struct rfcomm *rfcomm, char* token)
+ 				}
+ 			}
+ 
+-			rfcomm->telephony_ag = telephony_ag_new(backend->telephony, 0);
+-			rfcomm->telephony_ag->address = strdup(rfcomm->device->address);
+-			rfcomm->telephony_ag->volume[SPA_BT_VOLUME_ID_RX] = rfcomm->volumes[SPA_BT_VOLUME_ID_RX].hw_volume = backend->hfp_default_speaker_volume;
+-			rfcomm->telephony_ag->volume[SPA_BT_VOLUME_ID_TX] = rfcomm->volumes[SPA_BT_VOLUME_ID_TX].hw_volume = backend->hfp_default_mic_volume;
+-			telephony_ag_set_callbacks(rfcomm->telephony_ag,
+-					&telephony_ag_callbacks, rfcomm);
+-			if (rfcomm->transport) {
+-				rfcomm->telephony_ag->transport.codec = rfcomm->transport->media_codec->codec_id;
+-				rfcomm->telephony_ag->transport.state = rfcomm->transport->state;
++			if (backend->telephony) {
++				rfcomm->telephony_ag = telephony_ag_new(backend->telephony, 0);
++				rfcomm->telephony_ag->address = strdup(rfcomm->device->address);
++				rfcomm->telephony_ag->volume[SPA_BT_VOLUME_ID_RX] = rfcomm->volumes[SPA_BT_VOLUME_ID_RX].hw_volume = backend->hfp_default_speaker_volume;
++				rfcomm->telephony_ag->volume[SPA_BT_VOLUME_ID_TX] = rfcomm->volumes[SPA_BT_VOLUME_ID_TX].hw_volume = backend->hfp_default_mic_volume;
++				telephony_ag_set_callbacks(rfcomm->telephony_ag,
++						&telephony_ag_callbacks, rfcomm);
++				if (rfcomm->transport) {
++					rfcomm->telephony_ag->transport.codec = rfcomm->transport->media_codec->codec_id;
++					rfcomm->telephony_ag->transport.state = rfcomm->transport->state;
++				}
++				telephony_ag_register(rfcomm->telephony_ag);
+ 			}
+-			telephony_ag_register(rfcomm->telephony_ag);
+ 
+ 			rfcomm_send_cmd(rfcomm, hfp_hf_clip, NULL, "AT+CLIP=1");
+ 			break;
