@@ -19,7 +19,7 @@
         buildInputs = with prev; [
           openssl
         ];
-      })
+      });
     })
   ];
 }
