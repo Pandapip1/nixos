@@ -20,7 +20,7 @@
         '';
 
         strictDeps = true;
-        nativeBuildInputs = [
+        nativeBuildInputs = with prev; [
           just
           libcosmicAppHook
         ];
@@ -34,7 +34,7 @@
           (placeholder "out")
           "--set"
           "cargo-target-dir"
-          "target/${stdenv.hostPlatform.rust.cargoShortTarget}"
+          "target/${prev.stdenv.hostPlatform.rust.cargoShortTarget}"
         ];
       });
     })
