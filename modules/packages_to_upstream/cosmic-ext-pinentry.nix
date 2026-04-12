@@ -8,17 +8,13 @@
         src = prev.fetchFromCodeberg {
           owner = "pandapip1";
           repo = "cosmic-ext-pinentry";
-          rev = "4ba4732c6d0a205e0fa54d614ae8e91cb40043de";
-          hash = "sha256-cSuZXVfa5216FO7Hi7NFM8xEw+FvIHDrV6cyHQ3XpQc=";
+          rev = "661f6e66b88f9d66f95baaf455044cc16ec9112b";
+          hash = "sha256-Q/uYy3Lr09braRXgPiGBy/vN/GvdmvlUCXP0ru5XXJw=";
         };
         cargoLock = {
           lockFile = finalAttrs.src + "/Cargo.lock";
           allowBuiltinFetchGit = true;
         };
-
-        postPatch = ''
-          substituteInPlace justfile --replace-fail '#!/usr/bin/env' "#!$(command -v env)"
-        '';
 
         strictDeps = true;
         nativeBuildInputs = with prev; [
