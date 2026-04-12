@@ -9,6 +9,7 @@
           owner = "pandapip1";
           repo = "cosmic-ext-pinentry";
           rev = "4ba4732c6d0a205e0fa54d614ae8e91cb40043de";
+          hash = "sha256-cSuZXVfa5216FO7Hi7NFM8xEw+FvIHDrV6cyHQ3XpQc=";
         };
         cargoLock = {
           lockFile = finalAttrs.src + "/Cargo.lock";
