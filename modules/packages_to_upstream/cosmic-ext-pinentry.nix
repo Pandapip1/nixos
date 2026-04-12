@@ -1,0 +1,42 @@
+{
+  nixpkgs.overlays = [
+    (_: prev: {
+      cosmic-ext-pinentry = prev.rustPlatform.buildRustPackage (finalAttrs: {
+        pname = "cosmic-ext-pinentry";
+        version = "0-unstable-2025-04-11";
+
+        src = prev.fetchFromCodeberg {
+          owner = "pandapip1";
+          repo = "cosmic-ext-pinentry";
+          rev = "4ba4732c6d0a205e0fa54d614ae8e91cb40043de";
+        };
+        cargoLock = {
+          lockFile = finalAttrs.src + "/Cargo.lock";
+          allowBuiltinFetchGit = true;
+        };
+
+        postPatch = ''
+          substituteInPlace justfile --replace-fail '#!/usr/bin/env' "#!$(command -v env)"
+        '';
+
+        strictDeps = true;
+        nativeBuildInputs = [
+          just
+          libcosmicAppHook
+        ];
+
+        dontUseJustBuild = true;
+        dontUseJustCheck = true;
+
+        justFlags = [
+          "--set"
+          "prefix"
+          (placeholder "out")
+          "--set"
+          "cargo-target-dir"
+          "target/${stdenv.hostPlatform.rust.cargoShortTarget}"
+        ];
+      });
+    })
+  ];
+}
