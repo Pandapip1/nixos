@@ -37,6 +37,8 @@
           "cargo-target-dir"
           "target/${prev.stdenv.hostPlatform.rust.cargoShortTarget}"
         ];
+
+        meta.mainProgram = "cosmic-pinentry";
       });
     })
   ];
