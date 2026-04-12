@@ -1,7 +1,7 @@
 {
   nixpkgs.overlays = [
     (_: prev: {
-      initiatarr = rustPlatform.buildRustPackage (finalAttrs: {
+      initiatarr = prev.rustPlatform.buildRustPackage (finalAttrs: {
         pname = "initiatarr";
         version = "0-unstable-<TODO>";
 
