@@ -34,7 +34,7 @@
           "target/${prev.stdenv.hostPlatform.rust.cargoShortTarget}"
         ];
 
-        meta.mainProgram = "cosmic-pinentry";
+        meta.mainProgram = "cosmic-ext-pinentry";
       });
     })
   ];
