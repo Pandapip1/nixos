@@ -8,8 +8,8 @@
         src = prev.fetchFromCodeberg {
           owner = "pandapip1";
           repo = "cosmic-ext-pinentry";
-          rev = "aad2ba43e3eef7b9297a0853403517e79ff8f17c";
-          hash = "sha256-OlpRHER04dNq1ZhkAen/hK98sYTbifNXcUtOFwxGR3s=";
+          rev = "3371f7a576b238c37c1ad3cc0d9c6b2239b75237";
+          hash = "sha256-1zTk7ALiQqd5V8k+sTJBPNJ7U7Q0y4IlEM0WCQsnKxs=";
         };
         cargoLock = {
           lockFile = finalAttrs.src + "/Cargo.lock";
