@@ -10,6 +10,7 @@
           owner = "pandapip1";
           repo = "pam-ropc";
           rev = "2155afe3815f3bb13ff83bdf6736bd9749fffb92";
+          hash = "sha256-Y3rA/ytpWzkL/xVQZ8uckMJMwbRiBw98fPdv8Y/mO+0=";
         };
 
         cargoLock = {
