@@ -9,8 +9,8 @@
         src = prev.fetchFromCodeberg {
           owner = "pandapip1";
           repo = "pam-ropc";
-          rev = "2155afe3815f3bb13ff83bdf6736bd9749fffb92";
-          hash = "sha256-Y3rA/ytpWzkL/xVQZ8uckMJMwbRiBw98fPdv8Y/mO+0=";
+          rev = "840c2f8fe8e45215f106706a13569f88d086ac9e";
+          hash = "sha256-MqKLN2AaQHowZxjNeiPPEW58o6fUbTpcRwRUwc+22Ok=";
         };
 
         cargoLock = {
