@@ -1,5 +1,5 @@
 diff --git a/spa/plugins/bluez5/backend-native.c b/spa/plugins/bluez5/backend-native.c
-index 4d14183..8da606c 100644
+index 4d14183..b550215 100644
 --- a/spa/plugins/bluez5/backend-native.c
 +++ b/spa/plugins/bluez5/backend-native.c
 @@ -2092,6 +2092,8 @@ static bool rfcomm_hfp_hf(struct rfcomm *rfcomm, char* token)
@@ -75,7 +75,7 @@ index 4d14183..8da606c 100644
  			updated_call = calloc(1, sizeof(struct updated_call));
  			updated_call->id = idx;
  			spa_list_append(&rfcomm->updated_call_list, &updated_call->link);
-@@ -2421,17 +2431,19 @@ static bool rfcomm_hfp_hf(struct rfcomm *rfcomm, char* token)
+@@ -2421,17 +2431,21 @@ static bool rfcomm_hfp_hf(struct rfcomm *rfcomm, char* token)
  					}
  				}
  
@@ -100,12 +100,14 @@ index 4d14183..8da606c 100644
 +						rfcomm->telephony_ag->transport.state = rfcomm->transport->state;
 +					}
 +					telephony_ag_register(rfcomm->telephony_ag);
++				} else {
++					spa_log_debug(backend->log, "telephony backend unavailable, HFP HF proceeding without telephony integration");
  				}
 -				telephony_ag_register(rfcomm->telephony_ag);
  
  				rfcomm_send_cmd(rfcomm, hfp_hf_clip, NULL, "AT+CLIP=1");
  				break;
-@@ -2465,7 +2477,8 @@ static bool rfcomm_hfp_hf(struct rfcomm *rfcomm, char* token)
+@@ -2465,7 +2479,8 @@ static bool rfcomm_hfp_hf(struct rfcomm *rfcomm, char* token)
  				SPA_FALLTHROUGH;
  			case hfp_hf_clcc:
  				if (rfcomm->hf_state == hfp_hf_clcc) {
@@ -115,7 +117,7 @@ index 4d14183..8da606c 100644
  				}
  				rfcomm_send_volume_cmd(rfcomm, hfp_hf_vgs, NULL, SPA_BT_VOLUME_ID_RX);
  				break;
-@@ -2473,12 +2486,13 @@ static bool rfcomm_hfp_hf(struct rfcomm *rfcomm, char* token)
+@@ -2473,12 +2488,13 @@ static bool rfcomm_hfp_hf(struct rfcomm *rfcomm, char* token)
  				rfcomm_send_volume_cmd(rfcomm, hfp_hf_idle, NULL, SPA_BT_VOLUME_ID_TX);
  				break;
  			case hfp_hf_clcc_update:
