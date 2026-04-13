@@ -18,4 +18,5 @@ in
     })
   ];
   services.pipewire.wireplumber.package = pkgs.wireplumber-debug;
+  services.pipewire.package = pkgs.pipewire-debug-fixed;
 }
