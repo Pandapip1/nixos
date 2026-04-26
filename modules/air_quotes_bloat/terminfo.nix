@@ -1,6 +1,11 @@
 {
+  pkgs,
+  ...
+}:
+
+{
   environment.systemPackages = let
-    mkTerminfoWrapper = package: stdenvNoCC.mkDerivation {
+    mkTerminfoWrapper = package: pkgs.stdenvNoCC.mkDerivation {
       name = "${package.name}-terminfo";
       inherit (package) version;
 
