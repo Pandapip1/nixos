@@ -20,10 +20,10 @@
 
         mkdir -p $out/share
 
-        if [ -d "${package}/share/terminfo" ]; then
-          cp -r "${package}/share/terminfo" $out/share/
+        if [ -d "share/terminfo" ]; then
+          cp -r "share/terminfo" $out/share/
         else
-          echo "No terminfo found in ${package}" >&2
+          echo "No terminfo found in share/terminfo" >&2
           exit 1
         fi
 
