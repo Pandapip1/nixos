@@ -13,6 +13,7 @@ in
         patches = (oldAttrs.patches or []) ++ [
           (prev.fetchpatch {
             url = "https://github.com/opensteno/plover/commit/b6453858c4bb99ae91ac936074ffec8924a37eac.patch";
+            hash = "sha256-5AYQJdwmCDfx22he0RrLpnwkv9Bs7Yw3HHxJIYJqzUg=";
           })
         ];
 
