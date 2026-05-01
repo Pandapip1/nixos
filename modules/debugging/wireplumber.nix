@@ -10,13 +10,9 @@ in
   nixpkgs.overlays = [
     (_: prev: {
       wireplumber-debug = prev.enableDebugging prev.wireplumber;
-      pipewire-debug-fixed = prev.enableDebugging (prev.pipewire.overrideAttrs (old: {
-        patches = (old.patches or []) ++ [
-          ./pipewire-bluez5-telephony-null-check.patch
-        ];
-      }));
+      pipewire-debug = prev.enableDebugging (prev.pipewire);
     })
   ];
   services.pipewire.wireplumber.package = pkgs.wireplumber-debug;
-  services.pipewire.package = pkgs.pipewire-debug-fixed;
+  services.pipewire.package = pkgs.pipewire-debug;
 }
