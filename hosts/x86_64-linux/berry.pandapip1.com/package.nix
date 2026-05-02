@@ -97,7 +97,7 @@
           jq
           moreutils
           nodejs
-          nodePackages.npm
+          npm
         ];
 
         dontConfigure = true;
