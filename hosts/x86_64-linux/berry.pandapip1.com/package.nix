@@ -96,8 +96,7 @@
         nativeBuildInputs = with pkgs; [
           jq
           moreutils
-          nodejs
-          npm
+          nodejs_25
         ];
 
         dontConfigure = true;
