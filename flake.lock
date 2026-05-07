@@ -453,11 +453,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1766179550,
-        "narHash": "sha256-hC4B/vZxcinBI8Yq5gXcadXFtwSZ0wiO56VogeChdAI=",
+        "lastModified": 1777918081,
+        "narHash": "sha256-FXW1cstwmnuCUYORTx769GtHdS6v0cyfxuV7snXsnII=",
         "owner": "Stevenblack",
         "repo": "hosts",
-        "rev": "cfd15cacfd73f2b29ee366da74d8ec5916dd143c",
+        "rev": "4a68876c7fc71ecd572ad74e491b75a52ef2d31b",
         "type": "github"
       },
       "original": {
