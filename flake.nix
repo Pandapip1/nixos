@@ -30,10 +30,6 @@
     nixos-hardware = {
       url = "github:nixos/nixos-hardware";
     };
-    stevenblack-hosts = {
-      url = "github:Stevenblack/hosts";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     nix-index-database = {
       url = "github:Pandapip1/nix-index-database/fix-comma";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -119,7 +115,6 @@
         }
       );
       inputModules = with inputs; [
-        stevenblack-hosts.nixosModule
         nixowos.nixosModules.default
         autoaspm.nixosModules.default
         home-manager.nixosModules.default

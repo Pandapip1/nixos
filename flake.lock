@@ -425,7 +425,6 @@
         "nixpkgs": "nixpkgs",
         "nur": "nur",
         "pre-commit-hooks": "pre-commit-hooks",
-        "stevenblack-hosts": "stevenblack-hosts",
         "treefmt-nix": "treefmt-nix"
       }
     },
@@ -443,26 +442,6 @@
         "owner": "rust-lang",
         "ref": "nightly",
         "repo": "rust-analyzer",
-        "type": "github"
-      }
-    },
-    "stevenblack-hosts": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1766179550,
-        "narHash": "sha256-hC4B/vZxcinBI8Yq5gXcadXFtwSZ0wiO56VogeChdAI=",
-        "owner": "Stevenblack",
-        "repo": "hosts",
-        "rev": "cfd15cacfd73f2b29ee366da74d8ec5916dd143c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Stevenblack",
-        "repo": "hosts",
         "type": "github"
       }
     },

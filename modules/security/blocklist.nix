@@ -1,5 +1,3 @@
 {
-  networking.stevenBlackHosts = {
-    enable = true;
-  };
+  networking.stevenblack.enable = true;
 }
