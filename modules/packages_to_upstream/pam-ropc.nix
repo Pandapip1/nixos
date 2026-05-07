@@ -10,6 +10,7 @@
           owner = "pandapip1";
           repo = "pam-ropc";
           rev = "840c2f8fe8e45215f106706a13569f88d086ac9e";
+          forceFetchGit = true; # Codeberg temporary outage
           hash = "sha256-MqKLN2AaQHowZxjNeiPPEW58o6fUbTpcRwRUwc+22Ok=";
         };
 
