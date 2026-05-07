@@ -9,10 +9,6 @@
         nixpkgs.follows = "nixpkgs";
       };
     };
-    getFlake = {
-      url = "github:ursi/get-flake";
-      inputs.flake-compat.follows = "flake-compat";
-    };
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
@@ -90,7 +86,6 @@
     {
       self,
       nixpkgs,
-      getFlake,
       flake-utils,
       ...
     }@inputs:

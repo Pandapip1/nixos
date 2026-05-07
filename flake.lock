@@ -173,26 +173,6 @@
         "type": "github"
       }
     },
-    "getFlake": {
-      "inputs": {
-        "flake-compat": [
-          "flake-compat"
-        ]
-      },
-      "locked": {
-        "lastModified": 1745945175,
-        "narHash": "sha256-JGDbJRl5v1snA4JX+yp6m3UA6Mazr59Hrgz+UhhP91M=",
-        "owner": "ursi",
-        "repo": "get-flake",
-        "rev": "38401aa2b3a99c77d0c02727471e99e7de2fc366",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ursi",
-        "repo": "get-flake",
-        "type": "github"
-      }
-    },
     "gitignore": {
       "inputs": {
         "nixpkgs": [
@@ -416,7 +396,6 @@
         "flake-compat": "flake-compat",
         "flake-parts": "flake-parts",
         "flake-utils": "flake-utils",
-        "getFlake": "getFlake",
         "gitignore": "gitignore",
         "home-manager": "home-manager",
         "nix-index-database": "nix-index-database",
