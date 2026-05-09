@@ -7,7 +7,7 @@
 
 let
   cfg = config.services.nebula.networks.nebula0;
-  ip = lib.getExe pkgs.iproute2;
+  ip = lib.getExe' pkgs.iproute2 "ip";
   awk = lib.getExe' pkgs.gawk "awk";
   # ULA prefix for nebula overlay
   ula_prefix = "fd00:cafe:beef:1";
