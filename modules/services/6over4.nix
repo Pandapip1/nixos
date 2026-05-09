@@ -7,13 +7,14 @@
 
 let
   cfg = config.services.nebula.networks.nebula0;
-  ip = "${pkgs.iproute2}/bin/ip";
+  ip = lib.getExe pkgs.iproute2;
+  awk = lib.getExe' gawk "awk";
   # ULA prefix for nebula overlay
   ula_prefix = "fd00:cafe:beef:1";
   # Derive ULA address from nebula IPv4 last octet at runtime
   startScript = pkgs.writeShellScript "neb6-start" ''
     set -e
-    NEBULA_IP=$(${ip} -4 addr show nebula.nebula0 | awk '/inet / {print $2}' | cut -d/ -f1)
+    NEBULA_IP=$(${ip} -4 addr show nebula.nebula0 | ${awk} '/inet / {print $2}' | cut -d/ -f1)
     LAST_OCTET=$(echo "$NEBULA_IP" | cut -d. -f4)
     ULA="${ula_prefix}::$LAST_OCTET"
 
