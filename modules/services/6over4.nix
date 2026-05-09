@@ -32,6 +32,7 @@ let
 in
 lib.mkIf cfg.enable {
   systemd.services.neb6 = {
+    enable = true;
     description = "IPv6-over-IPv4 (sit) tunnel over nebula overlay";
     after = [ "nebula-nebula0.service" ];
     bindsTo = [ "nebula-nebula0.service" ];
