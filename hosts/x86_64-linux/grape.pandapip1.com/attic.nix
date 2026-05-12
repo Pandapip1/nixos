@@ -1,3 +1,8 @@
+{
+  config,
+  ...
+}:
+
 {  
   services = {
     atticd = {
@@ -15,6 +20,10 @@
       environmentFile = "/env/secrets/attic/.env";
     };
   };
+  secrets.attic.ownership = {
+    inherit (config.services.atticd) user group;
+  };
+
   services.nginx = {
     virtualHosts = {
       "nixos.cache.pandapip1.com" = {
