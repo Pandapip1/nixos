@@ -36,9 +36,6 @@
     }
   ];
 
-  # We're using SSH keys, so NOPASSWD is needed
-  security.sudo.wheelNeedsPassword = lib.mkForce false;
-
   networking = {
     useDHCP = false;
     interfaces.eno1 = {
