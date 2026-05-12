@@ -1,48 +1,41 @@
 {
-  disko ? {},
+  disko ? { },
   ...
 }:
 
 {
   imports = [ disko.nixosModules.default or null ];
-  disko.devices.disk = {
-    root.device = "/dev/disk/by-id/ata-ST9750420AS_6WS19RSB";
-  };
   disko.devices = {
-    disk = {
-      root = {
-        type = "disk";
-        content = {
-          type = "gpt";
-          partitions = {
-            boot = { # MBR fallback
-              size = "1M";
-              type = "EF02";
+    disk.main = {
+      type = "disk";
+      device = "/dev/sda";
+
+      content = {
+        type = "gpt";
+
+        partitions = {
+          bios = {
+            size = "1M";
+            type = "EF02";
+          };
+          esp = {
+            size = "256M";
+            type = "EF00";
+
+            content = {
+              type = "filesystem";
+              format = "vfat";
+              mountpoint = "/boot/efi";
+              mountOptions = [ "umask=0077" ];
             };
-            ESP = {
-              size = "1G";
-              type = "EF00";
-              content = {
-                type = "filesystem";
-                format = "vfat";
-                mountpoint = "/boot";
-                mountOptions = [ "umask=0077" ];
-              };
-            };
-            swap = {
-              size = "16G";
-              content = {
-                type = "swap";
-                resumeDevice = true;
-              };
-            };
-            root = {
-              size = "100%";
-              content = {
-                type = "filesystem";
-                format = "btrfs";
-                mountpoint = "/";
-              };
+          };
+          root = {
+            size = "100%";
+
+            content = {
+              type = "filesystem";
+              format = "ext4";
+              mountpoint = "/";
             };
           };
         };
