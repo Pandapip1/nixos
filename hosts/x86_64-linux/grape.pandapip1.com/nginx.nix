@@ -1,8 +1,6 @@
 
 {
   security.acme = {
-    acceptTerms = true;
-    defaults.email = "gavinnjohn@gmail.com";
     certs = {
       "pandapip1.com" = {
         dnsProvider = "cloudflare";
@@ -20,8 +18,6 @@
       };
     };
   };
-
-  secrets.acme.ownership.user = "acme";
 
   services.nginx = {
     enable = true;
