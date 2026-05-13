@@ -37,6 +37,7 @@
         useACMEHost = "nixos.cache.pandapip1.com";
         forceSSL = true;
         locations."/".proxyPass = "http://127.0.0.1:16206";
+        locations."/.well-known/".root = "/var/lib/acme/acme-challenge/";
       };
     };
   };
