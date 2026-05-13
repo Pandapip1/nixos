@@ -18,7 +18,7 @@
         api-endpoint = "https://nixos.cache.pandapip1.com/";
         storage = {
           type = "s3";
-          bucket = "a7310486287908d892e70d10";
+          bucket = "Pandapip1-attic";
           region = "us-east-005";
           endpoint = "https://s3.us-east-005.backblazeb2.com";
         };
