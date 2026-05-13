@@ -6,6 +6,8 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ./nginx.nix
+    ./attic.nix
   ];
 
   services.openssh = {
