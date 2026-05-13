@@ -27,6 +27,14 @@
       environmentFile = "/etc/secrets/attic/env";
     };
   };
+  # TODO: This should be in the upstream atticd module!
+  users = {
+    users."${config.services.atticd.user}" = {
+      isSystemUser = true;
+      group = "${config.services.atticd.group}";
+    };
+    groups."${config.services.atticd.group}" = {};
+  };
   secrets.attic.ownership = {
     inherit (config.services.atticd) user group;
   };
