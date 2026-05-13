@@ -24,7 +24,7 @@
         };
         compression.type = "xz";
       };
-      environmentFile = "/env/secrets/attic/.env";
+      environmentFile = "/etc/secrets/attic/env";
     };
   };
   secrets.attic.ownership = {
