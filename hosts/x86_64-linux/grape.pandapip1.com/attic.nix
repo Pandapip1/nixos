@@ -14,7 +14,7 @@
     atticd = {
       enable = true;
       settings = {
-        listen = "127.0.0.1:16206";
+        listen = "[::1]:16206";
         api-endpoint = "https://nixos.cache.pandapip1.com/";
         storage = {
           type = "s3";
@@ -44,7 +44,7 @@
       "nixos.cache.pandapip1.com" = {
         useACMEHost = "nixos.cache.pandapip1.com";
         forceSSL = true;
-        locations."/".proxyPass = "http://127.0.0.1:16206";
+        locations."/".proxyPass = "http://[::1]:16206";
         locations."/.well-known/".root = "/var/lib/acme/acme-challenge/";
       };
     };
