@@ -46,6 +46,9 @@
         forceSSL = true;
         locations."/".proxyPass = "http://[::1]:16206";
         locations."/.well-known/".root = "/var/lib/acme/acme-challenge/";
+        extraConfig = ''
+          client_max_body_size 500M;
+        '';
       };
     };
   };
