@@ -1,21 +1,11 @@
 
 {
   security.acme = {
+    defaults.webroot = "/var/lib/acme/acme-challenge/";
     certs = {
-      "pandapip1.com" = {
-        dnsProvider = "cloudflare";
-        environmentFile = "/etc/secrets/acme/cloudflare-api-key";
-      };
-      "grape.pandapip1.com" = {
-        dnsProvider = "cloudflare";
-        environmentFile = "/etc/secrets/acme/cloudflare-api-key";
-        extraDomainNames = [ "*.grape.pandapip1.com" ];
-      };
-      "cache.pandapip1.com" = {
-        dnsProvider = "cloudflare";
-        environmentFile = "/etc/secrets/acme/cloudflare-api-key";
-        extraDomainNames = [ "*.cache.pandapip1.com" ];
-      };
+      "pandapip1.com" = {};
+      "grape.pandapip1.com" = {};
+      "cache.pandapip1.com" = {};
     };
   };
 
@@ -67,18 +57,21 @@
         useACMEHost = "grape.pandapip1.com";
         forceSSL = true;
         root = ./config/static/grape.pandapip1.com;
+        locations."/.well-known/".root = "/var/lib/acme/acme-challenge/";
       };
       # Pandapip1.com homepage
       "pandapip1.com" = {
         useACMEHost = "pandapip1.com";
         forceSSL = true;
         root = ./config/static/pandapip1.com;
+        locations."/.well-known/".root = "/var/lib/acme/acme-challenge/";
       };
       # Binary caches
       "cache.pandapip1.com" = {
         useACMEHost = "cache.pandapip1.com";
         forceSSL = true;
         root = ./config/static/cache.pandapip1.com;
+        locations."/.well-known/".root = "/var/lib/acme/acme-challenge/";
       };
       # Default: reject all requests to unknown vhosts
       # Unfortunately no easy way to do this with just a single flag, hence this nonsense
@@ -94,6 +87,12 @@
       };
     };
   };
+
+  # Open port 80 and 443
+  networking.firewall.allowedTCPPorts = [
+    80
+    443
+  ];
 
   # Allow nginx user to see ACME certs
   # "Certificate [...].pandapip1.com (group=acme) must be readable by service(s) nginx.service (user=nginx groups=nginx), nginx-config-reload.service (user=root groups=)"
