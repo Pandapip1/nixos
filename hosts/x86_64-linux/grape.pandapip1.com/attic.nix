@@ -13,6 +13,7 @@
         storage = {
           type = "s3";
           bucket = "a7310486287908d892e70d10";
+          region = "us-east-005";
           endpoint = "https://s3.us-east-005.backblazeb2.com";
         };
         compression.type = "xz";
