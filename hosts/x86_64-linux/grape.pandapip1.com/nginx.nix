@@ -94,4 +94,8 @@
       };
     };
   };
+
+  # Allow nginx user to see ACME certs
+  # "Certificate [...].pandapip1.com (group=acme) must be readable by service(s) nginx.service (user=nginx groups=nginx), nginx-config-reload.service (user=root groups=)"
+  users.users.nginx.extraGroups = [ "acme" ];
 }
