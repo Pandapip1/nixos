@@ -99,8 +99,6 @@
     analogioOffset = 0;
   };
 
-  services.autoaspm.enable = lib.mkForce false; # Causes issues on my t480s
-
   # Needed for dabney internal net
   services.tailscale.enable = true;
 

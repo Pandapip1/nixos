@@ -20,7 +20,6 @@ jobs:
           - nix-index-database
           - comma
           - nur
-          - autoaspm
     steps:
       - name: Checkout repository
         uses: https://data.forgejo.org/actions/checkout@v4

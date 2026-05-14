@@ -76,10 +76,6 @@
         pre-commit-hooks.follows = "pre-commit-hooks";
       };
     };
-    autoaspm = {
-      url = "github:notthebee/AutoASPM?shallow=true";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -110,7 +106,6 @@
       );
       inputModules = with inputs; [
         nixowos.nixosModules.default
-        autoaspm.nixosModules.default
         home-manager.nixosModules.default
       ];
       inputOverlays = with inputs; [
