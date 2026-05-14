@@ -19,10 +19,6 @@
     };
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     nixos-hardware = {
       url = "github:nixos/nixos-hardware";
     };
@@ -86,19 +82,13 @@
     }@inputs:
     let
       inherit (nixpkgs) lib;
-      attrValuesRecursive =
-        attrs:
-        lib.foldlAttrs (
-          acc: _: value:
-          acc ++ (if lib.isAttrs value then attrValuesRecursive value else [ value ])
-        ) [ ] attrs;
       hostsDir = self.outPath + "/hosts";
       modulesDir = self.outPath + "/modules";
       hosts = lib.packagesFromDirectoryRecursive {
         callPackage = path: _: path;
         directory = hostsDir;
       };
-      modules = attrValuesRecursive (
+      modules = lib.collect (
         lib.packagesFromDirectoryRecursive {
           callPackage = path: _: path;
           directory = modulesDir;
@@ -116,7 +106,7 @@
     in
     {
       legacyPackages = lib.listToAttrs (
-        lib.map (system: {
+        map (system: {
           name = system;
           value = lib.mapAttrs' (
             fqdn: _:
@@ -156,7 +146,7 @@
                     '';
               };
             }
-          ) hosts."${system}";
+          ) hosts.${system};
         }) (lib.attrNames hosts)
       );
 
