@@ -18,5 +18,6 @@
     lynis
     poppler-utils
     screen
+    attic-client
   ];
 }
