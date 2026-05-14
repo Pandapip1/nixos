@@ -88,7 +88,7 @@
         callPackage = path: _: path;
         directory = hostsDir;
       };
-      modules = lib.collect (
+      modules = lib.collect (x: !lib.isAttrs x) (
         lib.packagesFromDirectoryRecursive {
           callPackage = path: _: path;
           directory = modulesDir;
