@@ -67,7 +67,7 @@
       media_source = {};
       device_tracker = [
         {
-          platform = "ddwrt";
+          platform = "luci";
           host = "192.168.1.1";
           username = "hassuser";
           password = "TODO";
@@ -92,6 +92,8 @@
       baudRate = 115200;
     };
   };
-  networking.nftables.enable = lib.mkForce false; # Use iptables
-  services.matter-server.enable = true;
+  services.matter-server = {
+    enable = true;
+    openFirewall = true;
+  };
 }
