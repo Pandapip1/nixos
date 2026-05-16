@@ -4,6 +4,11 @@
     "config:best-practices",
     ":disableDependencyDashboard"
   ],
+  "lockFileMaintenance": {
+    "schedule": [
+      "at any time"
+    ]
+  },
   "nix": {
     "enabled": true
   }
