@@ -1,0 +1,26 @@
+name: Renovate
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  renovate:
+    runs-on: codeberg-tiny-lazy
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    container:
+      image: renovate/renovate:latest
+
+    steps:
+      - name: Run Renovate
+        run: renovate
+        env:
+          RENOVATE_PLATFORM: gitea
+          RENOVATE_ENDPOINT: https://codeberg.org/api/v1
+          RENOVATE_REPOSITORIES: ${{ forgejo.repository }}
+          RENOVATE_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
