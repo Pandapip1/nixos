@@ -6,7 +6,7 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ./hass.nix
+    ./hass/main.nix
   ];
 
   services.openssh = {
