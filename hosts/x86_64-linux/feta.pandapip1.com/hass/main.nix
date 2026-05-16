@@ -6,22 +6,15 @@
 
 {
   imports = [
-    ./audio.nix
-    ./matter.nix
-    ./esphome.nix
-    ./ai.nix
   ];
 
   services.home-assistant = {
     enable = true;
     openFirewall = true;
     extraComponents = [
-      "tile"
-      "moon"
-      "sun"
-      "zha"
-      "zone"
-      "mobile_app"
+      # Recommended for fast zlib compression
+      # https://www.home-assistant.io/integrations/isal
+      "isal"
     ];
     lovelaceConfig = {
       title = "My Home";
@@ -48,18 +41,7 @@
       };
       homeassistant = {
         unit_system = "metric";
-        latitude = 34.1391;
-        longitude = -118.1255;
       };
-      device_tracker = [
-        {
-          platform = "luci";
-          host = "192.168.1.1";
-          username = "hassuser";
-          password = "TODO";
-        }
-      ];
-      mobile_app = {};
     };
   };
 }

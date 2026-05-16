@@ -1,7 +1,14 @@
 {
+  lib,
+  pkgs,
+  ...
+}:
+
+{
   # services.home-assistant = {
   #   extraComponents = [
-  #     "mcp_server"
   #   ];
+  #   config = {
+  #   };
   # };
 }

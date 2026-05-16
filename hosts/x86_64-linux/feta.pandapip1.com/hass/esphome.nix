@@ -4,9 +4,9 @@
     openFirewall = true;
   };
 
-  services.home-assistant = {
-    extraComponents = [
-      "esphome"
-    ];
-  };
+  # services.home-assistant = {
+  #   extraComponents = [
+  #     "esphome"
+  #   ];
+  # };
 }
