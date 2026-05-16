@@ -2,8 +2,10 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:base",
-    "config:recommended",
-    "helpers:pinGitHubActionDigests",
+    "config:best-practices",
     ":disableDependencyDashboard"
-  ]
+  ],
+  "nix": {
+    "enabled": true
+  }
 }
