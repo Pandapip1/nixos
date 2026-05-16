@@ -24,3 +24,4 @@ jobs:
           RENOVATE_ENDPOINT: https://codeberg.org/api/v1
           RENOVATE_REPOSITORIES: ${{ forgejo.repository }}
           RENOVATE_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+          RENOVATE_IGNORE_PR_AUTHOR: true
