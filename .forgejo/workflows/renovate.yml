@@ -26,7 +26,12 @@ jobs:
           RENOVATE_ENDPOINT: https://codeberg.org/api/v1
           RENOVATE_REPOSITORIES: ${{ forgejo.repository }}
           RENOVATE_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+
+          # Tries to access a nonexistant user "forgejo-actions"
           RENOVATE_IGNORE_PR_AUTHOR: true
+
+          # Disable throughput limit
+          RENOVATE_PR_HOURLY_LIMIT: 0
 
           # If things go wrong I want to know why
           LOG_LEVEL: debug
