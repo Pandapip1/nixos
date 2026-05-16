@@ -28,5 +28,8 @@ jobs:
           RENOVATE_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
           RENOVATE_IGNORE_PR_AUTHOR: true
 
+          # If things go wrong I want to know why
+          LOG_LEVEL: debug
+
           # Needed for github data source
           GITHUB_COM_TOKEN: ${{ secrets.GH_COM_TOKEN }}
