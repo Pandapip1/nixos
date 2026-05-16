@@ -20,7 +20,7 @@ jobs:
       - name: Run Renovate
         run: renovate
         env:
-          RENOVATE_PLATFORM: gitea
+          RENOVATE_PLATFORM: forgejo
           RENOVATE_ENDPOINT: https://codeberg.org/api/v1
           RENOVATE_REPOSITORIES: ${{ forgejo.repository }}
           RENOVATE_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
