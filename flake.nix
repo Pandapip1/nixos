@@ -120,6 +120,14 @@
                   inputs.nixpkgs.legacyPackages.${system}.writeShellScriptBin "install-nixos-${hostName}"
                     ''
                       set -euox pipefail
+                      if [ "$(id -u)" -ne 0 ]; then
+                        if command -v sudo &>/dev/null; then
+                          exec sudo "$0" "$@"
+                        else
+                          echo "Error: must be run as root (no sudo or run0 found)" >&2
+                          exit 1
+                        fi
+                      fi
                       ${
                         lib.getExe inputs.disko.packages.${system}.default
                       } --mode destroy,format,mount ${self}/hosts/${system}/${fqdn}/disko-config.nix
