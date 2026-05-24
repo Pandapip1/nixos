@@ -16,7 +16,7 @@ jobs:
       pull-requests: write
 
     container:
-      image: renovate/renovate:latest@sha256:37b433003c58cfca0333e164b2d2a79ff516cb0113f4375a46e7e01c013df83c
+      image: renovate/renovate:latest@sha256:e3a93228ff61a4df9d685051c9f762f54fac91de69cb77626f3187511aa4e925
 
     steps:
       - name: Run Renovate
