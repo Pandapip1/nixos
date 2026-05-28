@@ -1,11 +1,15 @@
 {
+  lib,
   pkgs,
   ...
 }:
 
 {
   hardware.gpgSmartcards.enable = true;
-  services.pcscd.enable = true;
+  services.pcscd = {
+    enable = true;
+    plugins = lib.mkForce [ pkgs.ccid ];
+  };
   environment.systemPackages = with pkgs; [
     global-platform-pro
   ];
