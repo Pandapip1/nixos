@@ -22,7 +22,9 @@
       "plugdev"
       "audio"
       "pipewire" # https://github.com/NixOS/nixpkgs/issues/466987
-    ] ++ lib.optional config.services.kubo.enable config.services.kubo.group;
+      "pcscd"
+    ]
+    ++ lib.optional config.services.kubo.enable config.services.kubo.group;
     packages = with pkgs; [ ];
     openssh = {
       authorizedKeys.keys = [

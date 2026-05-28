@@ -19,4 +19,7 @@
     enableExtraSocket = true;
     enableBrowserSocket = true;
   };
+  services.udev.extraRules = ''
+    SUBSYSTEM=="usb", ATTRS{idVendor}=="058f", ATTRS{idProduct}=="9540", MODE="0664", GROUP="pcscd"
+  '';
 }
