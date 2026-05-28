@@ -20,6 +20,6 @@
     enableBrowserSocket = true;
   };
   services.udev.extraRules = ''
-    SUBSYSTEM=="usb", ATTRS{idVendor}=="058f", ATTRS{idProduct}=="9540", MODE="0664", GROUP="pcscd"
+    SUBSYSTEM=="usb", ENV{ID_SMARTCARD_READER}=="1", RUN+="${lib.getExe' pkgs.acl "setfacl"} -m u:pcscd:rw $env{DEVNAME}"
   '';
 }
