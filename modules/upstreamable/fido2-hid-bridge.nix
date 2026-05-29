@@ -56,7 +56,7 @@ in
 
     security.polkit.extraConfig = ''
       polkit.addRule(function(action, subject) {
-        if (action.id == "org.debian.pcsc-lite.access_pcsc" && subject.isInGroup("fido2-hid-bridge")) {
+        if ((action.id == "org.debian.pcsc-lite.access_pcsc" || action.id == "org.debian.pcsc-lite.access_card") && subject.isInGroup("fido2-hid-bridge")) {
           return polkit.Result.YES;
         }
       });
