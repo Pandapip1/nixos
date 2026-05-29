@@ -13,11 +13,6 @@ in
     enable = lib.mkEnableOption desc;
 
     package = lib.mkPackageOption pkgs "fido2-hid-bridge" { };
-
-    polkitSupport = lib.mkEnableOption desc // {
-      default = config.security.polkit.enable;
-      defaultText = lib.literalExpression "config.security.polkit.enable";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -39,7 +34,9 @@ in
         Restart = "on-failure";
         RestartSec = "5s";
 
-        DynamicUser = true;
+        # DynamicUser = true not possible since access control needs to be set up ahead of time
+        User = "fido2-hid-bridge";
+        Group = "fido2-hid-bridge";
         ProtectSystem = "strict";
         ProtectHome = true;
         PrivateTmp = true;
@@ -49,13 +46,15 @@ in
         DeviceAllow = [ "/dev/uhid rw" ];
 
         BindPaths = [ "/run/pcscd/pcscd.comm" ];
-
-        SupplementaryGroups = lib.mkIf cfg.polkitSupport [ "fido2-hid-bridge" ]; # For polkit rules
       };
       unitConfig.ConditionPathExists = "/dev/uhid";
     };
 
-    security.polkit.extraConfig = lib.mkIf cfg.polkitSupport ''
+    services.udev.extraRules = ''
+      KERNEL=="uhid", RUN+="${lib.getExe' pkgs.acl "setfacl"} -m g:fido2-hid-bridge:rw /dev/uhid"
+    '';
+
+    security.polkit.extraConfig = ''
       polkit.addRule(function(action, subject) {
         if (action.id == "org.debian.pcsc-lite.access_pcsc" && subject.isInGroup("fido2-hid-bridge")) {
           return polkit.Result.YES;
@@ -63,7 +62,11 @@ in
       });
     '';
 
-    users.groups.fido2-hid-bridge = lib.mkIf cfg.polkitSupport { };
+    users.users.fido2-hid-bridge = {
+      isSystemUser = true;
+      group = "fido2-hid-bridge";
+    };
+    users.groups.fido2-hid-bridge = { };
   };
 
   meta.maintainers = with lib.maintainers; [ pandapip1 ];
