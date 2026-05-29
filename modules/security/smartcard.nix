@@ -10,6 +10,7 @@
     enable = true;
     plugins = lib.mkForce [ pkgs.ccid ];
   };
+  services.fido2-hid-bridge.enable = true;
   environment.systemPackages = with pkgs; [
     global-platform-pro
   ];
