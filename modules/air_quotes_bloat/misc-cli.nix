@@ -19,5 +19,9 @@
     poppler-utils
     screen
     attic-client
+    # Performance debugging
+    perf
+    trace-cmd
+    rt-tests
   ];
 }
