@@ -39,10 +39,12 @@
   networking = {
     useDHCP = false;
     interfaces.eno1 = {
-      ipv4.addresses = [{
-        address = "23.94.10.178";
-        prefixLength = 30;
-      }];
+      ipv4.addresses = [
+        {
+          address = "23.94.10.178";
+          prefixLength = 30;
+        }
+      ];
     };
     defaultGateway = {
       address = "23.94.10.177";
@@ -62,7 +64,7 @@
 
   # Nodered for workflow orchestration
   services.node-red = {
-    enable = true;
+    # enable = true;
     openFirewall = false; # Do NOT expose node-red
     configFile = ./config/nodered/settings.js;
   };
@@ -160,7 +162,7 @@
     isSystemUser = true;
     group = "keycloak";
   };
-  users.groups.keycloak = {};
+  users.groups.keycloak = { };
   systemd.services.set-random-pg-password-keycloak = {
     description = "Set random keycloak password for PostgreSQL";
     after = [ "postgresql.service" ];
