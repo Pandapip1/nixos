@@ -20,10 +20,21 @@
 
   # Kernel stuff
   boot.kernelParams = [ ];
-  boot.initrd.availableKernelModules = [ "xhci_pci" "ehci_pci" "ahci" "usbhid" "uas" "ums_realtek" "sd_mod" ];
+  boot.initrd.availableKernelModules = [
+    "xhci_pci"
+    "ehci_pci"
+    "ahci"
+    "usbhid"
+    "uas"
+    "ums_realtek"
+    "sd_mod"
+  ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
+
+  hardware.nvidia.branch = "legacy_580";
+  hardware.nvidia.open = false; # Unsupported card
 
   # Use disko for filesystem management
   imports = [ ./disko-config.nix ];
