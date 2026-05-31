@@ -30,5 +30,7 @@
     prismlauncher
   ];
 
+  nix-gc.configurationLimit = 6; # Very little disk space
+
   system.stateVersion = "25.11";
 }
