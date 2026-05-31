@@ -64,7 +64,7 @@
 
   # Nodered for workflow orchestration
   services.node-red = {
-    # enable = true;
+    enable = true;
     openFirewall = false; # Do NOT expose node-red
     configFile = ./config/nodered/settings.js;
   };
@@ -95,7 +95,7 @@
         nativeBuildInputs = with pkgs; [
           jq
           moreutils
-          nodejs_25
+          nodejs_26
         ];
 
         dontConfigure = true;
