@@ -21,6 +21,7 @@
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware = {
       url = "github:nixos/nixos-hardware";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-index-database = {
       url = "github:Pandapip1/nix-index-database/fix-comma";
@@ -68,8 +69,11 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-compat.follows = "flake-compat";
-        denix.follows = "denix";
-        pre-commit-hooks.follows = "pre-commit-hooks";
+        flake-parts.follows = "flake-parts";
+        # denix.follows = "denix"; # TODO: Uses outdated denix it seems
+        git-hooks.follows = "pre-commit-hooks";
+        # TODO: systems
+        # TODO: nuschtos-search
       };
     };
   };
