@@ -31,6 +31,7 @@
         # NVIDIA Drivers
         "nvidia-x11"
         "nvidia-settings"
+        "nvidia-kernel-modules"
       ];
     segger-jlink.acceptLicense = true;
   };
