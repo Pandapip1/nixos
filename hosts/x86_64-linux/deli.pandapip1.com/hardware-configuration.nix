@@ -9,7 +9,7 @@
 {
   # GRUB, because I prefer GRUB to systemd-boot
   boot.loader = {
-    efi.grub = {
+    grub = {
       enable = true;
       efiSupport = true;
       devices = lib.mkForce [ "/dev/disk/by-id/ata-PNY_CS900_250GB_SSD_PNY25122503210102203" ];
