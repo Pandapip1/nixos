@@ -9,7 +9,7 @@
 {
   # GRUB, because I prefer GRUB to systemd-boot
   boot.loader = {
-    efi.canTouchEfiVariables = true;
+    efi.efiInstallAsRemovable = true;
     grub = {
       enable = true;
       efiSupport = true;
