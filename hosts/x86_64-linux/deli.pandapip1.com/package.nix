@@ -26,7 +26,7 @@
   };
 
   environment.systemPackages = with pkgs; [
-    lutris
+    # lutris # Broken
     prismlauncher
   ];
 
