@@ -33,6 +33,7 @@
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
+  services.xserver.videoDrivers = [ "nvidia" ]; # Misnomer, still need this for DRM-based systems like wayland
   hardware.nvidia.branch = "legacy_580";
   hardware.nvidia.open = false; # Unsupported card
 
