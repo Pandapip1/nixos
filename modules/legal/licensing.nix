@@ -30,6 +30,7 @@
         "steam-unwrapped"
         # NVIDIA Drivers
         "nvidia-x11"
+        "nvidia-settings"
       ];
     segger-jlink.acceptLicense = true;
   };
