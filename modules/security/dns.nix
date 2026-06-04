@@ -1,8 +1,14 @@
 {
+  pkgs,
+  ...
+}:
+
+{
   services = {
     unbound = {
       enable = true;
-      resolveLocalQueries = true;
+      resolveLocalQueries = false;
+      package = pkgs.unbound-full;
       settings = {
         server = {
           interface = [ "::" ];
@@ -27,4 +33,7 @@
       nssmdns6 = true;
     };
   };
+  networking.nameservers = [
+    "::1"
+  ];
 }
