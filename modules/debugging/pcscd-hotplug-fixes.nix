@@ -19,5 +19,9 @@
     })
   ];
   systemd.services.pcscd.environment.LIBCCID_ifdLogLevel = "0x000F";
-  services.pcscd.extraArgs = [ "--debug --apdu --color" ];
+  services.pcscd.extraArgs = [
+    "--debug"
+    "--apdu"
+    "--color"
+  ];
 }
