@@ -6,7 +6,7 @@
 {
   home-manager.users.gavin.programs.emacs = {
     enable = true;
-    package = pkgs.emacs30-nox;
+    package = pkgs.emacs-nox;
     extraPackages =
       epkgs: with epkgs; [
         use-package
@@ -17,35 +17,42 @@
         hydra
       ];
     extraConfig = ''
+      ;; === BASIC SETTINGS ===
       (xterm-mouse-mode 1)
       (tab-bar-mode 1)
       (setq tab-bar-show 1)
 
+      ;; === SIDE WINDOW RULES ===
+      (add-to-list 'display-buffer-alist
+        '((lambda (buf _)
+            (with-current-buffer buf
+              (derived-mode-p 'magit-mode)))
+          (display-buffer-in-side-window)
+          (side . left)
+          (slot . 0)
+          (window-width . 35)))
+
+      (add-to-list 'display-buffer-alist
+        '("\\*vterm\\*"
+          (display-buffer-in-side-window)
+          (side . bottom)
+          (slot . 0)
+          (window-height . 0.3)))
+
       ;; === FILE TREE ===
       (use-package treemacs
-        :bind (("C-c t" . treemacs))
+        :bind (("C-c t" . my-open-treemacs))
         :config
-        (setq treemacs-width 30)
+        (setq treemacs-width 35)
         (setq treemacs-follow-mode t))
 
       ;; === GIT ===
       (use-package magit
-        :bind (("C-c g" . magit-status))
-        :config
-        ;; Force magit to open in a proper window
-        (setq magit-display-buffer-function
-              #'magit-display-buffer-fullframe-status-v1))
+        :bind (("C-c g" . my-open-magit)))
 
-      ;; === TERMINAL (always bottom of frame) ===
+      ;; === TERMINAL ===
       (use-package vterm
         :config
-        (add-to-list 'display-buffer-alist
-          '("\\*vterm\\*"
-            (display-buffer-in-side-window)
-            (side . bottom)
-            (slot . 0)
-            (window-height . 0.3)))
-
         (defun my-vterm-bottom ()
           "Open vterm pinned to bottom of frame."
           (interactive)
@@ -53,41 +60,48 @@
             (unless (get-buffer-process buf)
               (with-current-buffer buf (vterm-mode)))
             (display-buffer buf)))
-
         (global-set-key (kbd "C-`") #'my-vterm-bottom)
         (global-set-key (kbd "C-c v") #'my-vterm-bottom))
 
-      ;; === HYDRA MENU ===
-      (use-package hydra
-        :bind (("C-c m" . my-menu/body))
-        :config
-        (defhydra my-menu (:color blue :hint nil)
-          "
-      _t_: File Tree    _g_: Git    _v_: Terminal    _q_: Quit
-          "
-          ("t" treemacs)
-          ("g" magit-status)
-          ("v" my-vterm-bottom)
-          ("q" nil :color blue)))
+      ;; === MUTUAL EXCLUSION TOGGLES ===
+      (defun my-open-treemacs ()
+        "Close all magit buffers and open treemacs."
+        (interactive)
+        (dolist (buf (buffer-list))
+          (when (with-current-buffer buf (derived-mode-p 'magit-mode))
+            (kill-buffer buf)))
+        (treemacs))
 
-      ;; === HEADER LINE (tree + git only) ===
+      (defun my-open-magit ()
+        "Close treemacs and open magit."
+        (interactive)
+        (when (treemacs-get-local-window)
+          (treemacs))
+        (magit-status))
+
+      ;; === HEADER LINE ===
       (defun my-header-button (label action)
         (propertize label
                     'mouse-face 'highlight
                     'help-echo (symbol-name action)
                     'local-map (let ((map (make-sparse-keymap)))
-                                (define-key map [header-line mouse-1] action)
-                                map)))
+                                 (define-key map [header-line mouse-1] action)
+                                 map)))
 
       (defun my-set-header-line ()
-        (setq header-line-format
-          (list
-            (my-header-button " [tree] " #'treemacs)
-            (my-header-button " [git] "  #'magit-status))))
+        (if (derived-mode-p 'treemacs-mode
+                            'magit-mode
+                            'magit-status-mode)
+          (setq header-line-format
+            (list
+              (my-header-button " [tree] " #'my-open-treemacs)
+              (my-header-button " [git] "  #'my-open-magit)))
+          (setq header-line-format nil)))
 
       (add-hook 'after-change-major-mode-hook #'my-set-header-line)
+      (add-hook 'find-file-hook #'my-set-header-line)
 
-      ;; === MODELINE (term only) ===
+      ;; === MODELINE ===
       (defun my-modeline-button (label action)
         (propertize label
                     'mouse-face 'mode-line-highlight
@@ -105,6 +119,23 @@
           mode-line-modes
           "  "
           mode-line-end-spaces))
+
+      ;; === HYDRA MENU ===
+      (use-package hydra
+        :bind (("C-c m" . my-menu/body))
+        :config
+        (defhydra my-menu (:color blue :hint nil)
+          "
+      _t_: File Tree    _g_: Git    _v_: Terminal    _q_: Quit
+          "
+          ("t" my-open-treemacs)
+          ("g" my-open-magit)
+          ("v" my-vterm-bottom)
+          ("q" nil :color blue)))
+
+      ;; === WHICH-KEY ===
+      (use-package which-key
+        :config (which-key-mode))
 
       ;; === STARTUP LAYOUT ===
       (add-hook 'after-init-hook
