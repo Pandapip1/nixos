@@ -92,16 +92,21 @@
         (if (derived-mode-p 'treemacs-mode
                             'magit-mode
                             'magit-status-mode)
-          (setq header-line-format
-            (list
-              (my-header-button " [tree] " #'my-open-treemacs)
-              (my-header-button " [git] "  #'my-open-magit)))
+          (progn
+            (face-remap-add-relative 'header-line 'header-line)
+            (face-remap-add-relative 'magit-header-line
+              '(:inherit header-line :weight normal :foreground unspecified))
+            (setq header-line-format
+              (list
+                (my-header-button " [tree] " #'my-open-treemacs)
+                (my-header-button " [git] "  #'my-open-magit))))
           (setq header-line-format nil)))
 
       (add-hook 'after-change-major-mode-hook #'my-set-header-line)
       (add-hook 'find-file-hook #'my-set-header-line)
 
       ;; === MODELINE ===
+      ;; Set [term] globally as default so all buffers get it
       (defun my-modeline-button (label action)
         (propertize label
                     'mouse-face 'mode-line-highlight
@@ -119,6 +124,23 @@
           mode-line-modes
           "  "
           mode-line-end-spaces))
+
+      ;; Override locally for side buffers to strip [term]
+      (defun my-set-mode-line ()
+        (when (derived-mode-p 'treemacs-mode
+                              'magit-mode
+                              'magit-status-mode
+                              'vterm-mode)
+          (setq-local mode-line-format
+            (list
+              mode-line-modified
+              "  "
+              mode-line-buffer-identification
+              "  "
+              mode-line-modes))))
+
+      (add-hook 'after-change-major-mode-hook #'my-set-mode-line)
+      (add-hook 'find-file-hook #'my-set-mode-line)
 
       ;; === HYDRA MENU ===
       (use-package hydra
