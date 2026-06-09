@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   ...
 }:
@@ -9,6 +10,9 @@
   ];
   qt = {
     enable = true;
-    platformTheme = "cosmic";
+    # platformTheme = "cosmic";
+  };
+  environment.variables = {
+    QT_QPA_PLATFORMTHEME = lib.mkForce "cosmic";
   };
 }
