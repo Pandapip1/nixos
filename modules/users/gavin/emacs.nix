@@ -1,4 +1,9 @@
 {
+  pkgs,
+  ...
+}:
+
+{
   home-manager.users.gavin.programs.emacs = {
     enable = true;
     package = pkgs.emacs-pgtk;
