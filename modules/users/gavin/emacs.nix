@@ -15,12 +15,19 @@
         vterm
         which-key
         hydra
+        kkp
       ];
     extraConfig = ''
       ;; === BASIC SETTINGS ===
       (xterm-mouse-mode 1)
       (tab-bar-mode 1)
       (setq tab-bar-show 1)
+      (use-package kkp
+        :ensure t
+        :hook (tty-setup . global-kkp-mode)
+        :config
+        ;; (setq kkp-alt-modifier 'alt) ;; use this if you want to map the Alt keyboard modifier to Alt in Emacs (and not to Meta)
+        )
 
       ;; === SIDE WINDOW RULES ===
       (add-to-list 'display-buffer-alist
@@ -54,12 +61,14 @@
       (use-package vterm
         :config
         (defun my-vterm-bottom ()
-          "Open vterm pinned to bottom of frame."
+          "Toggle vterm pinned to bottom of frame."
           (interactive)
-          (let ((buf (get-buffer-create "*vterm*")))
-            (unless (get-buffer-process buf)
-              (with-current-buffer buf (vterm-mode)))
-            (display-buffer buf)))
+          (if-let ((win (get-buffer-window "*vterm*")))
+            (delete-window win)
+            (let ((buf (get-buffer-create "*vterm*")))
+              (unless (get-buffer-process buf)
+                (with-current-buffer buf (vterm-mode)))
+              (display-buffer buf))))
         (global-set-key (kbd "C-`") #'my-vterm-bottom)
         (global-set-key (kbd "C-c v") #'my-vterm-bottom))
 
