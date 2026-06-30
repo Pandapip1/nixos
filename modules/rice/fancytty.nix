@@ -1,6 +1,6 @@
 {
   services.kmscon = {
     enable = true;
-    hwRender = true;
+    services.kmscon.config.hwaccel = true;
   };
 }
