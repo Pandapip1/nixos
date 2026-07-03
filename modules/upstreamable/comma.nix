@@ -27,15 +27,14 @@ in
     environment.systemPackages = [ cfg.package ];
     programs = {
       bash.interactiveShellInit = lib.mkIf cfg.enableBashIntegration ''
-        source ${cfg.package}/etc/profile.d/comma-command-not-found.sh
+        source ${cfg.package}/share/comma/command-not-found.sh
       '';
       zsh.interactiveShellInit = lib.mkIf cfg.enableZshIntegration ''
-        source ${cfg.package}/etc/profile.d/comma-command-not-found.sh
+        source ${cfg.package}/share/comma/command-not-found.sh
       '';
       fish.interactiveShellInit = ''
-        source ${cfg.package}/etc/profile.d/comma-command-not-found.fish
+        source ${cfg.package}/share/comma/command-not-found.fish
       '';
-      # TODO: Nushell
 
       # Disable *other* command-not-found handlers
       command-not-found.enable = lib.mkIf (
