@@ -62,72 +62,6 @@
     defaults.email = "gavinnjohn@gmail.com";
   };
 
-  # Nodered for workflow orchestration
-  services.node-red = {
-    enable = true;
-    openFirewall = false; # Do NOT expose node-red
-    configFile = ./config/nodered/settings.js;
-  };
-  programs.nix-ld.enable = true;
-  systemd.services.node-red = {
-    environment = {
-      NODE_PATH = pkgs.stdenvNoCC.mkDerivation {
-        name = "node-red-settings-deps";
-
-        src = pkgs.writeTextDir "package.json" ''
-          {
-            "name": "settings-js-deps",
-            "version": "1.0.0",
-            "private": true,
-            "dependencies": {
-              "passport-keycloak-oauth2-oidc-portable": "~2.6.1",
-              "node-red-contrib-credentials": "~0.2.3",
-              "node-red-contrib-oauth2": "~6.2.1",
-              "node-red-contrib-chronos": "~1.29.2",
-              "node-red-contrib-cron-plus": "~2.2.4",
-              "node-red-contrib-postgresql": "~0.15.4",
-              "node-red-contrib-axios": "~1.6.0",
-              "node-red-contrib-calc": "~1.0.6"
-            }
-          }
-        '';
-
-        nativeBuildInputs = with pkgs; [
-          jq
-          moreutils
-          nodejs_26
-        ];
-
-        dontConfigure = true;
-        dontBuild = true;
-
-        installPhase = ''
-          runHook preInstall
-
-          set -x
-          export HOME=$(mktemp -d)
-          export NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
-          mkdir -p $out
-          npm config set cache $HOME/.npm
-          npm install --ignore-scripts --no-audit --legacy-peer-deps --verbose
-          cp -r node_modules/. $out/
-
-          runHook postInstall
-        '';
-
-        # Work around https://github.com/brakmic/passport-keycloak-oauth2-oidc-portable/issues/5
-        postFixup = ''
-          ln -s $out/passport-keycloak-oauth2-oidc-portable/lib/cjs $out/passport-keycloak-oauth2-oidc-portable/cjs
-          jq 'del(.type)' $out/passport-keycloak-oauth2-oidc-portable/package.json | sponge $out/passport-keycloak-oauth2-oidc-portable/package.json
-        '';
-
-        outputHashMode = "recursive";
-        outputHashAlgo = "sha256";
-        outputHash = "sha256-o95g5UFfVEZC8vUaUamRoFhFo6gdL6mV7X/5jXdE0BE=";
-      };
-    };
-  };
-
   # OpenBao for central management of APIs
   services.openbao = {
     # enable = true;
@@ -268,14 +202,6 @@
         enableACME = true;
         forceSSL = true;
         root = ./config/static/berry.pandapip1.com;
-      };
-      "node-red.berry.pandapip1.com" = {
-        enableACME = true;
-        forceSSL = true;
-        locations."/" = {
-          proxyPass = "http://localhost:${toString config.services.node-red.port}";
-          proxyWebsockets = true;
-        };
       };
       "keycloak.berry.pandapip1.com" = {
         enableACME = true;
