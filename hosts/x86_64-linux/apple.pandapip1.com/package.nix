@@ -76,17 +76,25 @@
     quartus-prime-lite
     # TODO: Make and upstream proper packaging
     (writeScriptBin "smolslimeconfigurator" ''
-      ${lib.getExe (python3.withPackages (pythonPackages: with pythonPackages; [
-        customtkinter
-        pyserial
-        requests
-        tkinter
-      ]))} ${fetchFromGitHub {
-        owner = "ICantMakeThings";
-        repo = "SmolSlimeConfigurator";
-        tag = "Release-V7";
-        hash = "sha256-gGh1IF0lpm9tX1a2ZjH0QgeCFR2NuNkx7C9UnVaIg74=";
-      }}/SmolSlimeConfiguratorV7.py $@
+      ${
+        lib.getExe (
+          python3.withPackages (
+            pythonPackages: with pythonPackages; [
+              customtkinter
+              pyserial
+              requests
+              tkinter
+            ]
+          )
+        )
+      } ${
+        fetchFromGitHub {
+          owner = "ICantMakeThings";
+          repo = "SmolSlimeConfigurator";
+          tag = "Release-V7";
+          hash = "sha256-gGh1IF0lpm9tX1a2ZjH0QgeCFR2NuNkx7C9UnVaIg74=";
+        }
+      }/SmolSlimeConfiguratorV7.py $@
     '')
   ];
 
@@ -101,6 +109,8 @@
 
   # Needed for dabney internal net
   services.tailscale.enable = true;
+
+  services.logind.lidSwitch = "ignore";
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
