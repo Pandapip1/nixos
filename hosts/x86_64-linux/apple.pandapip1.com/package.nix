@@ -74,6 +74,7 @@
     act
     nrfconnect
     quartus-prime-lite
+    motoc
     # TODO: Make and upstream proper packaging
     (writeScriptBin "smolslimeconfigurator" ''
       ${
@@ -117,11 +118,6 @@
     enable = true;
     defaultRuntime = true;
   };
-
-  # Motoc
-  environment.systemPackages = with pkgs; [
-    motoc
-  ];
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
