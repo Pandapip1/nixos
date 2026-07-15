@@ -111,7 +111,7 @@
   # Needed for dabney internal net
   services.tailscale.enable = true;
 
-  services.logind.lidSwitch = "ignore";
+  services.logind.settings.Login.HandleLidSwitch = "ignore";
 
   # Monado
   services.monado = {
