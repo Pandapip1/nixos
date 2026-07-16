@@ -75,6 +75,7 @@
     nrfconnect
     quartus-prime-lite
     motoc
+    xrgears
     # TODO: Make and upstream proper packaging
     (writeScriptBin "smolslimeconfigurator" ''
       ${
