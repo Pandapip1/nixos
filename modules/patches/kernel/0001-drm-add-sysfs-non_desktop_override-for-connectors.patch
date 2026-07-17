@@ -1,4 +1,4 @@
-From 41194f630416ecc0c2e896b2914de74dd44667c5 Mon Sep 17 00:00:00 2001
+From 67fc0066a5c017acc87235e074adf43d4fd60935 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Thu, 16 Jul 2026 21:56:19 +0000
 Subject: [PATCH] drm: add sysfs non_desktop_override for connectors
@@ -48,15 +48,15 @@ would confuse the tooling that assumed it's the overridden glasses.
 
 Signed-off-by: Gavin John <gavinnjohn@gmail.com>
 ---
- drivers/gpu/drm/drm_connector.c     | 32 ++++++++++++++++++++
+ drivers/gpu/drm/drm_connector.c     | 39 ++++++++++++++++++++++++
  drivers/gpu/drm/drm_crtc_internal.h |  3 ++
  drivers/gpu/drm/drm_edid.c          |  7 +++++
  drivers/gpu/drm/drm_sysfs.c         | 46 +++++++++++++++++++++++++++++
  include/drm/drm_connector.h         | 16 +++++++++-
- 5 files changed, 103 insertions(+), 1 deletion(-)
+ 5 files changed, 110 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/gpu/drm/drm_connector.c b/drivers/gpu/drm/drm_connector.c
-index 11646453aaac..b2226fb17707 100644
+index 11646453aaac..e821251e005b 100644
 --- a/drivers/gpu/drm/drm_connector.c
 +++ b/drivers/gpu/drm/drm_connector.c
 @@ -286,6 +286,7 @@ static int drm_connector_init_only(struct drm_device *dev,
@@ -81,7 +81,7 @@ index 11646453aaac..b2226fb17707 100644
  /**
   * drm_display_info_set_bus_formats - set the supported bus formats
   * @info: display info to store bus formats in
-@@ -3654,3 +3662,27 @@ void drm_connector_attach_panel_type_property(struct drm_connector *connector)
+@@ -3654,3 +3662,34 @@ void drm_connector_attach_panel_type_property(struct drm_connector *connector)
  	drm_object_attach_property(&connector->base, prop, DRM_MODE_PANEL_TYPE_UNKNOWN);
  }
  EXPORT_SYMBOL(drm_connector_attach_panel_type_property);
@@ -90,22 +90,29 @@ index 11646453aaac..b2226fb17707 100644
 +					   enum drm_connector_non_desktop_override value)
 +{
 +	struct drm_device *dev = connector->dev;
++	int ret;
 +
 +	mutex_lock(&connector->edid_override_mutex);
 +	connector->non_desktop_override = value;
++	if (value != DRM_NON_DESKTOP_OVERRIDE_UNSET)
++		connector->display_info.non_desktop =
++			(value == DRM_NON_DESKTOP_OVERRIDE_ON);
 +	mutex_unlock(&connector->edid_override_mutex);
++
++	ret = drm_object_property_set_value(&connector->base,
++					    dev->mode_config.non_desktop_property,
++					    connector->display_info.non_desktop);
++	if (ret) {
++		drm_dbg_kms(dev, "[CONNECTOR:%d:%s] non-desktop property update failed (%d)\n",
++			    connector->base.id, connector->name, ret);
++		return ret;
++	}
 +
 +	drm_dbg_kms(dev, "[CONNECTOR:%d:%s] non-desktop override set to %s\n",
 +		    connector->base.id, connector->name,
 +		    drm_get_non_desktop_override_name(value));
 +
-+	if (connector->funcs->fill_modes)
-+		connector->funcs->fill_modes(connector,
-+					     dev->mode_config.max_width,
-+					     dev->mode_config.max_height);
-+
-+	drm_sysfs_connector_property_event(connector,
-+					   dev->mode_config.non_desktop_property);
++	drm_sysfs_connector_property_event(connector, dev->mode_config.non_desktop_property);
 +
 +	return 0;
 +}
