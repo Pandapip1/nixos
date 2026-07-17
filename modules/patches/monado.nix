@@ -14,8 +14,8 @@
           domain = "gitlab.freedesktop.org";
           owner = "pandapip1";
           repo = "monado";
-          rev = "ee2672f8e28ec8c9c934b763e35f7ea446b3cd44"; # sbs-pnp
-          hash = "sha256-fOSWaaQz5/StS9kjMREk9d3v3D/oYZ1f5mtU/6bMnTc=";
+          rev = "d53f1f50e21c4a7deee663e44612473a9918c9b3"; # sbs-pnp
+          hash = "sha256-0nTi/X7I0x+6zEGqJ/Ydd2sjidnQupJlSzGFnH2hlQM=";
         };
 
         patches = [ ];
