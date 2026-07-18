@@ -14,4 +14,8 @@ lib.mkIf (config.services.graphical-desktop.enable && !(config.optimizations.lea
     element-desktop
     mattermost-desktop
   ];
+  # Needed for vesktop ATM
+  nixpkgs.config.permittedInsecurePackages = [
+    "electron-40.10.5"
+  ];
 }
