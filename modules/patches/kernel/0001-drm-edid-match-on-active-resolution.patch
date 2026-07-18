@@ -1,15 +1,32 @@
-From 416e3d24544a3a3e27d402baca1c722599541c72 Mon Sep 17 00:00:00 2001
+From 55f8d51c3e76eaebb2dc44a8d2f771b8f643581d Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Fri, 17 Jul 2026 16:34:42 -0400
 Subject: [PATCH 1/2] drm/edid: match on active resolution
 
+Most AR glasses (in this case, the Xreal Airs) by default offer a normal desktop
+experience, where they appear to project a screen some distance away. This
+screen behaves like most other monitors, and the modes that are presented do not
+ever cause the monitor stop being a monitor.
+
+Some of them are capable of switching to stereoscopic 3D. This generally causes
+them to reconnect with a different EDID, but with the same VID and PID. However,
+in this case, this is distinctly non-desktop, as the left and right hands of the
+screen will be projected into the left and right eyes, respectively. Therefore,
+we need a mechanism to match the glasses only when they are in their 3D mode.
+
+This does that by adding EDID_QUIRK_REQUIRE_RESOLUTION, which allows for gating
+the addition of a quirk (such as non-desktop) on whether there is a mode with a
+specific resolution present in the EDID. While this doesn't seem like a great
+way of doing it, I can't think of a better option.
+
+Signed-off-by: Gavin John <gavinnjohn@gmail.com>
 ---
  drivers/gpu/drm/drm_edid.c | 55 +++++++++++++++++++++++++++++++++++---
  include/drm/drm_edid.h     |  6 +++++
  2 files changed, 57 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/gpu/drm/drm_edid.c b/drivers/gpu/drm/drm_edid.c
-index df3c25bac761..fb91ce70067c 100644
+index df3c25bac761..07878d2622be 100644
 --- a/drivers/gpu/drm/drm_edid.c
 +++ b/drivers/gpu/drm/drm_edid.c
 @@ -149,6 +149,17 @@ struct drm_edid_match_closure {
@@ -17,12 +34,12 @@ index df3c25bac761..fb91ce70067c 100644
  }
  
 +#define EDID_QUIRK_REQUIRE_RESOLUTION(vend_chr_0, vend_chr_1, vend_chr_2, product_id, \
-+				      _resolution, _quirks) \
++				      _hactive, _vactive, _quirks) \
 +{ \
 +	.ident = { \
 +		.panel_id = drm_edid_encode_panel_id(vend_chr_0, vend_chr_1, \
 +						     vend_chr_2, product_id), \
-+		.resolution = _resolution, \
++		.resolution = { _hactive, _vactive }, \
 +	}, \
 +	.quirks = _quirks \
 +}
