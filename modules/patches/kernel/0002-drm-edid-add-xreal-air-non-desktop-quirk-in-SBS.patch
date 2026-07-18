@@ -1,0 +1,29 @@
+From 8405b67436e783f2c851f63cc6ef7436a4f70572 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Fri, 17 Jul 2026 16:35:37 -0400
+Subject: [PATCH 2/2] drm/edid: add xreal air non-desktop quirk in SBS
+
+---
+ drivers/gpu/drm/drm_edid.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/gpu/drm/drm_edid.c b/drivers/gpu/drm/drm_edid.c
+index fb91ce70067c..c23b82b73cb8 100644
+--- a/drivers/gpu/drm/drm_edid.c
++++ b/drivers/gpu/drm/drm_edid.c
+@@ -284,6 +284,12 @@ static const struct edid_quirk {
+ 	EDID_QUIRK('S', 'V', 'R', 0x1019, BIT(EDID_QUIRK_NON_DESKTOP)),
+ 	EDID_QUIRK('A', 'U', 'O', 0x1111, BIT(EDID_QUIRK_NON_DESKTOP)),
+ 
++	/* Xreal Air; exposes 3840x1080 mode in SBS */
++	EDID_QUIRK_REQUIRE_RESOLUTION('M', 'R', 'G', 0x3132, {
++		.hactive = 3840,
++		.vactive = 1080
++	}, BIT(EDID_QUIRK_NON_DESKTOP)),
++
+ 	/* LQ116M1JW10 displays noise when 8 bpc, but display fine as 6 bpc */
+ 	EDID_QUIRK('S', 'H', 'P', 0x154c, BIT(EDID_QUIRK_FORCE_6BPC)),
+ 
+-- 
+2.54.0
+
