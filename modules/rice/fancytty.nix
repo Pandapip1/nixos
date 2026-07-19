@@ -6,8 +6,7 @@
 
 let
   execLoginShell = pkgs.stdenv.mkDerivation {
-    pname = "exec-login-shell";
-    version = "1.0";
+    name = "exec-login-shell";
 
     src = ./exec-login-shell.c;
 
