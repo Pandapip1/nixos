@@ -25,6 +25,8 @@ let
       install -Dm755 exec-login-shell \
         $out/bin/exec-login-shell
     '';
+
+    meta.mainProgram = "exec-login-shell";
   };
   kmsconSession =
     (pkgs.makeDesktopItem {
