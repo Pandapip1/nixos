@@ -46,6 +46,6 @@ in
     config.hwaccel = true;
   };
   services.displayManager.sessionPackages = [
-    monadoSession
+    kmsconSession
   ];
 }
