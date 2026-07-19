@@ -36,7 +36,7 @@ let
     }).overrideAttrs
       (oldAttrs: {
         passthru = (oldAttrs.passthru or { }) // {
-          providedSessions = [ "stardust-xr" ];
+          providedSessions = [ "kmscon-session" ];
         };
       });
 in
