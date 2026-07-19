@@ -1,6 +1,51 @@
 {
+  pkgs,
+  ...
+}:
+
+let
+  execLoginShell = pkgs.stdenv.mkDerivation {
+    pname = "exec-login-shell";
+    version = "1.0";
+
+    src = ./exec-login-shell.c;
+
+    dontUnpack = true;
+    dontConfigure = true;
+
+    buildPhase = ''
+      $CC \
+        -Wall -Wextra -O2 \
+        "$src" \
+        -o exec-login-shell
+    '';
+
+    installPhase = ''
+      install -Dm755 exec-login-shell \
+        $out/bin/exec-login-shell
+    '';
+  };
+  kmsconSession =
+    (pkgs.makeDesktopItem {
+      destination = "/share/wayland-sessions";
+      name = "kmscon-session";
+      comment = "KMS/DRM text console session";
+      exec = "${lib.getExe pkgs.kmscon} --vt=$XDG_VTNR --no-switchvt -- ${lib.getExe execLoginShell}";
+      type = "Application";
+      desktopName = "kmscon-session";
+    }).overrideAttrs
+      (oldAttrs: {
+        passthru = (oldAttrs.passthru or { }) // {
+          providedSessions = [ "stardust-xr" ];
+        };
+      });
+in
+{
   services.kmscon = {
     enable = true;
     config.hwaccel = true;
   };
+  services.displayManager.sessionPackages = [
+    monadoSession
+  ];
 }
