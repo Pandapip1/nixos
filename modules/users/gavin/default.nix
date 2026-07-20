@@ -23,6 +23,7 @@
       "audio"
       "pipewire" # https://github.com/NixOS/nixpkgs/issues/466987
       "pcscd"
+      "input"
     ]
     ++ lib.optional config.services.kubo.enable config.services.kubo.group;
     packages = with pkgs; [ ];

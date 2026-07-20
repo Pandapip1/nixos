@@ -27,12 +27,7 @@ let
 
     export XDG_CURRENT_DESKTOP=X-stardust-session
 
-    # Make the session's environment visible to systemd --user
     systemctl --user import-environment XDG_SESSION_ID XDG_VTNR XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP
-
-    # Reach graphical-session.target indirectly via our own bound target,
-    # since graphical-session.target itself refuses manual starts
-    systemctl --user start stardust-session.target
 
     SOCK="''${XDG_RUNTIME_DIR}/monado_comp_ipc"
     for i in $(seq 1 50); do
@@ -40,9 +35,9 @@ let
       sleep 0.1
     done
 
-    systemctl --user start xdg-desktop-autostart.target
-
-    exec ${lib.getExe pkgs.stardust-xr-server}
+    # Starts stardust-xr-server.service + everything WantedBy it,
+    # and blocks here until the whole session tears down
+    exec systemctl --user start --wait stardust-session.target
   '';
 in
 {
@@ -55,13 +50,47 @@ in
     after = [ "graphical-session-pre.target" ];
   };
 
-  environment.systemPackages = [
-    (pkgs.makeDesktopItem {
-      destination = "/etc/xdg/autostart";
-      desktopName = "Stardust XR Flatland";
-      name = "stardust-xr-flatland";
-      extraConfig.OnlyShowIn = "X-stardust-session";
-      exec = lib.getExe pkgs.stardust-xr-flatland;
-    })
-  ];
+  systemd.user.services.stardust-xr-server = {
+    description = "Stardust XR server";
+    partOf = [ "stardust-session.target" ];
+    wantedBy = [ "stardust-session.target" ];
+    serviceConfig = {
+      ExecStart = lib.getExe pkgs.stardust-xr-server;
+      Restart = "no";
+    };
+  };
+
+  systemd.user.services.stardust-xr-flatland = {
+    description = "Stardust XR Flatland (2D app panels)";
+    partOf = [ "stardust-session.target" ];
+    wantedBy = [ "stardust-session.target" ];
+    after = [ "stardust-xr-server.service" ];
+    serviceConfig = {
+      ExecStart = lib.getExe pkgs.stardust-xr-flatland;
+      Restart = "on-failure";
+    };
+  };
+
+  systemd.user.services.stardust-hexagon-launcher = {
+    description = "Stardust XR Hexagon Launcher";
+    partOf = [ "stardust-session.target" ];
+    wantedBy = [ "stardust-session.target" ];
+    after = [ "stardust-xr-server.service" ];
+    serviceConfig = {
+      ExecStart = lib.getExe pkgs.stardust-xr-hexagon-launcher; # adjust to actual attr name
+      Restart = "on-failure";
+    };
+  };
+
+  systemd.user.services.stardust-eclipse-simular = {
+    description = "Stardust XR libinput input (eclipse | simular)";
+    partOf = [ "stardust-session.target" ];
+    wantedBy = [ "stardust-session.target" ];
+    after = [ "stardust-xr-server.service" ];
+    serviceConfig = {
+      # eclipse reads raw libinput devices, no desktop window needed
+      ExecStart = "${lib.getExe' pkgs.stardust-xr-non-spatial-input "eclipse"} | ${lib.getExe' pkgs.stardust-xr-non-spatial-input "simular"}";
+      Restart = "on-failure";
+    };
+  };
 }
