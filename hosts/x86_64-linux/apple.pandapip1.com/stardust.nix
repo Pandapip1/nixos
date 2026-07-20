@@ -49,7 +49,7 @@ let
 in
 {
   services.displayManager.sessionPackages = [ stardustSession ];
-  xdg.autostart.install = [
+  environment.systemPackages = [
     (pkgs.makeDesktopItem {
       destination = "/etc/xdg/autostart";
       desktopName = "Stardust XR Flatland";
