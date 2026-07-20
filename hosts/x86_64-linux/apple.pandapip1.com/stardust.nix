@@ -1,3 +1,9 @@
+{
+  lib,
+  pkgs,
+  ...
+}:
+
 let
   stardustSession =
     (pkgs.makeDesktopItem {
