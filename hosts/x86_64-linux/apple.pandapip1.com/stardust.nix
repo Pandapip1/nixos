@@ -51,9 +51,11 @@ in
   services.displayManager.sessionPackages = [ stardustSession ];
   xdg.autostart.install = [
     (pkgs.makeDesktopItem {
-      name = "Flatland";
       destination = "/etc/xdg/autostart";
+      desktopName = "Stardust XR Flatland";
+      name = "stardust-xr-flatland";
       extraConfig.OnlyShowIn = "stardust-session";
+      exec = lib.getExe pkgs.stardust-xr-flatland;
     })
   ];
 }
