@@ -27,14 +27,18 @@ let
 
     meta.mainProgram = "exec-login-shell";
   };
+  kmsconStart = pkgs.writeShellScriptBin "kmscon-start" ''
+    sleep 1
+    exec ${lib.getExe pkgs.kmscon} --no-switchvt --login -- ${lib.getExe execLoginShell}
+  '';
   kmsconSession =
     (pkgs.makeDesktopItem {
       destination = "/share/wayland-sessions";
+      desktopName = "kmscon";
       name = "kmscon-session";
       comment = "KMS/DRM text console session";
-      exec = ''sh -c "sleep 1; exec ${lib.getExe pkgs.kmscon} --no-switchvt --login -- ${lib.getExe execLoginShell}"'';
+      exec = lib.getExe kmsconStart;
       type = "Application";
-      desktopName = "kmscon-session";
     }).overrideAttrs
       (oldAttrs: {
         passthru = (oldAttrs.passthru or { }) // {

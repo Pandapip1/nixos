@@ -8,6 +8,7 @@
 {
   imports = [
     nixos-hardware.nixosModules.lenovo-thinkpad-t480s
+    ./stardust.nix
   ];
 
   boot.loader = {
