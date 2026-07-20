@@ -23,7 +23,7 @@ let
   stardustSessionScript = pkgs.writeShellScriptBin "start-stardust-session" ''
     # start-stardust-session
 
-    export XDG_CURRENT_DESKTOP=stardust-session
+    export XDG_CURRENT_DESKTOP=X-stardust-session
 
     # Make the session's environment visible to systemd --user
     systemctl --user import-environment XDG_SESSION_ID XDG_VTNR XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP
@@ -54,7 +54,7 @@ in
       destination = "/etc/xdg/autostart";
       desktopName = "Stardust XR Flatland";
       name = "stardust-xr-flatland";
-      extraConfig.OnlyShowIn = "stardust-session";
+      extraConfig.OnlyShowIn = "X-stardust-session";
       exec = lib.getExe pkgs.stardust-xr-flatland;
     })
   ];
