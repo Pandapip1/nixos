@@ -77,7 +77,7 @@ in
     wantedBy = [ "stardust-session.target" ];
     after = [ "stardust-xr-server.service" ];
     serviceConfig = {
-      ExecStart = lib.getExe pkgs.stardust-xr-hexagon-launcher; # adjust to actual attr name
+      ExecStart = lib.getExe' pkgs.stardust-xr-protostar "hexagon_launcher";
       Restart = "on-failure";
     };
   };
@@ -89,7 +89,22 @@ in
     after = [ "stardust-xr-server.service" ];
     serviceConfig = {
       # eclipse reads raw libinput devices, no desktop window needed
-      ExecStart = "${lib.getExe' pkgs.stardust-xr-non-spatial-input "eclipse"} | ${lib.getExe' pkgs.stardust-xr-non-spatial-input "simular"}";
+      ExecStart = "${lib.getExe pkgs.bash} -c '${lib.getExe' pkgs.stardust-xr-non-spatial-input "eclipse"} | ${lib.getExe' pkgs.stardust-xr-non-spatial-input "simular"}'";
+      Restart = "on-failure";
+    };
+  };
+
+  systemd.user.services.stardust-atmosphere = {
+    description = "Stardust XR atmosphere (3D environment/background)";
+    partOf = [ "stardust-session.target" ];
+    wantedBy = [ "stardust-session.target" ];
+    after = [ "stardust-xr-server.service" ];
+    serviceConfig = {
+      ExecStartPre = [
+        "${lib.getExe pkgs.stardust-xr-atmosphere} install ${pkgs.stardust-xr-atmosphere.src}/default_envs/the_grid"
+        "${lib.getExe pkgs.stardust-xr-atmosphere} set-default the_grid"
+      ];
+      ExecStart = "${lib.getExe pkgs.stardust-xr-atmosphere} show";
       Restart = "on-failure";
     };
   };
