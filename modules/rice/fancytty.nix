@@ -32,7 +32,7 @@ let
       destination = "/share/wayland-sessions";
       name = "kmscon-session";
       comment = "KMS/DRM text console session";
-      exec = "${lib.getExe pkgs.kmscon} --no-switchvt --login -- ${lib.getExe execLoginShell}";
+      exec = ''sh -c "sleep 1; exec ${lib.getExe pkgs.kmscon} --no-switchvt --login -- ${lib.getExe execLoginShell}"'';
       type = "Application";
       desktopName = "kmscon-session";
     }).overrideAttrs
