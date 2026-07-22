@@ -14,7 +14,9 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
     disko = {
-      url = "github:nix-community/disko";
+      # https://github.com/nix-community/disko/pull/1277
+      url = "github:AlexLov/disko/fix-vmTools-overried";
+      # url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
