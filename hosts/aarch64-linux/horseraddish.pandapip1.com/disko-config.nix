@@ -5,12 +5,15 @@
 }:
 
 let
-  inherit (pkgs.stdenv) hostPlatform;
-  inherit (nixos-rk3588.packages.${hostPlatform}) u-boot-opi5pro;
+  inherit (pkgs.stdenv.hostPlatform) system;
+  inherit (nixos-rk3588.packages.${system}) u-boot-opi5pro;
 in
 {
-  disko.devices.disk.nvme.device = "/dev/disk/by-id/TODO";
   disko.devices.disk = {
+    nvme.device = "/dev/disk/by-id/TODO";
+    nvme.imageSize = "TODO";
+    sd.imageSize = "TODO";
+
     sd = {
       type = "disk";
       device = "/dev/disk/by-path/platform-fe2c0000.mmc";
@@ -21,6 +24,14 @@ in
             start = "34s";
             size = "32M";
             type = "EF02";
+          };
+          boot = {
+            size = "100%";
+            content = {
+              type = "filesystem";
+              format = "vfat";
+              mountpoint = "/boot";
+            };
           };
         };
       };
@@ -34,15 +45,6 @@ in
       content = {
         type = "gpt";
         partitions = {
-          boot = {
-            start = "32M";
-            size = "512M";
-            content = {
-              type = "filesystem";
-              format = "vfat";
-              mountpoint = "/boot";
-            };
-          };
           root = {
             size = "100%";
             content = {
