@@ -23,6 +23,5 @@
     })
   ];
   services.monado.package = pkgs.monado-sbs-pnp;
-  security.wrappers."monado-service".capabilities = lib.mkForce "cap_sys_nice,cap_dac_override+eip";
   services.monado.highPriority = lib.mkForce true;
 }
