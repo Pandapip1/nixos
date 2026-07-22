@@ -9,7 +9,8 @@
     man = {
       enable = lib.mkDefault true;
       man-db.enable = lib.mkDefault false;
-      mandoc.enable = lib.mkDefault true; # BSD-compatible
+      # Disabled, broken on aarch64 apparently
+      # mandoc.enable = lib.mkDefault true; # BSD-compatible
       cache.enable = lib.mkDefault true;
     };
     doc.enable = lib.mkDefault true;
