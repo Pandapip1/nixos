@@ -18,13 +18,18 @@
         nixpkgs,
         ...
       }:
-      lib.mkIf (pkgs.stdenv.hostPlatform.system != pkgs.stdenv.buildPlatform.system) {
-        disko.imageBuilder = {
-          enableBinfmt = true;
-          pkgs = nixpkgs.legacyPackages.${pkgs.stdenv.buildPlatform.system};
-          kernelPackages = nixpkgs.legacyPackages.${pkgs.stdenv.buildPlatform.system}.linuxPackages_latest;
-        };
-      }
+      lib.mkIf
+        (
+          (pkgs.stdenv.hostPlatform.system != pkgs.stdenv.buildPlatform.system)
+          && ((config.disko.name or null) != null)
+        )
+        {
+          disko.imageBuilder = {
+            enableBinfmt = true;
+            pkgs = nixpkgs.legacyPackages.${pkgs.stdenv.buildPlatform.system};
+            kernelPackages = nixpkgs.legacyPackages.${pkgs.stdenv.buildPlatform.system}.linuxPackages_latest;
+          };
+        }
     )
   ];
 
