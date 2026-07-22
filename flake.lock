@@ -405,6 +405,33 @@
         "type": "github"
       }
     },
+    "nixos-rk3588": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "pre-commit-hooks": [
+          "pre-commit-hooks"
+        ]
+      },
+      "locked": {
+        "lastModified": 1784750663,
+        "narHash": "sha256-CrSQaK4zYJbzPAO9dlpM0OADatPdPJNhy67WLv7SWQc=",
+        "owner": "Pandapip1",
+        "repo": "nixos-rk3588",
+        "rev": "9be5ec2f0b590aedf9304f4075cf28e399bce1e5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Pandapip1",
+        "ref": "housekeeping-2026-07-22",
+        "repo": "nixos-rk3588",
+        "type": "github"
+      }
+    },
     "nixowos": {
       "inputs": {
         "denix": "denix_2",
@@ -581,6 +608,7 @@
         "home-manager": "home-manager",
         "nix-index-database": "nix-index-database",
         "nixos-hardware": "nixos-hardware",
+        "nixos-rk3588": "nixos-rk3588",
         "nixowos": "nixowos",
         "nixpkgs": "nixpkgs_3",
         "nur": "nur",

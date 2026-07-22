@@ -76,6 +76,14 @@
         # TODO: nuschtos-search
       };
     };
+    nixos-rk3588 = {
+      url = "github:Pandapip1/nixos-rk3588/housekeeping-2026-07-22";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        pre-commit-hooks.follows = "pre-commit-hooks";
+      };
+    };
   };
 
   outputs =
