@@ -1,4 +1,5 @@
 {
+  disko,
   pkgs,
   nixos-rk3588,
   ...
@@ -9,6 +10,8 @@ let
   inherit (nixos-rk3588.packages.${system}) u-boot-opi5pro;
 in
 {
+  imports = [ disko.nixosModules.default ];
+
   disko.devices.disk = {
     nvme.device = "/dev/disk/by-id/TODO";
     nvme.imageSize = "TODO";

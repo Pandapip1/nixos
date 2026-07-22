@@ -33,6 +33,9 @@
         "ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBP3SiXcjHQsN+QmYdTGvOENgjJ8FbsCKHeBnmKg/60VItK/+254fGMqr27HHSaRlT6nIWODfMf6Ze4cIi4X2g9e9C5gDwLiurzY3o+AzBNQXQdbrdg1JeEqTwSWHCAl8yw== openpgp:0x18BAD638"
       ];
     };
+
+    # changeme
+    initialPassword = "changeme";
   };
   home-manager.users.gavin.home.stateVersion = "25.11";
 }

@@ -1,10 +1,10 @@
 {
-  disko ? {},
+  disko,
   ...
 }:
 
 {
-  imports = [ disko.nixosModules.default or null ];
+  imports = [ disko.nixosModules.default ];
   disko.devices.disk = {
     root.device = "/dev/disk/by-id/ata-PNY_CS900_250GB_SSD_PNY25122503210102203";
   };
@@ -15,7 +15,8 @@
         content = {
           type = "gpt";
           partitions = {
-            boot = { # MBR fallback
+            boot = {
+              # MBR fallback
               size = "1M";
               type = "EF02";
             };
