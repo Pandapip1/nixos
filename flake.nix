@@ -111,6 +111,7 @@
       inputModules = with inputs; [
         nixowos.nixosModules.default
         home-manager.nixosModules.default
+        disko.nixosModules.default
       ];
       inputOverlays = with inputs; [
         comma.overlays.default

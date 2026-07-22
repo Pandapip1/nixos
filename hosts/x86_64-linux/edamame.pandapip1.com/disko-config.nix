@@ -1,10 +1,4 @@
 {
-  disko,
-  ...
-}:
-
-{
-  imports = [ disko.nixosModules.default ];
   disko.devices.disk = {
     root.device = "/dev/disk/by-id/TODO";
   };

@@ -1,10 +1,4 @@
 {
-  disko,
-  ...
-}:
-
-{
-  imports = [ disko.nixosModules.default ];
   disko.devices.disk = {
     root.device = "/dev/disk/by-id/ata-HGST_HTS725050A7E630_TF655AWHGBRT2L";
   };

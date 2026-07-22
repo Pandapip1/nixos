@@ -1,10 +1,4 @@
 {
-  disko,
-  ...
-}:
-
-{
-  imports = [ disko.nixosModules.default ];
   networking.hostId = "704589ef";
   disko.devices.disk = {
     root.device = "/dev/disk/by-id/ata-FTM24C325H_P717614-NBC6-B30B002";

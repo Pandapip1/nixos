@@ -1,10 +1,4 @@
 {
-  disko,
-  ...
-}:
-
-{
-  imports = [ disko.nixosModules.default ];
   disko.devices.disk = {
     root.device = "/dev/disk/by-id/ata-PNY_CS900_250GB_SSD_PNY25122503210102203";
   };
