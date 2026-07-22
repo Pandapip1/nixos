@@ -48,9 +48,8 @@
             type = "path";
             inherit path;
             narHash = builtins.readFile (
-              pkgs.buildPackages.runCommandLocal "get-${name}-hash" {
-                nativeBuildInputs = [ pkgs.nix ];
-              } "nix-hash --type sha256 --sri ${path} > $out"
+              pkgs.buildPackages.runCommandLocal "get-${name}-hash" { }
+                "${lib.getExe' pkgs.buildPackages.nix "nix-hash"} --type sha256 --sri ${path} > $out"
             );
           };
         };
