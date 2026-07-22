@@ -13,9 +13,9 @@ in
   imports = [ disko.nixosModules.default ];
 
   disko.devices.disk = {
-    nvme.device = "/dev/disk/by-id/TODO";
-    nvme.imageSize = "TODO";
-    sd.imageSize = "TODO";
+    nvme.device = "/dev/disk/by-id/nvme-eui.2c3ebf30353133300000000000000000";
+    nvme.imageSize = "256060514304";
+    sd.imageSize = "15634268160";
 
     sd = {
       type = "disk";
