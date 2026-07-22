@@ -66,7 +66,7 @@
     config.warnUndeclaredOptions = true;
   };
 
-  boot.binfmt.emulatedSystems = [
+  boot.binfmt.emulatedSystems = lib.remove pkgs.hostPlatform.system [
     "aarch64-linux"
     "x86_64-linux"
   ];
