@@ -11,9 +11,7 @@ in
 {
   options = {
     nixbuild-net = {
-      enable = lib.mkEnableOption "nixbuild.net" // {
-        default = true;
-      };
+      enable = lib.mkEnableOption "nixbuild.net";
       crossOnly = lib.mkEnableOption "nixbuild for only cross compiling";
       identity = {
         string = lib.mkOption {
