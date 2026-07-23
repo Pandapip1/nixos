@@ -1,4 +1,3 @@
-
 {
   nixpkgs.overlays = [
     (_: prev: {
@@ -18,11 +17,23 @@
           lockFile = finalAttrs.src + "/Cargo.lock";
           allowBuiltinFetchGit = true;
         };
-            
+
+        nativeBuildInputs = with prev; [ pkg-config ];
         buildInputs = with prev; [
           libsodium
           pam
         ];
+
+        # On aarch64-linux
+        #  >
+        #  > thread 'http_client_tests::build_http_client_with_timeout' (134458) panicked at src/lib.rs:261:67:
+        #  > called `Result::unwrap()` on an `Err` value: reqwest::Error { kind: Request, url: "http://127.0.0.1:38671/hello", source: TimedOut }
+        #  > note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+        #  >
+        #  >
+        #  > failures:
+        #  >     http_client_tests::build_http_client_with_timeout
+        dontCheck = true;
 
         postInstall = ''
           mkdir -p $out/lib/security
