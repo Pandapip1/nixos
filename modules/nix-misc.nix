@@ -28,6 +28,22 @@
     )
   ];
 
+  # virtiofsd <=1.14.0 only checks the legacy STATX_MNT_ID statx bit, not
+  # STATX_MNT_ID_UNIQUE. On build hosts whose kernel has stopped setting the
+  # legacy bit, every mount ID lookup comes back as 0, tripping virtiofsd's
+  # submount-swap check ("Mount point's ... mount ID (0) does not match
+  # expected value") and breaking disko's diskoImages VM builder.
+  # --inode-file-handles=never skips that check entirely (falls back to
+  # O_PATH fds instead of file handles).
+  nixpkgs.overlays = [
+    (final: prev: {
+      virtiofsd = prev.runCommand "virtiofsd-wrapped" { nativeBuildInputs = [ prev.makeWrapper ]; } ''
+        makeWrapper ${lib.getExe prev.virtiofsd} $out/bin/${prev.virtiofsd.meta.mainProgram} \
+          --add-flags "--inode-file-handles=never"
+      '';
+    })
+  ];
+
   nix = {
     settings.experimental-features = [
       "nix-command"
