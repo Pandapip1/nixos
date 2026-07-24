@@ -419,11 +419,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784750663,
-        "narHash": "sha256-CrSQaK4zYJbzPAO9dlpM0OADatPdPJNhy67WLv7SWQc=",
+        "lastModified": 1784851314,
+        "narHash": "sha256-aJWuijWNnBnKidfC6GjhJLAX21HtmS3nDqX4YV6Qhdc=",
         "owner": "Pandapip1",
         "repo": "nixos-rk3588",
-        "rev": "9be5ec2f0b590aedf9304f4075cf28e399bce1e5",
+        "rev": "99b635002f091987abe0e7ebc12809f4e376f99f",
         "type": "github"
       },
       "original": {
