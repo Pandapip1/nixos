@@ -1,6 +1,6 @@
 {
   hardware.asahi.enable = true;
-  hardware.firmware.peripheralFirmwareDirectory = ./vendorfw;
+  hardware.asahi.peripheralFirmwareDirectory = ./vendorfw;
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
