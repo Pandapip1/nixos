@@ -120,6 +120,9 @@
         home-manager.nixosModules.default
         disko.nixosModules.default
         nixos-apple-silicon.nixosModules.apple-silicon-support
+        ({ lib, ... }: {
+          hardware.asahi.enale = lib.mkDefault false;
+        })
       ];
       inputOverlays = with inputs; [
         comma.overlays.default
