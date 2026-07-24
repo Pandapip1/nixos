@@ -5,8 +5,14 @@
   ...
 }:
 
-lib.mkIf (config.services.graphical-desktop.enable && !(config.optimizations.lean.enable)) {
-  environment.systemPackages = with pkgs; [
-    grayjay
-  ];
-}
+lib.mkIf
+  (
+    config.services.graphical-desktop.enable
+    && !(config.optimizations.lean.enable)
+    && (pkgs.stdenv.hostPlatform.system == "x86_64-linux")
+  )
+  {
+    environment.systemPackages = with pkgs; [
+      grayjay
+    ];
+  }
