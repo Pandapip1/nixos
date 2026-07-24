@@ -121,7 +121,7 @@
         disko.nixosModules.default
         nixos-apple-silicon.nixosModules.apple-silicon-support
         ({ lib, ... }: {
-          hardware.asahi.enale = lib.mkDefault false;
+          hardware.asahi.enable = lib.mkDefault false;
         })
       ];
       inputOverlays = with inputs; [
