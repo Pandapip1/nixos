@@ -86,6 +86,13 @@
         pre-commit-hooks.follows = "pre-commit-hooks";
       };
     };
+    nixos-apple-silicon = {
+      url = "github:nix-community/nixos-apple-silicon";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+      };
+    };
   };
 
   outputs =
@@ -112,11 +119,13 @@
         nixowos.nixosModules.default
         home-manager.nixosModules.default
         disko.nixosModules.default
+        nixos-apple-silicon.nixosModules.apple-silicon-support
       ];
       inputOverlays = with inputs; [
         comma.overlays.default
         nix-index-database.overlays.nix-index
         nur.overlays.default
+        nixos-apple-silicon.overlays.default
       ];
     in
     {
