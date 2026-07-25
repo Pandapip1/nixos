@@ -216,6 +216,10 @@
                 specialArgs = inputs;
                 modules = [
                   ({ lib, ... }: {
+                    # This is a minimal module in flake.nix because it avoids
+                    # having to include this stuff as specialArgs
+                    # Everything that doesn't depend on something defined here
+                    # should go in modules/
                     networking = {
                       inherit hostName domain;
                     };
@@ -227,9 +231,6 @@
                       overlays = inputOverlays;
                     };
                     home-manager.sharedModules = inputHMModules;
-
-                    # TODO: Can be removed once this becomes the default
-                    hardware.asahi.enable = lib.mkDefault false;
                   })
                   hostModulePath
                 ]
