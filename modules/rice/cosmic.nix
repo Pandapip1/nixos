@@ -233,26 +233,26 @@
               show_seconds = true;
               show_weekday = true;
             };
-            compositor =
-              let
-                common_input = {
-                  acceleration = {
-                    profile = mkOptional (mkEnum "Flat");
-                    speed = 0.0;
-                  };
-                };
-              in
-              {
-                input_default = {
-                  scroll_config.natural_scroll = false;
-                }
-                // common_input;
-                input_touchpad = {
-                  scroll_config.natural_scroll = true;
-                }
-                // common_input;
-              };
           };
+          compositor =
+            let
+              common_input = {
+                acceleration = {
+                  profile = mkOptional (mkEnum "Flat");
+                  speed = 0.0;
+                };
+              };
+            in
+            {
+              input_default = {
+                scroll_config.natural_scroll = false;
+              }
+              // common_input;
+              input_touchpad = {
+                scroll_config.natural_scroll = true;
+              }
+              // common_input;
+            };
         };
       }
     )
