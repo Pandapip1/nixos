@@ -27,6 +27,32 @@
         "type": "github"
       }
     },
+    "cosmic-manager": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "home-manager": [
+          "home-manager"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780178896,
+        "narHash": "sha256-98aHwiGZcvb0VJUGE+lCS/zuGdFAlNvm8keIimuLOK0=",
+        "owner": "HeitorAugustoLN",
+        "repo": "cosmic-manager",
+        "rev": "1630bbf792a95baffbd3169885580cd53a7027d8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "HeitorAugustoLN",
+        "repo": "cosmic-manager",
+        "type": "github"
+      }
+    },
     "denix": {
       "inputs": {
         "home-manager": [
@@ -623,6 +649,7 @@
     "root": {
       "inputs": {
         "comma": "comma",
+        "cosmic-manager": "cosmic-manager",
         "denix": "denix",
         "disko": "disko",
         "flake-compat": "flake-compat",

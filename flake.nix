@@ -93,6 +93,14 @@
         flake-compat.follows = "flake-compat";
       };
     };
+    cosmic-manager = {
+      url = "github:HeitorAugustoLN/cosmic-manager";
+      inputs = {
+        flake-parts.follows = "flake-parts";
+        home-manager.follows = "home-manager";
+        nixpkgs.follows = "nixpkgs";
+      };
+    };
   };
 
   outputs =
@@ -115,14 +123,14 @@
           directory = modulesDir;
         }
       );
+      inputHMModules = with inputs; [
+        cosmic-manager.homeManagerModules.default
+      ];
       inputModules = with inputs; [
         nixowos.nixosModules.default
         home-manager.nixosModules.default
         disko.nixosModules.default
         nixos-apple-silicon.nixosModules.apple-silicon-support
-        ({ lib, ... }: {
-          hardware.asahi.enable = lib.mkDefault false;
-        })
       ];
       inputOverlays = with inputs; [
         comma.overlays.default
@@ -207,7 +215,7 @@
               value = lib.nixosSystem {
                 specialArgs = inputs;
                 modules = [
-                  {
+                  ({ lib, ... }: {
                     networking = {
                       inherit hostName domain;
                     };
@@ -218,7 +226,11 @@
                       buildPlatform = builtins.currentSystem or system;
                       overlays = inputOverlays;
                     };
-                  }
+                    home-manager.sharedModules = inputHMModules;
+
+                    # TODO: Can be removed once this becomes the default
+                    hardware.asahi.enable = lib.mkDefault false;
+                  })
                   hostModulePath
                 ]
                 ++ modules
