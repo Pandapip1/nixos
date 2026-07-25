@@ -25,7 +25,7 @@
               else if i == 1 then
                 mkTuple [ it ]
               else
-                mkTuple'Helper (i-1) (arr ++ [ it ]);
+                mkTuple'Helper (i - 1) (arr ++ [ it ]);
           in
           i: mkTuple'Helper i [ ];
         mkTupleRep = i: val: mkTuple (lib.replicate i val);
