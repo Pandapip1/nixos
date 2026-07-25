@@ -237,7 +237,7 @@
           compositor =
             let
               common_input = {
-                acceleration = {
+                acceleration = mkOptional {
                   profile = mkOptional (mkEnum "Flat");
                   speed = 0.0;
                 };
