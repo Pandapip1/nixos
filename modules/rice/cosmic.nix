@@ -15,17 +15,11 @@
         inherit (cosmicLib.cosmic) mkRON;
         mkOptional = mkRON "optional";
         mkEnum = mkRON "enum";
+        mkMap = mkRON "map";
         mkTuple = mkRON "tuple";
         mkTuple' =
           let
-            mkTuple'Helper =
-              i: arr: it:
-              if i == 0 then
-                mkTuple [ ]
-              else if i == 1 then
-                mkTuple [ it ]
-              else
-                mkTuple'Helper (i - 1) (arr ++ [ it ]);
+            mkTuple'Helper = i: arr: if i == 0 then mkTuple arr else it: mkTuple'Helper (i - 1) (arr ++ [ it ]);
           in
           i: mkTuple'Helper i [ ];
         mkTupleRep = i: val: mkTuple (lib.replicate i val);
@@ -98,11 +92,11 @@
             theme =
               let
                 common_theming = {
-                  accent = primary;
-                  destructive = danger;
-                  neutral_tint = gray;
-                  success = success;
-                  warning = warning;
+                  accent = mkOptional primary;
+                  destructive = mkOptional danger;
+                  neutral_tint = mkOptional gray;
+                  success = mkOptional success;
+                  warning = mkOptional warning;
 
                   active_hint = 3;
                   gaps = mkTuple' 2 0 8;
@@ -137,13 +131,19 @@
               in
               {
                 dark = {
-                  bg_color = dark // {
-                    alpha = 0.95;
-                  };
-                  primary_container_bg = black // {
-                    alpha = 1.0;
-                  };
-                  text_tint = light;
+                  bg_color = mkOptional (
+                    dark
+                    // {
+                      alpha = 0.95;
+                    }
+                  );
+                  primary_container_bg = mkOptional (
+                    black
+                    // {
+                      alpha = 1.0;
+                    }
+                  );
+                  text_tint = mkOptional light;
                   # secondary_container_bg = TODO
                   # window_hint = TODO
                   # palette = mkOptional {
@@ -160,13 +160,19 @@
                 }
                 // common_theming;
                 light = {
-                  bg_color = light // {
-                    alpha = 0.95;
-                  };
-                  primary_container_bg = white // {
-                    alpha = 1.0;
-                  };
-                  text_tint = dark;
+                  bg_color = mkOptional (
+                    light
+                    // {
+                      alpha = 0.95;
+                    }
+                  );
+                  primary_container_bg = mkOptional (
+                    white
+                    // {
+                      alpha = 1.0;
+                    }
+                  );
+                  text_tint = mkOptional dark;
                   # secondary_container_bg = TODO
                   # window_hint = TODO
                   # palette = mkOptional {
@@ -187,11 +193,12 @@
             toolkit =
               let
                 enumNormal = mkEnum "Normal";
+                enumStandard = mkEnum "Standard";
               in
               {
                 apply_theme_global = true;
-                header_size = "Standard";
-                interface_density = "Standard";
+                header_size = enumStandard;
+                interface_density = enumStandard;
                 icon_theme = "Cosmic";
                 interface_font = {
                   family = "Noto Sans";
@@ -245,14 +252,54 @@
             in
             {
               input_default = {
-                scroll_config.natural_scroll = false;
+                scroll_config = mkOptional {
+                  method = mkOptional null;
+                  scroll_button = mkOptional null;
+                  scroll_factor = mkOptional 1.0;
+                  natural_scroll = mkOptional false;
+                };
               }
               // common_input;
               input_touchpad = {
-                scroll_config.natural_scroll = true;
+                scroll_config = mkOptional {
+                  method = mkOptional null;
+                  scroll_button = mkOptional null;
+                  scroll_factor = mkOptional 1.6;
+                  natural_scroll = mkOptional true;
+                };
               }
               // common_input;
             };
+
+          wayland.desktopManager.cosmic = {
+            shortcuts = [
+              {
+                key = "Super+XF86MonBrightnessUp";
+                action = mkEnum {
+                  variant = "System";
+                  value = [ (mkEnum "KeyboardBrightnessUp") ];
+                };
+              }
+              {
+                key = "Super+XF86MonBrightnessDown";
+                action = mkEnum {
+                  variant = "System";
+                  value = [ (mkEnum "KeyboardBrightnessDown") ];
+                };
+              }
+            ];
+
+            systemActions = mkMap [
+              {
+                key = mkEnum "KeyboardBrightnessUp";
+                value = "brightnessctl -d '*::kbd_backlight' set +10%";
+              }
+              {
+                key = mkEnum "KeyboardBrightnessDown";
+                value = "brightnessctl -d '*::kbd_backlight' set 10%-";
+              }
+            ];
+          };
         };
       }
     )
