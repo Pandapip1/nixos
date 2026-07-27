@@ -15,7 +15,7 @@
       let
         inherit (cosmicLib.cosmic) mkRON;
         mkOptional = mkRON "optional";
-        mkEnum = mkRON "enum"; that's not very declarative of me.
+        mkEnum = mkRON "enum";
         mkMap = mkRON "map";
         mkTuple = mkRON "tuple";
         mkTuple' =
