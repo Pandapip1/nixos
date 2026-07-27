@@ -270,36 +270,33 @@
               }
               // common_input;
             };
+          shortcuts = [
+            {
+              key = "Super+XF86MonBrightnessUp";
+              action = mkEnum {
+                variant = "System";
+                value = [ (mkEnum "KeyboardBrightnessUp") ];
+              };
+            }
+            {
+              key = "Super+XF86MonBrightnessDown";
+              action = mkEnum {
+                variant = "System";
+                value = [ (mkEnum "KeyboardBrightnessDown") ];
+              };
+            }
+          ];
 
-          wayland.desktopManager.cosmic = {
-            shortcuts = [
-              {
-                key = "Super+XF86MonBrightnessUp";
-                action = mkEnum {
-                  variant = "System";
-                  value = [ (mkEnum "KeyboardBrightnessUp") ];
-                };
-              }
-              {
-                key = "Super+XF86MonBrightnessDown";
-                action = mkEnum {
-                  variant = "System";
-                  value = [ (mkEnum "KeyboardBrightnessDown") ];
-                };
-              }
-            ];
-
-            systemActions = mkMap [
-              {
-                key = mkEnum "KeyboardBrightnessUp";
-                value = "brightnessctl -d '*::kbd_backlight' set +10%";
-              }
-              {
-                key = mkEnum "KeyboardBrightnessDown";
-                value = "brightnessctl -d '*::kbd_backlight' set 10%-";
-              }
-            ];
-          };
+          systemActions = mkMap [
+            {
+              key = mkEnum "KeyboardBrightnessUp";
+              value = "brightnessctl -d '*::kbd_backlight' set +10%";
+            }
+            {
+              key = mkEnum "KeyboardBrightnessDown";
+              value = "brightnessctl -d '*::kbd_backlight' set 10%-";
+            }
+          ];
         };
       }
     )
