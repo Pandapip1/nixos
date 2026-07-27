@@ -5,7 +5,8 @@
 }:
 
 {
-  home-manager.sharedModules = [
+  # TODO: Remove mkIf once https://github.com/HeitorAugustoLN/cosmic-manager/issues/64 resolved
+  home-manager.sharedModules = lib.mkIf config.services.desktopManager.cosmic.enable [
     (
       {
         cosmicLib,
@@ -14,7 +15,7 @@
       let
         inherit (cosmicLib.cosmic) mkRON;
         mkOptional = mkRON "optional";
-        mkEnum = mkRON "enum";
+        mkEnum = mkRON "enum"; that's not very declarative of me.
         mkMap = mkRON "map";
         mkTuple = mkRON "tuple";
         mkTuple' =
