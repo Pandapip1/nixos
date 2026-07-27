@@ -18,11 +18,34 @@
         nixpkgs,
         ...
       }:
-      lib.mkIf (pkgs.stdenv.hostPlatform.system != pkgs.stdenv.buildPlatform.system) {
+
+      {
         disko.imageBuilder = {
           enableBinfmt = true;
-          pkgs = nixpkgs.legacyPackages.${pkgs.stdenv.buildPlatform.system};
-          kernelPackages = nixpkgs.legacyPackages.${pkgs.stdenv.buildPlatform.system}.linuxPackages_latest;
+          pkgs = lib.mkDefault pkgs;
+          kernelPackages = lib.mkDefault pkgs.linuxPackages;
+          qemu =
+            # override loglevel=8 to help with debugging (loglevel 4 is hardcoded)
+            let
+              qemu-common = pkgs.callPackage "${pkgs.path}/nixos/lib/qemu-common.nix" { };
+            in
+            pkgs.writeShellScript "qemu-verbose" ''
+              set -euo pipefail
+              args=()
+              while [ "$#" -gt 0 ]; do
+                if [ "$1" = "-append" ]; then
+                  args+=(
+                    "-append"
+                    "$(printf '%s' "$2" | ${lib.getExe' pkgs.gnused "sed"} -E 's/(^| )loglevel=[0-9]+/\1loglevel=8/')"
+                  )
+                  shift 2
+                else
+                  args+=("$1")
+                  shift
+                fi
+              done
+              exec ${qemu-common.qemuBinary pkgs.qemu_kvm} "''${args[@]}"
+            '';
         };
       }
     )
