@@ -135,7 +135,7 @@
                   bg_color = mkOptional (
                     dark
                     // {
-                      alpha = 0.95;
+                      alpha = 0.975;
                     }
                   );
                   primary_container_bg = mkOptional (
@@ -164,7 +164,7 @@
                   bg_color = mkOptional (
                     light
                     // {
-                      alpha = 0.95;
+                      alpha = 0.975;
                     }
                   );
                   primary_container_bg = mkOptional (
