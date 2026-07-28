@@ -5,7 +5,7 @@
   ...
 }:
 
-lib.mkIf (config.hardware.asahi.enable && hardware.bluetooth.enable) {
+lib.mkIf (config.hardware.asahi.enable && config.hardware.bluetooth.enable) {
   systemd.services.bt-a2dp-fix = {
     description = "Bluetooth A2DP stutter fix for Apple Silicon (BCM4377/4378/4387)";
     after = [ "bluetooth.target" ];
