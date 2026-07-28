@@ -34,11 +34,11 @@ in
             };
           };
         };
+        postCreateHook = ''
+          dd if=${u-boot-opi5pro}/idbloader.img of=$device bs=512 seek=64     conv=fsync,notrunc  status=progress
+          dd if=${u-boot-opi5pro}/u-boot.itb    of=$device bs=512 seek=16384  conv=fsync,notrunc  status=progress
+        '';
       };
-      postCreateHook = ''
-        dd if=${u-boot-opi5pro}/idbloader.img of=$device seek=64    conv=fsync,notrunc
-        dd if=${u-boot-opi5pro}/u-boot.itb    of=$device seek=16384 conv=fsync,notrunc
-      '';
     };
     nvme = {
       type = "disk";

@@ -44,7 +44,8 @@
                   shift
                 fi
               done
-              exec ${qemu-common.qemuBinary pkgs.qemu_kvm} "''${args[@]}"
+              ${qemu-common.qemuBinary pkgs.qemu_kvm} "''${args[@]}" 2>&1 \
+                | ${lib.getExe' pkgs.gnused "sed"} -u 's/\r//g'
             '');
         };
       }
