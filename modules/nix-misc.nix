@@ -29,7 +29,7 @@
             let
               qemu-common = pkgs.callPackage "${pkgs.path}/nixos/lib/qemu-common.nix" { };
             in
-            pkgs.writeShellScript "qemu-verbose" ''
+            toString (pkgs.writeShellScript "qemu-verbose" ''
               set -euo pipefail
               args=()
               while [ "$#" -gt 0 ]; do
@@ -45,7 +45,7 @@
                 fi
               done
               exec ${qemu-common.qemuBinary pkgs.qemu_kvm} "''${args[@]}"
-            '';
+            '');
         };
       }
     )
