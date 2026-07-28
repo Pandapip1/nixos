@@ -31,6 +31,10 @@ in
               type = "filesystem";
               format = "vfat";
               mountpoint = "/boot";
+              extraArgs = [
+                "-i"
+                "12CEA600"
+              ];
             };
           };
         };
@@ -51,6 +55,10 @@ in
               type = "filesystem";
               format = "ext4";
               mountpoint = "/";
+              extraArgs = [
+                "-U"
+                "84893c95-639e-4107-9888-c891e314c0a1"
+              ];
             };
           };
         };
