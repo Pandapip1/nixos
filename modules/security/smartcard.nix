@@ -9,7 +9,13 @@
   services.pcscd = {
     enable = true;
     plugins = lib.mkForce [ pkgs.ccid ];
+    extraArgs = [
+      "--debug"
+      "--apdu"
+      "--color"
+    ];
   };
+  # systemd.services.pcscd.environment.LIBCCID_ifdLogLevel = "0x000F";
   services.fido2-hid-bridge.enable = true;
   environment.systemPackages = with pkgs; [
     global-platform-pro
