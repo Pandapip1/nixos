@@ -81,8 +81,6 @@
           pinentry-program /run/current-system/sw/bin/pinentry
         '';
       };
-
-      services.pcscd.enable = true;
     })
   ];
 }
