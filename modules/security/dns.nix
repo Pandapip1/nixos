@@ -20,7 +20,20 @@
           # TODO(@Pandapip1): OpenNIC does support DNSSEC
           # https://wiki.opennic.org/opennic/dnssec
           val-permissive-mode = "yes";
+
+          # Override RFC7686
+          local-zone = [ ''"onion." nodefault'' ];
+          domain-insecure = [ "onion" ];
+          private-domain  = [ "onion" ];
         };
+
+        forward-zone = [
+          {
+            name = "onion";
+            # TODO: Configure tor to bind to v6 loopback instead of v4
+            forward-addr = [ "127.0.0.1@9053" ];
+          }
+        ];
       };
     };
     # TODO: Create & upstream option to configure port
@@ -162,5 +175,13 @@
         sleep 9999999
       done
     '';
+  };
+
+  tor = {
+    enable = true;
+    client = {
+      enable = true;
+      dns.enable = true;
+    };
   };
 }
