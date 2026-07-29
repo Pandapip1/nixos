@@ -3,7 +3,7 @@
     (_: prev: {
       cosmic-ext-pinentry = prev.rustPlatform.buildRustPackage (finalAttrs: {
         pname = "cosmic-ext-pinentry";
-        version = "0-unstable-2025-04-11";
+        version = "0-unstable-2026-07-29";
 
         src = prev.fetchFromCodeberg {
           owner = "pandapip1";
