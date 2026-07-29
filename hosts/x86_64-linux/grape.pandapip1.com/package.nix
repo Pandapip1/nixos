@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   ...
 }:
@@ -16,7 +17,7 @@
 
   nix-gc.configurationLimit = 1; # Only one bootable at a time
 
-  services.avahi.openFirewall = false; # Grape should not trust mDNS
+  services.avahi.avahi = lib.mkForce false; # Grape should not use mDNS
 
   system.stateVersion = "25.11";
 }
