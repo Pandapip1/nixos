@@ -124,7 +124,7 @@
                     space_xxxl = 128;
                   };
 
-                  frosted = mkEnum "VeryHigh";
+                  frosted = mkEnum "Medium";
                   frosted_windows = true;
                   frosted_panel = true;
                   frosted_system_interface = true;
