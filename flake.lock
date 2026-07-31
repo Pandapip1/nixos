@@ -40,11 +40,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785519391,
-        "narHash": "sha256-r/1vqOAopJw2FHnRD8f4WkFPWUwNMI4NGsRFSETA170=",
+        "lastModified": 1785522838,
+        "narHash": "sha256-wzsvYG2zdSCP9oqhWFzzrkthccEtGRjsZ7bLBiIDFAM=",
         "owner": "Pandapip1",
         "repo": "cosmic-manager",
-        "rev": "70a68752deb48c311c270d357506197141457222",
+        "rev": "5181a93f247f9156d6175f9896579bf49804653c",
         "type": "github"
       },
       "original": {
