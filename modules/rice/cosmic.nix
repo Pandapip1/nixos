@@ -130,22 +130,6 @@
                   frosted_system_interface = true;
                   frosted_applets = true;
                   frosted_maximized_apps = true;
-                  # alpha_map = {
-                  #   extremely_low = 0.95;
-                  #   extremely_low_2 = 0.95;
-                  #   very_low = 0.95;
-                  #   very_low_2 = 0.95;
-                  #   low = 0.95;
-                  #   low_2 = 0.95;
-                  #   medium = 0.95;
-                  #   medium_2 = 0.95;
-                  #   high = 0.95;
-                  #   high_2 = 0.95;
-                  #   very_high = 0.95;
-                  #   very_high_2 = 0.95;
-                  #   extremely_high = 0.95;
-                  #   extremely_high_2 = 0.95;
-                  # };
                 };
                 common_palette_values = {
                   # TODO
@@ -153,8 +137,12 @@
               in
               {
                 dark = {
-                  bg_color = mkOptional (dark // { alpha = 1.; });
-                  primary_container_bg = mkOptional (black // { alpha = 1.; });
+                  bg_color = mkOptional (dark // {
+                    alpha = 0.95;
+                  });
+                  primary_container_bg = mkOptional (black // {
+                    alpha = 1.;
+                  });
                   text_tint = mkOptional light;
                   # secondary_container_bg = TODO
                   # window_hint = TODO
@@ -172,8 +160,12 @@
                 }
                 // common_theming;
                 light = {
-                  bg_color = mkOptional (light // { alpha = 1.; });
-                  primary_container_bg = mkOptional (white // { alpha = 1.; });
+                  bg_color = mkOptional (light // {
+                    alpha = 0.95;
+                  });
+                  primary_container_bg = mkOptional (white // {
+                    alpha = 1.;
+                  });
                   text_tint = mkOptional dark;
                   # secondary_container_bg = TODO
                   # window_hint = TODO
