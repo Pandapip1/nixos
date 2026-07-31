@@ -124,12 +124,28 @@
                     space_xxxl = 128;
                   };
 
-                  frosted = mkEnum "Medium";
+                  frosted = mkEnum "VeryHigh";
                   frosted_windows = true;
                   frosted_panel = true;
                   frosted_system_interface = true;
                   frosted_applets = true;
                   frosted_maximized_apps = true;
+                  alpha_map = {
+                    extremely_low = 0.95;
+                    extremely_low_2 = 0.95;
+                    very_low = 0.95;
+                    very_low_2 = 0.95;
+                    low = 0.95;
+                    low_2 = 0.95;
+                    medium = 0.95;
+                    medium_2 = 0.95;
+                    high = 0.95;
+                    high_2 = 0.95;
+                    very_high = 0.95;
+                    very_high_2 = 0.95;
+                    extremely_high = 0.95;
+                    extremely_high_2 = 0.95;
+                  };
                 };
                 common_palette_values = {
                   # TODO
