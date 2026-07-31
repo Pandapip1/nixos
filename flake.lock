@@ -40,15 +40,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1780178896,
-        "narHash": "sha256-98aHwiGZcvb0VJUGE+lCS/zuGdFAlNvm8keIimuLOK0=",
-        "owner": "HeitorAugustoLN",
+        "lastModified": 1785519391,
+        "narHash": "sha256-r/1vqOAopJw2FHnRD8f4WkFPWUwNMI4NGsRFSETA170=",
+        "owner": "Pandapip1",
         "repo": "cosmic-manager",
-        "rev": "1630bbf792a95baffbd3169885580cd53a7027d8",
+        "rev": "70a68752deb48c311c270d357506197141457222",
         "type": "github"
       },
       "original": {
-        "owner": "HeitorAugustoLN",
+        "owner": "Pandapip1",
+        "ref": "frost-config",
         "repo": "cosmic-manager",
         "type": "github"
       }

@@ -94,7 +94,8 @@
       };
     };
     cosmic-manager = {
-      url = "github:HeitorAugustoLN/cosmic-manager";
+      # TODO: Upstream
+      url = "github:Pandapip1/cosmic-manager/frost-config";
       inputs = {
         flake-parts.follows = "flake-parts";
         home-manager.follows = "home-manager";
