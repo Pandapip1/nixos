@@ -137,12 +137,8 @@
               in
               {
                 dark = {
-                  bg_color = mkOptional (dark // {
-                    alpha = 0.95;
-                  });
-                  primary_container_bg = mkOptional (black // {
-                    alpha = 1.;
-                  });
+                  bg_color = mkOptional (dark // { alpha = 1.; });
+                  primary_container_bg = mkOptional (black // { alpha = 1.; });
                   text_tint = mkOptional light;
                   # secondary_container_bg = TODO
                   # window_hint = TODO
@@ -160,12 +156,8 @@
                 }
                 // common_theming;
                 light = {
-                  bg_color = mkOptional (light // {
-                    alpha = 0.95;
-                  });
-                  primary_container_bg = mkOptional (white // {
-                    alpha = 1.;
-                  });
+                  bg_color = mkOptional (light // { alpha = 1.; });
+                  primary_container_bg = mkOptional (white // { alpha = 1.; });
                   text_tint = mkOptional dark;
                   # secondary_container_bg = TODO
                   # window_hint = TODO
