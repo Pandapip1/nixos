@@ -131,20 +131,20 @@
                   frosted_applets = true;
                   frosted_maximized_apps = true;
                   alpha_map = {
-                    extremely_low = 0.95;
-                    extremely_low_2 = 0.95;
-                    very_low = 0.95;
-                    very_low_2 = 0.95;
-                    low = 0.95;
-                    low_2 = 0.95;
-                    medium = 0.95;
-                    medium_2 = 0.95;
-                    high = 0.95;
-                    high_2 = 0.95;
-                    very_high = 0.95;
-                    very_high_2 = 0.95;
-                    extremely_high = 0.95;
-                    extremely_high_2 = 0.95;
+                    extremely_low = 0.90;
+                    extremely_low_2 = 0.90;
+                    very_low = 0.90;
+                    very_low_2 = 0.90;
+                    low = 0.90;
+                    low_2 = 0.90;
+                    medium = 0.90;
+                    medium_2 = 0.90;
+                    high = 0.90;
+                    high_2 = 0.90;
+                    very_high = 0.90;
+                    very_high_2 = 0.90;
+                    extremely_high = 0.90;
+                    extremely_high_2 = 0.90;
                   };
                 };
                 common_palette_values = {
