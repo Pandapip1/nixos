@@ -123,7 +123,6 @@
                     space_xxl = 64;
                     space_xxxl = 128;
                   };
-alpha
                   is_frosted = true;
                 };
                 common_palette_values = {
