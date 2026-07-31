@@ -123,7 +123,7 @@
                     space_xxl = 64;
                     space_xxxl = 128;
                   };
-                  
+
                   frosted = mkEnum "VeryHigh";
                   frosted_windows = true;
                   frosted_panel = true;
@@ -153,12 +153,8 @@
               in
               {
                 dark = {
-                  bg_color = mkOptional (
-                    dark // { alpha = 1.; }
-                  );
-                  primary_container_bg = mkOptional (
-                    black // { alpha = 1.; }
-                  );
+                  bg_color = mkOptional (dark // { alpha = 1.; });
+                  primary_container_bg = mkOptional (black // { alpha = 1.; });
                   text_tint = mkOptional light;
                   # secondary_container_bg = TODO
                   # window_hint = TODO
@@ -176,12 +172,8 @@
                 }
                 // common_theming;
                 light = {
-                  bg_color = mkOptional (
-                    light // { alpha = 1.; }
-                  );
-                  primary_container_bg = mkOptional (
-                    white // { alpha = 1.; }
-                  );
+                  bg_color = mkOptional (light // { alpha = 1.; });
+                  primary_container_bg = mkOptional (white // { alpha = 1.; });
                   text_tint = mkOptional dark;
                   # secondary_container_bg = TODO
                   # window_hint = TODO
@@ -310,5 +302,22 @@
         };
       }
     )
+  ];
+  nixpkgs.overlays = [
+    (final: prev: {
+      cosmic-ext-ctl = prev.cosmic-ext-ctl.overrideAttrs (old: rec {
+        src = final.fetchFromGitHub {
+          owner = "Pandapip1";
+          repo = "cosmic-ctl";
+          rev = "2210d5f9e5308c0df6f9fb5be66f0ae8241a9bc1"; # update-libcosmic
+          hash = "sha256-Z7xuEsw8X2BVp+86fPDyEnAinUotQxWi4yMeHwICYz4=";
+        };
+
+        cargoDeps = final.rustPlatform.importCargoLock {
+          lockFile = src + "/Cargo.lock";
+          allowBuiltinFetchGit = true;
+        };
+      });
+    })
   ];
 }
