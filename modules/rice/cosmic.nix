@@ -227,7 +227,7 @@
                 "firefox"
                 "codium"
                 "com.system76.CosmicEdit"
-                "kitty"
+                "com.system76.CosmicTerm"
                 "com.system76.CosmicSettings"
               ];
             };
