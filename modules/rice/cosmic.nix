@@ -123,7 +123,7 @@
                     space_xxl = 64;
                     space_xxxl = 128;
                   };
-
+alpha
                   is_frosted = true;
                 };
                 common_palette_values = {
@@ -135,7 +135,7 @@
                   bg_color = mkOptional (
                     dark
                     // {
-                      alpha = 0.975;
+                      alpha = 0.95;
                     }
                   );
                   primary_container_bg = mkOptional (
@@ -164,7 +164,7 @@
                   bg_color = mkOptional (
                     light
                     // {
-                      alpha = 0.975;
+                      alpha = 0.95;
                     }
                   );
                   primary_container_bg = mkOptional (
