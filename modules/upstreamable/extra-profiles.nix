@@ -59,13 +59,6 @@ let
     }
   ) enabledProfiles;
 
-  mkDrvPin =
-    name: closure:
-    pkgs.writeTextFile {
-      name = "extra-profile-${name}-drv-pin";
-      text = "${closure.drvPath}\n";
-    };
-
   mkSetter =
     name: p: closure:
     pkgs.runCommand "set-extra-profile-${name}"
@@ -80,7 +73,7 @@ let
         set -euo pipefail
 
         closure=${closure}
-        drv=${closure.drvPath}
+        drv=${builtins.unsafeDiscardStringContext closure.drvPath}
 
         if [ ! -e "\$closure" ]; then
           echo "extra-profile-${name}: \$closure is missing (garbage-collected before this unit ran)." >&2
@@ -106,13 +99,6 @@ in
     environment.profiles = lib.mkAfter (
       lib.flatten (lib.mapAttrsToList (_: p: lib.optional (p.enable && p.addToSessionPath) p.path) cfg)
     );
-
-    environment.etc = lib.mapAttrs' (
-      name: closure:
-      lib.nameValuePair "nixos/extra-profiles/${name}.drv-pin" {
-        source = mkDrvPin name closure;
-      }
-    ) closures;
 
     systemd.services = lib.mapAttrs' (
       name: p:
