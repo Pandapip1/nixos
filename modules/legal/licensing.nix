@@ -28,6 +28,7 @@
         "quartus-prime-lite-unwrapped"
         "steam"
         "steam-unwrapped"
+        "claude-code"
         # NVIDIA Drivers
         "nvidia-x11"
         "nvidia-settings"
