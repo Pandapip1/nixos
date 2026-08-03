@@ -2,6 +2,7 @@
   lib,
   pkgs,
   nixos-hardware,
+  config,
   ...
 }:
 
@@ -12,10 +13,7 @@
   ];
 
   boot.loader = {
-    systemd-boot = {
-      enable = true;
-      configurationLimit = 16;
-    };
+    systemd-boot.enable = true;
     efi.canTouchEfiVariables = true;
   };
 

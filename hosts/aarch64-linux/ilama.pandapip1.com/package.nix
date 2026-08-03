@@ -12,7 +12,7 @@
   services.gnome.gnome-keyring.enable = false; # For some reason enabling cosmic enables gnome keyring. I want to use keepassxc thank you very much.
 
   # Severely disk constrained
-  nix-gc.configurationLimit = 3;
+  nix-gc.profiles.system.configurationLimit = 3;
 
   # Packages I use here
   environment.systemPackages = with pkgs; [

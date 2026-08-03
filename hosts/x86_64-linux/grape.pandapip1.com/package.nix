@@ -15,7 +15,7 @@
     enable = true;
   };
 
-  nix-gc.configurationLimit = 1; # Only one bootable at a time
+  nix-gc.profiles.system.configurationLimit = 1; # Only one bootable at a time
 
   services.avahi.avahi = lib.mkForce false; # Grape should not use mDNS
 
