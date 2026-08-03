@@ -59,7 +59,7 @@ let
       {
         __structuredAttrs = true;
         unsafeDiscardReferences.out = true;
-        meta.mainPackage = "set-extra-profile";
+        meta.mainProgram = "set-extra-profile";
       }
       ''
         mkdir -p "$out/bin"
