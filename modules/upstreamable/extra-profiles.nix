@@ -79,7 +79,7 @@ in
             }
             ''
               mkdir -p "$out/bin"
-              cat > "$out/bin/set-extra-profile" <<SCRIPT
+              cat > "$out/bin/set-extra-profile" <<EOF
               #!${pkgs.runtimeShell}
               set -euox pipefail
 
@@ -90,7 +90,7 @@ in
               fi
 
               exec ${lib.getExe' config.nix.package "nix-env"} -p ${p.path} --set "${closure}"
-              SCRIPT
+              EOF
               chmod +x "$out/bin/set-extra-profile"
             ''
         );
