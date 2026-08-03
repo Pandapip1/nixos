@@ -28,6 +28,23 @@ let
         type = lib.types.bool;
         default = true;
       };
+      pathsToLink = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "/" ];
+        description = "List of directories to be symlinked into this profile.";
+      };
+      extraOutputsToInstall = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        example = [
+          "dev"
+          "info"
+        ];
+      };
+      ignoreCollisions = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+      };
     };
   };
 
@@ -38,6 +55,7 @@ let
     pkgs.buildEnv {
       name = "extra-profile-${name}";
       paths = p.packages;
+      inherit (p) pathsToLink extraOutputsToInstall ignoreCollisions;
     }
   ) enabledProfiles;
 
