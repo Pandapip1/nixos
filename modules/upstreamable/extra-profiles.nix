@@ -1,4 +1,3 @@
-# modules/extra-profiles.nix
 {
   config,
   lib,
