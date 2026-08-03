@@ -1,4 +1,9 @@
 {
+  pkgs,
+  ...
+}:
+
+{
   imports = [ ./hardware-configuration.nix ];
 
   # Use COSMIC DE
@@ -8,6 +13,11 @@
 
   # Severely disk constrained
   nix-gc.configurationLimit = 3;
+
+  # Packages I use here
+  environment.systemPackages = with pkgs; [
+    claude-code
+  ];
 
   system.stateVersion = "26.11";
 }
