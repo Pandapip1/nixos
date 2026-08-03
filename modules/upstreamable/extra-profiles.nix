@@ -59,6 +59,7 @@ let
       {
         __structuredAttrs = true;
         unsafeDiscardReferences.out = true;
+        meta.mainPackage = "set-extra-profile";
       }
       ''
         mkdir -p "$out/bin"
@@ -100,7 +101,7 @@ in
         description = "Point the ${name} profile at its current declared contents";
         wantedBy = [ "multi-user.target" ];
         serviceConfig.Type = "oneshot";
-        serviceConfig.ExecStart = "${mkSetter name p closures.${name}}/bin/set-extra-profile";
+        serviceConfig.ExecStart = lib.getExe (mkSetter name p closures.${name});
       }
     ) enabledProfiles;
   };
