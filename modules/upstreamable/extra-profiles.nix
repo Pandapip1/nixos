@@ -55,6 +55,9 @@ let
 
   mkSetter =
     name: p: closure:
+    let
+      drv = builtins.unsafeDiscardStringContext closure.drvPath;
+    in
     pkgs.runCommand "set-extra-profile-${name}"
       {
         __structuredAttrs = true;
@@ -67,19 +70,16 @@ let
         #!${pkgs.runtimeShell}
         set -euo pipefail
 
-        closure=${closure}
-        drv=${builtins.unsafeDiscardStringContext closure.drvPath}
-
-        if [ ! -e "\$closure" ]; then
-          echo "extra-profile-${name}: \$closure is missing (garbage-collected before this unit ran)." >&2
-          echo "extra-profile-${name}: attempting to rebuild/substitute from \$drv..." >&2
-          if ! ${lib.getExe' config.nix.package "nix-store"} --realise "\$drv" >/dev/null; then
-            echo "extra-profile-${name}: could not rebuild \$closure; run nixos-rebuild switch again." >&2
+        if [ ! -e "${closure}" ]; then
+          echo "extra-profile-${name}: ${closure} is missing (garbage-collected before this unit ran)." >&2
+          echo "extra-profile-${name}: attempting to rebuild/substitute from ${drv}..." >&2
+          if ! ${lib.getExe' config.nix.package "nix-store"} --realise "${drv}" >/dev/null; then
+            echo "extra-profile-${name}: could not rebuild ${closure}; run nixos-rebuild switch again." >&2
             exit 1
           fi
         fi
 
-        exec ${lib.getExe' config.nix.package "nix-env"} -p ${p.path} --set "\$closure"
+        exec ${lib.getExe' config.nix.package "nix-env"} -p ${p.path} --set "${closure}"
         SCRIPT
         chmod +x "$out/bin/set-extra-profile"
       '';
