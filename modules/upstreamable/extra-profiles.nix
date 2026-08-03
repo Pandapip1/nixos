@@ -30,15 +30,10 @@ let
       pathsToLink = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ "/" ];
-        description = "List of directories to be symlinked into this profile.";
       };
       extraOutputsToInstall = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
-        example = [
-          "dev"
-          "info"
-        ];
       };
       ignoreCollisions = lib.mkOption {
         type = lib.types.bool;
