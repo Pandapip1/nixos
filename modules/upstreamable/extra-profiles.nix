@@ -81,13 +81,10 @@ in
               mkdir -p "$out/bin"
               cat > "$out/bin/set-extra-profile" <<SCRIPT
               #!${pkgs.runtimeShell}
-              set -euo pipefail
+              set -euox pipefail
 
               if [ ! -e "${closure}" ]; then
-                echo "extra-profile-${name}: ${closure} is missing (garbage-collected before this unit ran)." >&2
-                echo "extra-profile-${name}: attempting to rebuild/substitute from ${drv}..." >&2
-                if ! ${lib.getExe' config.nix.package "nix-store"} --realise "${drv}" >/dev/null; then
-                  echo "extra-profile-${name}: could not rebuild ${closure}; run nixos-rebuild switch again." >&2
+                if ! ${lib.getExe' config.nix.package "nix-store"} --realise "${drv}"; then
                   exit 1
                 fi
               fi
