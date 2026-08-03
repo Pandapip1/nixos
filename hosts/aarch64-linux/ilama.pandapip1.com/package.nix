@@ -15,7 +15,7 @@
   nix-gc.profiles.system.configurationLimit = 3;
 
   # Packages I use here
-  environment.systemPackages = with pkgs; [
+  extraProfiles.singleton.packages = with pkgs; [
     claude-code
   ];
 

@@ -68,11 +68,15 @@
 
   programs.qgroundcontrol.enable = true;
 
-  environment.systemPackages = with pkgs; [
+  # Expensive, frequently-updated toolchains: keep only one generation
+  extraProfiles.singleton.packages = with pkgs; [
     texliveFull
-    act
     nrfconnect
     quartus-prime-lite
+  ];
+
+  environment.systemPackages = with pkgs; [
+    act
     motoc
     xrgears
     # TODO: Make and upstream proper packaging

@@ -12,7 +12,7 @@ lib.mkIf
     && (pkgs.stdenv.hostPlatform.system == "x86_64-linux")
   )
   {
-    environment.systemPackages = with pkgs; [
+    extraProfiles.singleton.packages = with pkgs; [
       grayjay
     ];
   }

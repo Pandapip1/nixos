@@ -9,7 +9,7 @@ lib.mkIf (config.services.graphical-desktop.enable && !(config.optimizations.lea
   programs.chromium = {
     enable = lib.mkDefault true;
   };
-  environment.systemPackages = with pkgs; [
+  extraProfiles.singleton.packages = with pkgs; [
     ungoogled-chromium
   ];
 }
