@@ -11,10 +11,49 @@
         src = prev.fetchFromGitHub {
           owner = "Pandapip1";
           repo = "plover";
-          rev = "722d8d663d5ca1df8ac1abc38229302f0adba1d5"; # ime-probing
-          hash = "sha256-p2E8lAMWvxt58LQ9ELyzhoJv12DmYeTCovGvMeL49Ro=";
+          rev = "1cf2be20ebe41eeef542290fce74cbf6ca847bdb"; # keyboardcontrol-plugins
+          hash = "sha256-gOXduflcHxvz1W6apWTMWK4mU312cyeqx+3rwQ3RSEU=";
         };
       });
+      python3Packages = prev.python3Packages // {
+        plover-plugin-fcitx5-keyboardcontrol = (prev.stdenv.mkDerivation {
+          pname = "fcitx5-plover";
+          version = "0.1.0";
+
+          src = prev.fetchFromGitHub {
+            owner = "Pandapip1";
+            repo = "plover-plugin-fcitx5-keyboardcontrol";
+            rev = "aa29e45c2ec4b902fef51318c0eeb36c952ac058";
+            hash = "sha256-qFCoQvphvN6Hyys8q8h3C5DQfc78/K28f5reyU8HVTE=";
+          };
+
+          nativeBuildInputs = [
+            prev.cmake
+            prev.kdePackages.extra-cmake-modules
+            prev.python3Packages.python
+            prev.python3Packages.pip
+            prev.python3Packages.setuptools
+            prev.python3Packages.wheel
+            prev.python3Packages.pybind11
+          ];
+
+          buildInputs = [
+            prev.kdePackages.extra-cmake-modules
+            prev.fcitx5
+          ];
+
+          __structuredAttrs = true;
+          strictDeps = true;
+          seperateDebugInfo = true;
+
+          meta = {
+            description = "fcitx5 keyboard control backend for Plover, and its matching fcitx5 addon";
+            homepage = "https://github.com/openstenoproject/plover-plugin-fcitx5-keyboardcontrol";
+            license = lib.licenses.gpl3Plus;
+            platforms = lib.platforms.linux;
+          };
+        });
+      };
     })
   ];
 }

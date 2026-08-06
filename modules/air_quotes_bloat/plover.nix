@@ -12,6 +12,7 @@ lib.mkIf (config.services.graphical-desktop.enable && !(config.optimizations.lea
         old.dependencies
         ++ (with python3Packages; [
           plover-lapwing-aio
+          plover-plugin-fcitx5-keyboardcontrol
         ]);
       catchConflicts = false;
     }))
