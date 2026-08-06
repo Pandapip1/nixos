@@ -14,6 +14,8 @@
           rev = "1cf2be20ebe41eeef542290fce74cbf6ca847bdb"; # keyboardcontrol-plugins
           hash = "sha256-gOXduflcHxvz1W6apWTMWK4mU312cyeqx+3rwQ3RSEU=";
         };
+
+        buildInputs = prevAttrs.buildInputs ++ (with prev.qt6; [ qtsvg ]);
       });
       python3Packages = prev.python3Packages // {
         plover-plugin-fcitx5-keyboardcontrol = (prev.stdenv.mkDerivation {
