@@ -19,14 +19,14 @@
       });
       python3Packages = prev.python3Packages // {
         plover-plugin-fcitx5-keyboardcontrol = (prev.stdenv.mkDerivation {
-          pname = "fcitx5-plover";
-          version = "0.1.0";
+          pname = "plover-fcitx5";
+          version = "0.1.0-unstable";
 
           src = prev.fetchFromGitHub {
             owner = "Pandapip1";
             repo = "plover-plugin-fcitx5-keyboardcontrol";
-            rev = "aa29e45c2ec4b902fef51318c0eeb36c952ac058";
-            hash = "sha256-qFCoQvphvN6Hyys8q8h3C5DQfc78/K28f5reyU8HVTE=";
+            rev = "09338708852beb0e6b2f17dc257dcdbcb908e05f";
+            hash = "sha256-tNNj8o6F7J+r/ZtHwmXXJhztjyughOWkg0L9+GLGXqY=";
           };
 
           nativeBuildInputs = [
