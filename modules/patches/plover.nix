@@ -11,8 +11,8 @@
         src = prev.fetchFromGitHub {
           owner = "Pandapip1";
           repo = "plover";
-          rev = "1cf2be20ebe41eeef542290fce74cbf6ca847bdb"; # keyboardcontrol-plugins
-          hash = "sha256-gOXduflcHxvz1W6apWTMWK4mU312cyeqx+3rwQ3RSEU=";
+          rev = "9954fd70aaed3d0be6432f77e1111b8474ef48cf"; # keyboardcontrol-plugins
+          hash = "sha256-OPG58zqOWoLge5I4a7zE4L2Kqi8VOELroEvGOOzn88c=";
         };
 
         buildInputs = prevAttrs.buildInputs ++ (with prev.qt6; [ qtsvg ]);
