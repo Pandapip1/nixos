@@ -11,8 +11,8 @@
         src = prev.fetchFromGitHub {
           owner = "Pandapip1";
           repo = "plover";
-          rev = "9954fd70aaed3d0be6432f77e1111b8474ef48cf"; # keyboardcontrol-plugins
-          hash = "sha256-OPG58zqOWoLge5I4a7zE4L2Kqi8VOELroEvGOOzn88c=";
+          rev = "0cbe59a7c9047c9523ecdabfa80c30588dbbcc61"; # keyboardcontrol-plugins
+          hash = "sha256-V6kwGnW97TeaxYGHSlvZ3FoI0KTHzNVGH74BYoHKLWE=";
         };
 
         buildInputs = prevAttrs.buildInputs ++ (with prev.qt6; [ qtsvg ]);
@@ -24,7 +24,7 @@
 
           src = prev.fetchFromGitHub {
             owner = "Pandapip1";
-            repo = "plover-plugin-fcitx5-keyboardcontrol";
+            repo = "plover-fcitx5";
             rev = "09338708852beb0e6b2f17dc257dcdbcb908e05f";
             hash = "sha256-tNNj8o6F7J+r/ZtHwmXXJhztjyughOWkg0L9+GLGXqY=";
           };
