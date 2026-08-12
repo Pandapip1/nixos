@@ -4,7 +4,10 @@
 }:
 
 {
-  imports = [ ./hardware-configuration.nix ];
+  imports = [
+    ./hardware-configuration.nix
+    ./mudhuts-session.nix
+  ];
 
   # Use COSMIC DE
   services.displayManager.cosmic-greeter.enable = true;
