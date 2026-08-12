@@ -20,6 +20,7 @@
         nativeBuildInputs = with prev; [
           pkg-config
           autoAddDriverRunpath
+          patchelf
         ];
         buildInputs = with prev; [
           wayland
@@ -39,6 +40,10 @@
         ];
 
         WAYLAND_PROTOCOLS_DIR = "${prev.wayland-protocols}/share/wayland-protocols";
+
+        postFixup = ''
+          patchelf --add-rpath ${prev.libglvnd}/lib $out/bin/mudhuts
+        '';
 
         meta.mainProgram = "mudhuts";
       });
