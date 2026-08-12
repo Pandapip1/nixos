@@ -19,6 +19,7 @@
         strictDeps = true;
         nativeBuildInputs = with prev; [
           pkg-config
+          autoAddDriverRunpath
         ];
         buildInputs = with prev; [
           wayland
