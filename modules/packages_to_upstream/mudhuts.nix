@@ -3,13 +3,13 @@
     (_: prev: {
       mudhuts = prev.rustPlatform.buildRustPackage (finalAttrs: {
         pname = "mudhuts";
-        version = "0-unstable-2026-08-12";
+        version = "0-unstable-2026-08-13";
 
         src = prev.fetchFromGitHub {
           owner = "Pandapip1";
           repo = "mudhuts";
-          rev = "fc128e8d407b79a57eb0f9dcd33e53d4045107a5";
-          hash = "sha256-tcfD7shdtT+MMI1SqRVHrq1lCiaIpU40rBdG1dz1tQY=";
+          rev = "46dc1d93f1708d181a47dc67f4cd2dec4dba90c0";
+          hash = "sha256-/LQgK2h/Qa4j1iwdUNcHJ5NmbjdPZ67CDe7Y/UT66D0=";
         };
         cargoLock = {
           lockFile = finalAttrs.src + "/Cargo.lock";
