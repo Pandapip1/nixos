@@ -8,8 +8,8 @@
         src = prev.fetchFromGitHub {
           owner = "Pandapip1";
           repo = "mudhuts";
-          rev = "9a91518a2d84c5c5200561504f6574d1bd0918c7";
-          hash = "sha256-ukIKrieyV93q7kxCbX0LqmtNWUZX4hBesKWvE3XaE9o=";
+          rev = "461c9dc7da803b6737f003416002dd0414e40e77";
+          hash = "sha256-cBXiya35Jam0Bfo+Wvz9tFClN9zVY6dnTD/Lzbv/avc=";
         };
         cargoLock = {
           lockFile = finalAttrs.src + "/Cargo.lock";
