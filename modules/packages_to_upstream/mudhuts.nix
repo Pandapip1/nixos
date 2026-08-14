@@ -8,8 +8,8 @@
         src = prev.fetchFromGitHub {
           owner = "Pandapip1";
           repo = "mudhuts";
-          rev = "3c9dd6b5648f841beee261581fe8dea676ed3cee";
-          hash = "sha256-RmEjgNbIjl1YUPtxE8jxV6z7u+TqBpbh6Wb6FlOVDvI=";
+          rev = "aacedf08daf38fa46409982dddeef5a6d645ec66";
+          hash = "sha256-AOjuTjwz2ucWbF0vT1gJiCS4xd6Ldj7C/lv2tAhrUwE=";
         };
         cargoLock = {
           lockFile = finalAttrs.src + "/Cargo.lock";
@@ -21,6 +21,14 @@
           pkg-config
           autoAddDriverRunpath
           patchelf
+          # `libspa-sys` (part of `mudhuts-portal`'s `pipewire` dependency,
+          # for its ScreenCast backend) uses `bindgen` to generate FFI
+          # bindings from PipeWire/SPA's C headers at build time — this is
+          # nixpkgs' standard hook for that, setting up `LIBCLANG_PATH`
+          # and `BINDGEN_EXTRA_CLANG_ARGS` (glibc's own include path) so
+          # clang can find both libclang itself and the standard C
+          # headers it needs to parse the wrapper header.
+          rustPlatform.bindgenHook
         ];
         buildInputs = with prev; [
           wayland
@@ -37,6 +45,7 @@
           fontconfig
           freetype
           pixman
+          pipewire
         ];
 
         WAYLAND_PROTOCOLS_DIR = "${prev.wayland-protocols}/share/wayland-protocols";
