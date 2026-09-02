@@ -20,8 +20,10 @@ in
   options.optimizations.criticalRealtime.enable =
     lib.mkEnableOption ''
       real-time scheduling for daemons everything else transitively depends
-      on -- D-Bus, the OOM killer (systemd-oomd), audio (pipewire/
-      wireplumber), and speaker protection (speakersafetyd) -- so they
+      on -- D-Bus, session/seat management (logind), DNS (unbound), the
+      real-time priority grantor itself (rtkit), the OOM killer
+      (systemd-oomd), audio (pipewire/wireplumber), input remapping
+      (inputplumber), and speaker protection (speakersafetyd) -- so they
       always preempt ordinary programs instead of just sharing the CPU
       fairly with them. If one of these stalls, whatever depends on it
       stalls too, so it needs to keep running even when the system is
@@ -41,6 +43,22 @@ in
       ))
       (lib.mkIf (config.services.dbus.implementation != "broker") (lib.listToAttrs [ (rt "dbus" 70) ]))
 
+      # Seat/session management: VT switching, lid/power button, and
+      # handing DRM master to the compositor in the first place. Always
+      # present (core systemd), no enable option to gate on.
+      (lib.listToAttrs [ (rt "systemd-logind" 75) ])
+
+      # If this stalls, name resolution stalls for basically everything
+      # network-facing -- same "everything downstream breaks" tier as
+      # D-Bus.
+      (lib.mkIf config.services.unbound.enable (lib.listToAttrs [ (rt "unbound" 65) ]))
+
+      # rtkit is what *grants* other processes real-time priority on
+      # request (the RealtimeKit1 D-Bus API); if it's itself starved,
+      # whatever asks it for RT priority under load doesn't get it when it
+      # matters most.
+      (lib.mkIf config.security.rtkit.enable (lib.listToAttrs [ (rt "rtkit-daemon" 91) ]))
+
       # Needs to be able to react before the kernel's own OOM killer picks
       # something at random -- that's the entire point of running it.
       (lib.mkIf config.systemd.oomd.enable (lib.listToAttrs [ (rt "systemd-oomd" 92) ]))
@@ -52,6 +70,10 @@ in
           ++ lib.optional config.services.pipewire.wireplumber.enable (rt "wireplumber" 80)
         )
       ))
+
+      # Starved input remapping shows up as felt input lag/dropped events,
+      # same category of user-visible harm as an audio glitch.
+      (lib.mkIf config.services.inputplumber.enable (lib.listToAttrs [ (rt "inputplumber" 78) ]))
 
       # speakersafetyd (from nixos-apple-silicon) only clamps its own CPU
       # frequency floor/ceiling (uclamp); unlike pipewire it never elevates
