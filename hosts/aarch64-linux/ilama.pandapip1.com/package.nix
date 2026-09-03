@@ -17,6 +17,8 @@
   # Disk constrained
   nix-gc.profiles.system.configurationLimit = 8;
 
+  services.tailscale.enable = true;
+
   # Packages I use here
   extraProfiles.singleton.packages = with pkgs; [
     claude-code
