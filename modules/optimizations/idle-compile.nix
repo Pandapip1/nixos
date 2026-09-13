@@ -80,7 +80,7 @@ in
       has had a chance to run
     ''
     // {
-      default = true;
+#      default = true;
     };
 
   config = lib.mkIf cfg.enable {
