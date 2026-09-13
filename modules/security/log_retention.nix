@@ -3,9 +3,9 @@
     logrotate = {
       enable = true;
     };
-    journald.extraConfig = ''
-      MaxRetentionSec=5day
-      SystemMaxUse=500M
-    '';
+    journald.settings.Journal = {
+      MaxRetentionSec = "5day";
+      SystemMaxUse = "500M";
+    };
   };
 }
