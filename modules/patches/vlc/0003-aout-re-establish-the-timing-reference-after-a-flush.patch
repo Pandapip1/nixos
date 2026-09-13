@@ -1,0 +1,48 @@
+From 55854f380205b661b8297032ee10a0cd68273862 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 13 Sep 2026 15:43:07 -0400
+Subject: [PATCH 3/3] aout: re-establish the timing reference after a flush
+
+aout_DecSynchronize() picks its thresholds from sync.discontinuity: when
+it is set, any offset is absorbed at once by inserting silence or by
+flushing, and the drift is reset to zero. When it is clear, offsets from
+AOUT_MAX_PTS_ADVANCE up to three times AOUT_MAX_PTS_DELAY are made up by
+resampling instead.
+
+aout_DecFlush() cleared sync.end but left sync.discontinuity alone, and
+the flag is only raised by a discontinuous block or a dropped buffer and
+lowered after every block played. So a seek, or a pause whose output
+cannot be paused, resumed with the flag clear and left the offset the
+flush had just created to be "caught up" by resampling - detuning the
+stream to chase a position it had already been asked to jump to.
+
+Raise the flag in aout_DecFlush() so playback simply resumes from where
+it was told to, as it already does on the 4.0 branch where the timing
+reference is invalidated on reset.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ src/audio_output/dec.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
+index e5c4abbefc..701ad4c821 100644
+--- a/src/audio_output/dec.c
++++ b/src/audio_output/dec.c
+@@ -482,6 +482,13 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
+          * derived from already gone. */
+         aout_StopResampling (aout);
+     }
++
++    /* Treat what follows as a discontinuity, so that aout_DecSynchronize()
++     * re-establishes its reference from the first block instead of trying to
++     * make up an offset that is only an artefact of the flush. Otherwise a
++     * seek or a pause leaves a 40-180 ms offset to be "caught up" by
++     * resampling, which is heard as the stream playing out of tune. */
++    owner->sync.discontinuity = true;
+     aout_OutputUnlock (aout);
+ }
+ 
+-- 
+2.55.0
+

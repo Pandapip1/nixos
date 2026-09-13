@@ -1,0 +1,155 @@
+From 65e6d8c161acb8482602be5407befb9a23ce59e5 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 13 Sep 2026 15:43:07 -0400
+Subject: [PATCH 2/3] aout: make the resampling bound configurable
+
+The right bound is not the same for every use. A video player wants the
+drift made up quickly and will trade some detuning for it; a music
+player, or anything a listener with absolute pitch is using, wants the
+opposite. libvlc embedders have their own answer again. Expose it as
+"aout-max-resampling" rather than deciding for all of them, and read it
+once when the filter chain is built.
+
+Zero disables drift correction by resampling altogether, for callers
+that would rather let the audio stack deal with the device clock and
+never have playback detuned.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ include/vlc_aout.h         |  9 ++++++---
+ src/audio_output/filters.c | 29 +++++++++++++++++++++++------
+ src/libvlc-module.c        | 13 +++++++++++++
+ 3 files changed, 42 insertions(+), 9 deletions(-)
+
+diff --git a/include/vlc_aout.h b/include/vlc_aout.h
+index 2b07bb6f62..e381258f38 100644
+--- a/include/vlc_aout.h
++++ b/include/vlc_aout.h
+@@ -54,8 +54,8 @@
+  * above which upsampling will be performed */
+ #define AOUT_MAX_PTS_DELAY              (3 * CLOCK_FREQ / 50)
+ 
+-/* Maximum drift correction applied by the resampler, in 1/1000 of the nominal
+- * sample rate.
++/* Default for "aout-max-resampling": the maximum drift correction applied by
++ * the resampler, in 1/1000 of the nominal sample rate.
+  *
+  * Resampling changes pitch as well as speed, so this bound is what keeps a
+  * drift correction from being heard as the stream playing out of tune; 5/1000
+@@ -63,7 +63,10 @@
+  * source and the audio device, which is a few tens of ppm for real hardware.
+  * Larger offsets - notably the 60-120 ms a high latency sink typically reports
+  * at start-up - are latency rather than drift, and are absorbed by the silence
+- * insertion and flush paths instead of by detuning the audio. */
++ * insertion and flush paths instead of by detuning the audio.
++ *
++ * Lowering this trades slower resynchronisation for less audible detuning;
++ * zero leaves drift correction by resampling disabled altogether. */
+ #define AOUT_MAX_RESAMPLING_PERMILLE    5
+ 
+ #include "vlc_es.h"
+diff --git a/src/audio_output/filters.c b/src/audio_output/filters.c
+index b62fa21fc1..a4f7a08180 100644
+--- a/src/audio_output/filters.c
++++ b/src/audio_output/filters.c
+@@ -347,6 +347,7 @@ struct aout_filters
+         (either the scaletempo filter or a resampler) */
+     filter_t *resampler; /**< The resampler */
+     int resampling; /**< Current resampling (Hz) */
++    int max_resampling; /**< Bound on resampling (Hz); 0 disables it */
+ 
+     unsigned count; /**< Number of filters */
+     filter_t *tab[AOUT_MAX_FILTERS]; /**< Configured user filters
+@@ -508,6 +509,7 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+         return NULL;
+ 
+     filters->rate_filter = NULL;
++    filters->max_resampling = 0;
+     filters->resampler = NULL;
+     filters->resampling = 0;
+     filters->count = 0;
+@@ -647,6 +649,21 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+         msg_Err (obj, "cannot setup a resampler");
+         goto error;
+     }
++    if (filters->resampler != NULL)
++    {
++        /* Bound the drift correction the caller may accumulate. Kept even so
++         * that the accumulator can still reach exactly 0 in steps of the
++         * caller's adjustment and stop the resampling. */
++        int64_t permille = var_InheritInteger (obj, "aout-max-resampling");
++
++        if (permille < 0)
++            permille = 0;
++        else if (permille > 100)
++            permille = 100;
++
++        filters->max_resampling =
++            (int)((input_format.i_rate * (uint64_t)permille) / 1000) & ~1;
++    }
+     if (filters->rate_filter == NULL)
+         filters->rate_filter = filters->resampler;
+ 
+@@ -681,7 +698,9 @@ void aout_FiltersDelete (vlc_object_t *obj, aout_filters_t *filters)
+ 
+ bool aout_FiltersCanResample (aout_filters_t *filters)
+ {
+-    return (filters->resampler != NULL);
++    /* A zeroed bound disables drift correction by resampling entirely; the
++     * resampler itself may still be needed for plain rate conversion. */
++    return filters->resampler != NULL && filters->max_resampling > 0;
+ }
+ 
+ bool aout_FiltersAdjustResampling (aout_filters_t *filters, int adjust)
+@@ -698,14 +717,12 @@ bool aout_FiltersAdjustResampling (aout_filters_t *filters, int adjust)
+          * at which the drift is made up is itself proportional to the offset.
+          * Since the offset is applied to the resampler's input rate, that is
+          * heard as the stream playing badly out of tune for as long as the
+-         * correction lasts. See AOUT_MAX_RESAMPLING_PERMILLE.
++         * correction lasts. The bound comes from the "aout-max-resampling"
++         * option; see AOUT_MAX_RESAMPLING_PERMILLE for its default.
+          *
+          * The bound is forced even so that the accumulator can still reach
+          * exactly 0 in steps of `adjust` and stop the resampling. */
+-        const unsigned nominal_rate =
+-            filters->resampler->fmt_in.audio.i_rate;
+-        const int max =
+-            (int)((nominal_rate * AOUT_MAX_RESAMPLING_PERMILLE) / 1000) & ~1;
++        const int max = filters->max_resampling;
+         int resampling = filters->resampling + adjust;
+ 
+         if (resampling > max)
+diff --git a/src/libvlc-module.c b/src/libvlc-module.c
+index 56342523f3..8f91f821aa 100644
+--- a/src/libvlc-module.c
++++ b/src/libvlc-module.c
+@@ -232,6 +232,16 @@ static const char *const ppsz_stereo_mode_texts[] = { N_("Unset"),
+     "This allows playing audio at lower or higher speed without " \
+     "affecting the audio pitch" )
+ 
++#define AUDIO_MAX_RESAMPLING_TEXT N_( \
++    "Maximum drift correction by resampling" )
++#define AUDIO_MAX_RESAMPLING_LONGTEXT N_( \
++    "How much resampling may be used to correct drift between the stream and " \
++    "the audio device, in 1/1000 of the sample rate. Resampling shifts pitch " \
++    "as well as speed, so this bounds how far playback can be detuned while a " \
++    "drift is being corrected: 5 is about 8.6 cents. Lower it if you can hear " \
++    "the correction, at the cost of slower resynchronisation. Set it to 0 to " \
++    "never correct drift by resampling." )
++
+ 
+ static const char *const ppsz_replay_gain_mode[] = {
+     "none", "track", "album" };
+@@ -1525,6 +1535,9 @@ vlc_module_begin ()
+ 
+     add_bool( "audio-time-stretch", true,
+               AUDIO_TIME_STRETCH_TEXT, AUDIO_TIME_STRETCH_LONGTEXT, false )
++    add_integer( "aout-max-resampling", AOUT_MAX_RESAMPLING_PERMILLE,
++                 AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT, true )
++        change_integer_range( 0, 100 )
+ 
+     set_subcategory( SUBCAT_AUDIO_AOUT )
+     add_module( "aout", "audio output", NULL, AOUT_TEXT, AOUT_LONGTEXT,
+-- 
+2.55.0
+
