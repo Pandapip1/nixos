@@ -1,0 +1,42 @@
+From 254f76e8d452a10dd0e4fec111878d08ec85230d Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 13 Sep 2026 17:28:01 -0400
+Subject: [PATCH] core: report core errors instead of discarding them
+
+core_error() acted on id 0 with -EPIPE, to schedule a disconnect, and
+dropped everything else without so much as a log line. Server side
+failures were therefore invisible from here: when the daemon reports that
+it could not import a memory block, for instance, the only trace is
+whatever the daemon itself logged, and from the session manager's side
+objects simply stop working for no stated reason.
+
+Warn about the errors that are not handled, so that a failure which
+leaves objects unusable can at least be attributed.
+---
+ lib/wp/core.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/lib/wp/core.c b/lib/wp/core.c
+index c2542a4..6ee9b87 100644
+--- a/lib/wp/core.c
++++ b/lib/wp/core.c
+@@ -272,7 +272,16 @@ core_error (void *data, uint32_t id, int seq, int res, const char *message)
+   if (id == 0 && res == -EPIPE) {
+     wp_core_idle_add_closure (self, NULL, g_cclosure_new_object (
+             G_CALLBACK (core_disconnect_async), G_OBJECT (self)));
++    return;
+   }
++
++  /* Every other error used to be dropped here, which made server side
++   * failures invisible from this end: the only trace was whatever the
++   * daemon happened to log itself. Report them so a failure that leaves
++   * objects unusable can at least be attributed. */
++  wp_warning_object (self, "core error: id:%u seq:%d res:%d (%s): %s",
++      id, seq, res, g_strerror (res < 0 ? -res : res),
++      message ? message : "no message");
+ }
+ 
+ static const struct pw_core_events core_events = {
+-- 
+2.55.0
+

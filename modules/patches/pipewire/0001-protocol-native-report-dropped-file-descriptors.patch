@@ -1,0 +1,147 @@
+From 1270208070221a8a7ce74468c4b5f5975d492c8f Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 13 Sep 2026 17:28:01 -0400
+Subject: [PATCH] protocol-native: report dropped file descriptors
+
+refill_buffer() already notices the case where the kernel could not hand
+us the descriptors attached to a message: it sets MSG_CTRUNC and drops
+the SCM_RIGHTS payload, which in practice means the process has reached
+its open file limit. The control buffer is sized for MAX_FDS_MSG, so a
+short buffer is not a plausible cause here.
+
+That was logged at debug level and returned as -EPROTO, so the reason was
+lost. What the user sees instead is an unexplained
+
+    can't import mem id:4 fd:-1: Invalid argument
+
+on whichever object happened to need that memory, arbitrarily later, with
+the "Invalid argument" coming from pw_mempool_import() rejecting fd -1
+rather than from anything that went wrong at that point.
+
+Log it where it happens, with the current limits, and return -EMFILE so
+callers can tell running out of descriptors apart from a peer sending a
+malformed message. Promote the too-many-fds case to an error as well.
+
+While here, restore msg_control, msg_controllen and msg_flags before each
+recvmsg() attempt: recvmsg() modifies them, so the retry after EINTR ran
+with whatever the interrupted call had left behind, which can silently
+lose descriptors. Also only test msg_flags once the call has succeeded.
+---
+ .../module-protocol-native/connection.c       | 50 ++++++++++++++++---
+ src/pipewire/core.c                           | 15 ++++++
+ 2 files changed, 57 insertions(+), 8 deletions(-)
+
+diff --git a/src/modules/module-protocol-native/connection.c b/src/modules/module-protocol-native/connection.c
+index b415251a7..cdd284cc7 100644
+--- a/src/modules/module-protocol-native/connection.c
++++ b/src/modules/module-protocol-native/connection.c
+@@ -10,6 +10,7 @@
+ #include <unistd.h>
+ #include <fcntl.h>
+ #include <sys/socket.h>
++#include <sys/resource.h>
+ 
+ #include <spa/utils/result.h>
+ #include <spa/pod/builder.h>
+@@ -221,18 +222,26 @@ static int refill_buffer(struct pw_protocol_native_connection *conn, struct buff
+ 	msg.msg_flags = MSG_CMSG_CLOEXEC | MSG_DONTWAIT;
+ 
+ 	while (true) {
++		/* recvmsg() updates these, so restore them before every attempt:
++		 * a retry after EINTR would otherwise run with whatever the
++		 * interrupted call left behind and could silently lose fds. */
++		msg.msg_control = &cmsgbuf;
++		msg.msg_controllen = sizeof(cmsgbuf);
++		msg.msg_flags = MSG_CMSG_CLOEXEC | MSG_DONTWAIT;
++
+ 		len = recvmsg(conn->fd, &msg, msg.msg_flags);
+-		if (msg.msg_flags & MSG_CTRUNC)
+-			goto cmsgs_truncated;
+-		if (len == 0 && avail != 0)
+-			return -EPIPE;
+-		else if (len < 0) {
++		if (len < 0) {
+ 			if (errno == EINTR)
+ 				continue;
+ 			if (errno != EAGAIN && errno != EWOULDBLOCK)
+ 				goto recv_error;
+ 			return -EAGAIN;
+ 		}
++		/* msg_flags only means anything once the call succeeded */
++		if (msg.msg_flags & MSG_CTRUNC)
++			goto cmsgs_truncated;
++		if (len == 0 && avail != 0)
++			return -EPIPE;
+ 		break;
+ 	}
+ 
+@@ -263,12 +272,37 @@ recv_error:
+ 	return -errno;
+ 
+ cmsgs_truncated:
+-	pw_log_debug("connection %p: cmsg truncated", conn);
++	/* The kernel sets MSG_CTRUNC and drops the SCM_RIGHTS payload when it
++	 * cannot install the descriptors into this process, which in practice
++	 * means the open file limit has been reached. The control buffer is
++	 * sized for MAX_FDS_MSG, so a short one is not the cause here.
++	 *
++	 * Say so at the point it happens: the descriptors are gone either way,
++	 * but reporting this as a plain protocol error loses the reason, and it
++	 * resurfaces much later as an unexplained "can't import mem ... fd:-1"
++	 * on whatever object happened to need that memory. */
++	{
++		struct rlimit rlim;
++
++		if (getrlimit(RLIMIT_NOFILE, &rlim) == 0)
++			pw_log_error("connection %p: fd:%d dropped received file "
++					"descriptors (control message truncated); the "
++					"open file limit is likely reached "
++					"(soft:%ju hard:%ju)", conn, conn->fd,
++					(uintmax_t)rlim.rlim_cur,
++					(uintmax_t)rlim.rlim_max);
++		else
++			pw_log_error("connection %p: fd:%d dropped received file "
++					"descriptors (control message truncated)",
++					conn, conn->fd);
++	}
+ 	close_all_fds(&msg, CMSG_FIRSTHDR(&msg));
+-	return -EPROTO;
++	return -EMFILE;
+ 
+ too_many_fds:
+-	pw_log_debug("connection %p: too many fds", conn);
++	pw_log_error("connection %p: fd:%d received too many file descriptors "
++			"(%d in this message, %u buffered, max %u)",
++			conn, conn->fd, n_fds, buf->n_fds, MAX_FDS);
+ 	close_all_fds(&msg, cmsg);
+ 	return -EPROTO;
+ }
+diff --git a/src/pipewire/core.c b/src/pipewire/core.c
+index 3eb6d7bb6..a5e017f58 100644
+--- a/src/pipewire/core.c
++++ b/src/pipewire/core.c
+@@ -95,6 +95,21 @@ static void core_event_add_mem(void *data, uint32_t id, uint32_t type, int fd, u
+ 
+ 	pw_log_debug("%p: add mem %u type:%u fd:%d flags:%08x", this, id, type, fd, flags);
+ 
++	if (fd < 0) {
++		/* The descriptor did not survive the trip across the socket; the
++		 * connection layer has already reported why (typically the open
++		 * file limit). The connection itself is still usable, so keep it.
++		 *
++		 * Whatever later needs this block looks it up with
++		 * pw_mempool_find_id() and fails on its own -- a buffer set is
++		 * refused with -ENODEV and can be renegotiated. Erroring the core
++		 * proxy instead would tear down every object on this connection,
++		 * which for a session manager means losing all of its devices. */
++		pw_log_error("%p: no file descriptor received for mem id:%u; "
++				"objects requiring this memory will fail", this, id);
++		return;
++	}
++
+ 	m = pw_mempool_import(this->pool, flags, type, fd);
+ 	if (m == NULL) {
+ 		pw_log_error("%p: can't import mem id:%u fd:%d: %m", this, id, fd);
+-- 
+2.55.0
+

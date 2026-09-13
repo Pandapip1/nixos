@@ -17,6 +17,10 @@
           ./0001-aout-bound-and-reset-the-drift-correction-resampling.patch
           ./0002-aout-make-the-resampling-bound-configurable.patch
           ./0003-aout-re-establish-the-timing-reference-after-a-flush.patch
+          # Seeking was refused once the ogg streams had been torn down at end
+          # of stream, so the seek back to the start that repeats a file could
+          # never succeed and the input retried it in a tight loop.
+          ./0004-demux-ogg-allow-seeking-once-the-streams-have-been-t.patch
         ];
       });
     })
