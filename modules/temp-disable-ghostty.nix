@@ -7,7 +7,7 @@
 {
   nixpkgs.overlays = [
     (_: prev: {
-      ghostty = prev.emptyDirectory;
+      ghostty = prev.emptyDirectory // { terminfo = prev.emptyDirectory; };
     })
   ];
 }
