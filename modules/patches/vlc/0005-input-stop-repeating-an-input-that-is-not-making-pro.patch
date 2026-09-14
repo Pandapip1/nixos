@@ -1,0 +1,88 @@
+From 67a6124ef5f92b77a8e8f151cb1bedcb040e1c18 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 13 Sep 2026 19:01:24 -0400
+Subject: [PATCH 05/22] input: stop repeating an input that is not making
+ progress
+
+MainLoopTryRepeat() repeats by seeking back to the start, and a seek that
+is refused leaves the end of stream exactly as it was. The next pass
+through the main loop then asks for the same repeat again, and nothing
+bounds that beyond the repeat count itself.
+
+With --input-repeat set high the input burns through the whole count as
+fast as it can, two log lines per attempt and no playback in between. A
+Vorbis file is enough to trigger it: the ogg demuxer tears its logical
+streams down at end of stream and refuses every seek afterwards, so with
+--input-repeat=65535 the count is spent in one busy loop and around ten
+megabytes of errors.
+
+Track whether anything has been demuxed since the last repeat was asked
+for, and refuse to ask again if not. One warning, then the input ends as
+it would have anyway.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ src/input/input.c          | 18 ++++++++++++++++++
+ src/input/input_internal.h |  2 ++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/src/input/input.c b/src/input/input.c
+index fcd3ecbf55..35a8c35fb7 100644
+--- a/src/input/input.c
++++ b/src/input/input.c
+@@ -577,6 +577,9 @@ static void MainLoopDemux( input_thread_t *p_input, bool *pb_changed )
+     if( i_ret == VLC_DEMUXER_SUCCESS )
+         i_ret = demux_Demux( p_demux );
+ 
++    if( i_ret > 0 )
++        p_priv->b_repeat_pending = false;
++
+     i_ret = i_ret > 0 ? VLC_DEMUXER_SUCCESS : ( i_ret < 0 ? VLC_DEMUXER_EGENERIC : VLC_DEMUXER_EOF);
+ 
+     if( i_ret == VLC_DEMUXER_SUCCESS )
+@@ -609,10 +612,24 @@ static void MainLoopDemux( input_thread_t *p_input, bool *pb_changed )
+ 
+ static int MainLoopTryRepeat( input_thread_t *p_input )
+ {
++    input_thread_private_t *priv = input_priv(p_input);
+     int i_repeat = var_GetInteger( p_input, "input-repeat" );
+     if( i_repeat <= 0 )
+         return VLC_EGENERIC;
+ 
++    /* A repeat is a seek back to the start, and a seek that does not take
++     * leaves the end of stream exactly as it was, so the next pass through the
++     * main loop asks for the same repeat again. Nothing bounded that beyond
++     * the repeat count itself: with a large count it spins as fast as it can,
++     * writing an error line per attempt and getting nowhere. Require the
++     * previous repeat to have demuxed something before allowing another. */
++    if( priv->b_repeat_pending )
++    {
++        msg_Warn( p_input, "repeating the input did not get anywhere, "
++                  "giving up" );
++        return VLC_EGENERIC;
++    }
++
+     vlc_value_t val;
+ 
+     msg_Dbg( p_input, "repeating the same input (%d)", i_repeat );
+@@ -621,6 +638,7 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
+         i_repeat--;
+         var_SetInteger( p_input, "input-repeat", i_repeat );
+     }
++    priv->b_repeat_pending = true;
+ 
+     /* Seek to start title/seekpoint */
+     val.i_int = input_priv(p_input)->master->i_title_start -
+diff --git a/src/input/input_internal.h b/src/input/input_internal.h
+index ea02f39f5a..7be8bb3f24 100644
+--- a/src/input/input_internal.h
++++ b/src/input/input_internal.h
+@@ -105,6 +105,8 @@ typedef struct input_thread_private_t
+     int64_t     i_stop;     /* :stop-time, 0 if none */
+     int64_t     i_time;     /* Current time */
+     bool        b_fast_seek;/* :input-fast-seek */
++    bool        b_repeat_pending; /* a repeat was asked for and has not
++                                     demuxed anything since */
+ 
+     /* Output */
+     bool            b_out_pace_control; /* XXX Move it ot es_sout ? */

@@ -1,0 +1,45 @@
+From a19d0e01b9188c3f707170cbfa8f549a5eaaea99 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 13 Sep 2026 19:45:06 -0400
+Subject: [PATCH 14/22] demux: stl: allow seeking to the last subtitle, and in
+ single entry files
+
+DEMUX_SET_TIME walks the index looking for the first entry whose
+successor starts at or after the requested time, so it can never reach
+the last entry: the loop stops one short. Any target past the last
+subtitle start falls through to VLC_EGENERIC, and a file holding a single
+subtitle never enters the loop at all, so it cannot be sought anywhere -
+not even back to the start, which is how the input repeats a file.
+DEMUX_SET_POSITION forwards to this and inherits both.
+
+Fall back to the last entry, which is where those targets belong.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ modules/demux/stl.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/modules/demux/stl.c b/modules/demux/stl.c
+index f0664c2bf8..e8099062ea 100644
+--- a/modules/demux/stl.c
++++ b/modules/demux/stl.c
+@@ -130,6 +130,19 @@ static int Control(demux_t *demux, int query, va_list args)
+                 return VLC_SUCCESS;
+             }
+         }
++        /* Nothing starts after t, so the target lies in or past the last
++         * entry. The loop cannot reach it because it stops one short, and
++         * with a single subtitle it does not run at all - which made such a
++         * file impossible to seek anywhere, including back to the start. */
++        if( sys->count > 0 &&
++            vlc_stream_Seek(demux->s,
++                            1024 + 128LL * sys->index[sys->count - 1].blocknumber) == VLC_SUCCESS )
++        {
++            sys->current = sys->count - 1;
++            sys->next_date = t;
++            sys->b_first_time = true;
++            return VLC_SUCCESS;
++        }
+         break;
+     }
+     case DEMUX_SET_POSITION:

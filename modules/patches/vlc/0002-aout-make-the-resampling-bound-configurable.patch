@@ -1,7 +1,7 @@
-From 65e6d8c161acb8482602be5407befb9a23ce59e5 Mon Sep 17 00:00:00 2001
+From 3833f92bcf7f509dd967606bf590a0d091aa73ce Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 15:43:07 -0400
-Subject: [PATCH 2/3] aout: make the resampling bound configurable
+Subject: [PATCH 02/22] aout: make the resampling bound configurable
 
 The right bound is not the same for every use. A video player wants the
 drift made up quickly and will trade some detuning for it; a music
@@ -150,6 +150,3 @@ index 56342523f3..8f91f821aa 100644
  
      set_subcategory( SUBCAT_AUDIO_AOUT )
      add_module( "aout", "audio output", NULL, AOUT_TEXT, AOUT_LONGTEXT,
--- 
-2.55.0
-
