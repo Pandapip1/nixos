@@ -1,20 +1,20 @@
-From 0e07413f26108d4bfdcf618c35bc98ed8f41437a Mon Sep 17 00:00:00 2001
+From c56b57df8af074e8a3eff2477db9418e8032e32c Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 15:29:51 -0400
-Subject: [PATCH 01/31] aout: bound and reset the drift-correction resampling
+Date: Sun, 13 Sep 2026 15:28:20 -0400
+Subject: [PATCH 01/20] aout: bound and reset the drift-correction resampling
 
 The audio core corrects drift between the stream and the audio device by
 accumulating an offset, two Hertz per block, onto the resampler's input
 rate. Three problems make that audible as the stream playing out of tune.
 
 The accumulator was unbounded. AOUT_MAX_RESAMPLING was documented as the
-"max acceptable resampling" but was not referenced anywhere, so nothing
-capped it. The rate at which a drift is made up is itself proportional
-to the offset, so absorbing a large one ramps the offset into the kHz
-range: a sink reporting 60-120 ms at start-up, which is routine over
-Bluetooth, drives it to several percent of the nominal rate and holds it
-there for seconds. Measured against the source, that is 40 to 95 cents
-sharp - most of a semitone. Replace the constant with
+"max acceptable resampling" but had not been referenced anywhere since
+1abc59b7228f, so nothing capped it. The rate at which a drift is made up
+is itself proportional to the offset, so absorbing a large one ramps the
+offset into the kHz range: a sink reporting 60-120 ms at start-up, which
+is routine over Bluetooth, drives it to several percent of the nominal
+rate and holds it there for seconds. Measured against the source, that
+is 40 to 95 cents sharp - most of a semitone. Replace the constant with
 AOUT_MAX_RESAMPLING_PERMILLE and actually enforce it. The bound only has
 to cover real clock drift, a few tens of ppm for real hardware; latency
 offsets are already handled by the silence insertion and flush paths.
@@ -23,27 +23,25 @@ The accumulator was not dropped when the correction changed direction,
 so it kept pushing the wrong way until it had unwound, making the drift
 it was meant to correct worse in the meantime.
 
-The accumulator was not dropped on flush or on pause either.
-aout_DecFlush() discards the filters' buffers but left the offset in
-place, so a seek or a pause resumed with the stream still resampled, and
-with the timing reference that produced the offset already gone. Only
-the internal "playback way too late" path cleared it, which is why the
-detuning would sometimes survive until the output glitched.
+The accumulator was not dropped on reset either. aout_FiltersFlush()
+discards the filters' buffers but left the offset in place, so a flush,
+a seek or a pause resumed with the stream still resampled, and with the
+timing reference that produced the offset already gone.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 ---
  include/vlc_aout.h         | 13 +++++++++++--
- src/audio_output/dec.c     | 13 +++++++++++++
+ src/audio_output/dec.c     | 16 ++++++++++++++++
  src/audio_output/filters.c | 26 +++++++++++++++++++++++++-
- 3 files changed, 49 insertions(+), 3 deletions(-)
+ 3 files changed, 52 insertions(+), 3 deletions(-)
 
 diff --git a/include/vlc_aout.h b/include/vlc_aout.h
-index 5025c70b95..2b07bb6f62 100644
+index 6c1fc1e642..ec9cb160b2 100644
 --- a/include/vlc_aout.h
 +++ b/include/vlc_aout.h
-@@ -54,8 +54,17 @@
+@@ -60,8 +60,17 @@
   * above which upsampling will be performed */
- #define AOUT_MAX_PTS_DELAY              (3 * CLOCK_FREQ / 50)
+ #define AOUT_MAX_PTS_DELAY              VLC_TICK_FROM_MS(60)
  
 -/* Max acceptable resampling (in %) */
 -#define AOUT_MAX_RESAMPLING             10
@@ -59,59 +57,63 @@ index 5025c70b95..2b07bb6f62 100644
 + * insertion and flush paths instead of by detuning the audio. */
 +#define AOUT_MAX_RESAMPLING_PERMILLE    5
  
- #include "vlc_es.h"
- 
+ #define AOUT_FMTS_IDENTICAL( p_first, p_second ) (                          \
+     ((p_first)->i_format == (p_second)->i_format)                           \
 diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
-index 7eca0de2fd..6e7ea17599 100644
+index 44f38134ab..85eb77df2c 100644
 --- a/src/audio_output/dec.c
 +++ b/src/audio_output/dec.c
-@@ -312,6 +312,9 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+@@ -279,6 +279,8 @@ static void stream_ResetTimings(vlc_aout_stream *stream)
+     stream->timing.played_samples = 0;
+ }
+ 
++static void stream_StopResampling(vlc_aout_stream *stream);
++
+ static void stream_Reset(vlc_aout_stream *stream)
+ {
+     aout_owner_t *owner = aout_stream_owner(stream);
+@@ -288,8 +290,16 @@ static void stream_Reset(vlc_aout_stream *stream)
+         vlc_audio_meter_Flush(&owner->meter);
+ 
+         if (stream->filters)
++        {
+             aout_FiltersFlush (stream->filters);
+ 
++            /* Drop any accumulated drift correction along with the data it was
++             * computed for. Keeping it would leave the stream resampled - and
++             * so detuned - after a flush, a seek or a pause, with the timing
++             * reference it was derived from already gone. */
++            stream_StopResampling(stream);
++        }
++
+         vlc_clock_Lock(stream->sync.clock);
+         vlc_clock_Reset(stream->sync.clock);
+         vlc_clock_Unlock(stream->sync.clock);
+@@ -664,6 +674,10 @@ static void stream_HandleDrift(vlc_aout_stream *stream, vlc_tick_t drift,
                    drift);
-         owner->sync.resamp_type = AOUT_RESAMPLING_UP;
-         owner->sync.resamp_start_drift = +drift;
-+        /* A correction from the other direction pushes the wrong way until
-+         * it unwinds. */
-+        aout_FiltersAdjustResampling (owner->filters, 0);
+         stream->sync.resamp_type = AOUT_RESAMPLING_UP;
+         stream->sync.resamp_start_drift = +drift;
++        /* Discard a correction left over from the opposite direction: it
++         * pushes the wrong way until it has unwound, which makes the drift it
++         * is supposed to be correcting worse in the meantime. */
++        aout_FiltersAdjustResampling(stream->filters, 0);
      }
      if (drift < -AOUT_MAX_PTS_ADVANCE
-      && owner->sync.resamp_type != AOUT_RESAMPLING_DOWN)
-@@ -320,6 +323,8 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+      && stream->sync.resamp_type != AOUT_RESAMPLING_DOWN)
+@@ -674,6 +688,8 @@ static void stream_HandleDrift(vlc_aout_stream *stream, vlc_tick_t drift,
                    drift);
-         owner->sync.resamp_type = AOUT_RESAMPLING_DOWN;
-         owner->sync.resamp_start_drift = -drift;
+         stream->sync.resamp_type = AOUT_RESAMPLING_DOWN;
+         stream->sync.resamp_start_drift = -drift;
 +        /* See above. */
-+        aout_FiltersAdjustResampling (owner->filters, 0);
++        aout_FiltersAdjustResampling(stream->filters, 0);
      }
  
-     if (owner->sync.resamp_type == AOUT_RESAMPLING_NONE)
-@@ -442,7 +447,12 @@ void aout_DecChangePause (audio_output_t *aout, bool paused, vlc_tick_t date)
-             owner->sync.end += date;
-     }
-     if (owner->mixer_format.i_format)
-+    {
-+        /* The reference it was derived from does not survive the pause. */
-+        if (paused)
-+            aout_StopResampling (aout);
-         aout_OutputPause (aout, paused, date);
-+    }
-     aout_OutputUnlock (aout);
- }
- 
-@@ -463,6 +473,9 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
-         else
-             aout_FiltersFlush (owner->filters);
-         aout_OutputFlush (aout, wait);
-+
-+        /* Drop the correction with the data it was computed for. */
-+        aout_StopResampling (aout);
-     }
-     aout_OutputUnlock (aout);
- }
+     if (stream->sync.resamp_type == AOUT_RESAMPLING_NONE)
 diff --git a/src/audio_output/filters.c b/src/audio_output/filters.c
-index 585379e7c3..b62fa21fc1 100644
+index 61a218bd8d..36f199aca4 100644
 --- a/src/audio_output/filters.c
 +++ b/src/audio_output/filters.c
-@@ -690,7 +690,31 @@ bool aout_FiltersAdjustResampling (aout_filters_t *filters, int adjust)
+@@ -778,7 +778,31 @@ bool aout_FiltersAdjustResampling (aout_filters_t *filters, int adjust)
          return false;
  
      if (adjust)
@@ -129,7 +131,7 @@ index 585379e7c3..b62fa21fc1 100644
 +         * The bound is forced even so that the accumulator can still reach
 +         * exactly 0 in steps of `adjust` and stop the resampling. */
 +        const unsigned nominal_rate =
-+            filters->resampler->fmt_in.audio.i_rate;
++            filters->resampler.f->fmt_in.audio.i_rate;
 +        const int max =
 +            (int)((nominal_rate * AOUT_MAX_RESAMPLING_PERMILLE) / 1000) & ~1;
 +        int resampling = filters->resampling + adjust;

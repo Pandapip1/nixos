@@ -1,7 +1,7 @@
-From 8814ab1f942022a8eccb5a8228f3e62dc00eaa8c Mon Sep 17 00:00:00 2001
+From 4c08aa2052fcfb657e4e7392a88c270d477fa431 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 20:04:50 -0400
-Subject: [PATCH 18/31] demux: mp4: let a seek recover from an unknown read
+Date: Sun, 13 Sep 2026 20:04:53 -0400
+Subject: [PATCH 14/20] demux: mp4: let a seek recover from an unknown read
  position
 
 b_error is raised when a seek fails and the seek back to where we were
@@ -23,10 +23,10 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
  1 file changed, 10 insertions(+)
 
 diff --git a/modules/demux/mp4/mp4.c b/modules/demux/mp4/mp4.c
-index e5db797c8b..fc3d36f297 100644
+index 3ef4e96a09..fb7cde6c1a 100644
 --- a/modules/demux/mp4/mp4.c
 +++ b/modules/demux/mp4/mp4.c
-@@ -1610,6 +1610,11 @@ static int Seek( demux_t *p_demux, vlc_tick_t i_date, bool b_accurate )
+@@ -1930,6 +1930,11 @@ static int Seek( demux_t *p_demux, vlc_tick_t i_date, bool b_accurate )
      demux_sys_t *p_sys = p_demux->p_sys;
      unsigned int i_track;
  
@@ -38,7 +38,7 @@ index e5db797c8b..fc3d36f297 100644
      /* Now for each stream try to go to this time */
      vlc_tick_t i_start = i_date;
      for( i_track = 0; i_track < p_sys->i_tracks; i_track++ )
-@@ -1801,6 +1806,11 @@ static void FragTrunSeekToTime( mp4_track_t *p_track, stime_t i_target_time )
+@@ -2130,6 +2135,11 @@ static void FragTrunSeekToTime( mp4_track_t *p_track, stime_t i_target_time )
  static int FragSeekToTime( demux_t *p_demux, vlc_tick_t i_nztime, bool b_accurate )
  {
      demux_sys_t *p_sys = p_demux->p_sys;
@@ -49,4 +49,4 @@ index e5db797c8b..fc3d36f297 100644
 +    p_sys->b_error = false;
      uint64_t i64 = UINT64_MAX;
      uint32_t i_segment_type = ATOM_moof;
-     stime_t  i_segment_time = INT64_MAX;
+     stime_t  i_segment_time = INVALID_SEGMENT_TIME;

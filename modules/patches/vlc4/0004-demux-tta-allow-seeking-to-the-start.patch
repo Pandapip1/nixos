@@ -1,7 +1,7 @@
-From 8210ea37432fbb1d13e9a24722b7643b7d4a7863 Mon Sep 17 00:00:00 2001
+From c4e1cbdcf1445fe23f460180e732fd8da71fe44e Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 19:10:29 -0400
-Subject: [PATCH 07/31] demux: tta: allow seeking to the start
+Date: Sun, 13 Sep 2026 19:13:22 -0400
+Subject: [PATCH 04/20] demux: tta: allow seeking to the start
 
 DEMUX_SET_POSITION computes a byte target from the requested position and
 then acts on it only when it is strictly positive, so position 0 - which
@@ -18,10 +18,10 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/modules/demux/tta.c b/modules/demux/tta.c
-index bf1ea54438..a79a7f528e 100644
+index 2b2f4a5707..59e7370c6f 100644
 --- a/modules/demux/tta.c
 +++ b/modules/demux/tta.c
-@@ -251,7 +251,10 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
+@@ -250,7 +250,10 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
          case DEMUX_SET_POSITION:
              f = va_arg( args, double );
              i64 = (int64_t)(f * (stream_Size( p_demux->s ) - p_sys->i_start));

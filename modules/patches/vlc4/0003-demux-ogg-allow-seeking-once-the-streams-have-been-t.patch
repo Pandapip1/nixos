@@ -1,7 +1,7 @@
-From 90c863322b656da230c694fcd1989c05ff627418 Mon Sep 17 00:00:00 2001
+From 13ac22846cc712acf983fba77ae70589e6f8ddda Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 17:55:52 -0400
-Subject: [PATCH 04/31] demux: ogg: allow seeking once the streams have been
+Date: Sun, 13 Sep 2026 17:55:22 -0400
+Subject: [PATCH 03/20] demux: ogg: allow seeking once the streams have been
  torn down
 
 At the end of a stream Demux() tears the logical streams down, and in the
@@ -26,20 +26,29 @@ Fall back to it instead of refusing.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 ---
- modules/demux/ogg.c | 7 +++++++
- 1 file changed, 7 insertions(+)
+ modules/demux/ogg.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
 
 diff --git a/modules/demux/ogg.c b/modules/demux/ogg.c
-index 43b0ebf046..126581eeef 100644
+index f4d5baf2da..a528493107 100644
 --- a/modules/demux/ogg.c
 +++ b/modules/demux/ogg.c
-@@ -759,6 +759,13 @@ static logical_stream_t * Ogg_GetSelectedStream( demux_t *p_demux )
+@@ -695,6 +695,22 @@ static logical_stream_t * Ogg_GetSelectedStream( demux_t *p_demux )
              break;
          }
      }
 +
-+    /* At end of stream the logical streams are torn down and the last one
-+     * is parked in p_old_stream; it still has what the seek needs. */
++    /* Once the end of the stream has been reached the logical streams are torn
++     * down, and for the single stream case the last one is parked in
++     * p_old_stream so that Ogg_BeginningOfStream() can reuse its ES. i_streams
++     * is zero by then, so the loop above finds nothing and every seek is
++     * refused -- including the seek back to the start that the input uses to
++     * repeat a file, which then retries forever against an error that cannot
++     * clear itself.
++     *
++     * The parked stream still carries everything the seek needs, and seeking
++     * is what makes the demuxer usable again: the next Demux() re-reads the
++     * headers from the new position. So use it. */
 +    if( p_stream == NULL && p_sys->p_old_stream != NULL &&
 +        p_sys->p_old_stream->p_es != NULL )
 +        p_stream = p_sys->p_old_stream;

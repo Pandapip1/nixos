@@ -1,7 +1,7 @@
-From 38461e7743e5c6a552f105c849dd84128bcc24cc Mon Sep 17 00:00:00 2001
+From 3a515a79adcd001f158290b4fb88b00a61a4eca0 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:07:04 -0400
-Subject: [PATCH 06/26] input: repeat the current item in place
+Subject: [PATCH 06/31] input: repeat the current item in place
 
 Repeating one item is currently the playlist's job: the input reaches the
 end and dies, NextItem() hands the same item straight back, and
@@ -29,14 +29,14 @@ the played counter fire once for the whole run rather than once per loop.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 ---
- src/input/input.c | 25 ++++++++++++++++++++++++-
- 1 file changed, 24 insertions(+), 1 deletion(-)
+ src/input/input.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
 
 diff --git a/src/input/input.c b/src/input/input.c
-index 35a8c35fb7..958f3951ab 100644
+index 35a8c35fb7..5c3b7c1f33 100644
 --- a/src/input/input.c
 +++ b/src/input/input.c
-@@ -614,9 +614,32 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
+@@ -614,9 +614,21 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
  {
      input_thread_private_t *priv = input_priv(p_input);
      int i_repeat = var_GetInteger( p_input, "input-repeat" );
@@ -47,21 +47,10 @@ index 35a8c35fb7..958f3951ab 100644
  
 +    if( i_repeat == 0 )
 +    {
-+        /* Follow the playlist's own repeat setting, which it would otherwise
-+         * honour by destroying this input and building a new one for the same
-+         * item. That takes the demuxer, the decoder and the audio output down
-+         * and back up on every pass, which on a sink with any real latency is
-+         * an audible break at the loop point. Seeking back to the start does
-+         * the same job and keeps all of it alive.
-+         *
-+         * Only for inputs that can actually be rewound and that belong to the
-+         * playlist: the media library and the preparser run inputs of their
-+         * own whose demuxers cannot seek, and they have no business following
-+         * a playlist setting.
-+         *
-+         * Read here rather than latched when the input starts, so that
-+         * toggling repeat during playback takes effect from the end of the
-+         * current pass. */
++        /* The playlist would otherwise honour this by destroying the input
++         * and building a new one, which takes the demuxer, decoder and audio
++         * output down and back up at every loop. Only for inputs that can be
++         * rewound and belong to the playlist. */
 +        if( !var_GetBool( p_input, "can-seek" )
 +         || !var_InheritBool( p_input, "repeat" ) )
 +            return VLC_EGENERIC;

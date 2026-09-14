@@ -1,7 +1,7 @@
-From d191b68463d23e8e9d3bb9cf4750200877af76c4 Mon Sep 17 00:00:00 2001
+From f271e8e9e154982fc65b07d4033e54f23734be9e Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 15:43:07 -0400
-Subject: [PATCH 02/31] aout: make the resampling bound configurable
+Date: Sun, 13 Sep 2026 15:42:02 -0400
+Subject: [PATCH 02/20] aout: make the resampling bound configurable
 
 The right bound is not the same for every use. A video player wants the
 drift made up quickly and will trade some detuning for it; a music
@@ -17,17 +17,17 @@ never have playback detuned.
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 ---
  include/vlc_aout.h         |  9 ++++++---
- src/audio_output/filters.c | 41 +++++++++++++++++++++++---------------
- src/libvlc-module.c        | 13 ++++++++++++
- 3 files changed, 44 insertions(+), 19 deletions(-)
+ src/audio_output/filters.c | 29 +++++++++++++++++++++++------
+ src/libvlc-module.c        | 13 +++++++++++++
+ 3 files changed, 42 insertions(+), 9 deletions(-)
 
 diff --git a/include/vlc_aout.h b/include/vlc_aout.h
-index 2b07bb6f62..e381258f38 100644
+index ec9cb160b2..87dda6b290 100644
 --- a/include/vlc_aout.h
 +++ b/include/vlc_aout.h
-@@ -54,8 +54,8 @@
+@@ -60,8 +60,8 @@
   * above which upsampling will be performed */
- #define AOUT_MAX_PTS_DELAY              (3 * CLOCK_FREQ / 50)
+ #define AOUT_MAX_PTS_DELAY              VLC_TICK_FROM_MS(60)
  
 -/* Maximum drift correction applied by the resampler, in 1/1000 of the nominal
 - * sample rate.
@@ -36,7 +36,7 @@ index 2b07bb6f62..e381258f38 100644
   *
   * Resampling changes pitch as well as speed, so this bound is what keeps a
   * drift correction from being heard as the stream playing out of tune; 5/1000
-@@ -63,7 +63,10 @@
+@@ -69,7 +69,10 @@
   * source and the audio device, which is a few tens of ppm for real hardware.
   * Larger offsets - notably the 60-120 ms a high latency sink typically reports
   * at start-up - are latency rather than drift, and are absorbed by the silence
@@ -47,32 +47,32 @@ index 2b07bb6f62..e381258f38 100644
 + * zero leaves drift correction by resampling disabled altogether. */
  #define AOUT_MAX_RESAMPLING_PERMILLE    5
  
- #include "vlc_es.h"
+ #define AOUT_FMTS_IDENTICAL( p_first, p_second ) (                          \
 diff --git a/src/audio_output/filters.c b/src/audio_output/filters.c
-index b62fa21fc1..7d81345f4b 100644
+index 36f199aca4..076c096319 100644
 --- a/src/audio_output/filters.c
 +++ b/src/audio_output/filters.c
-@@ -347,6 +347,7 @@ struct aout_filters
+@@ -368,6 +368,7 @@ struct aout_filters
          (either the scaletempo filter or a resampler) */
-     filter_t *resampler; /**< The resampler */
+     struct aout_filter resampler; /**< The resampler */
      int resampling; /**< Current resampling (Hz) */
 +    int max_resampling; /**< Bound on resampling (Hz); 0 disables it */
+     vlc_clock_t *clock_source;
  
      unsigned count; /**< Number of filters */
-     filter_t *tab[AOUT_MAX_FILTERS]; /**< Configured user filters
-@@ -508,6 +509,7 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+@@ -552,6 +553,7 @@ aout_filters_t *aout_FiltersNewWithClock(vlc_object_t *obj, vlc_clock_t *clock,
          return NULL;
  
      filters->rate_filter = NULL;
 +    filters->max_resampling = 0;
-     filters->resampler = NULL;
+     aout_filter_Init(&filters->resampler, NULL);
      filters->resampling = 0;
      filters->count = 0;
-@@ -647,6 +649,21 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+@@ -681,6 +683,21 @@ aout_filters_t *aout_FiltersNewWithClock(vlc_object_t *obj, vlc_clock_t *clock,
          msg_Err (obj, "cannot setup a resampler");
          goto error;
      }
-+    if (filters->resampler != NULL)
++    if (filters->resampler.f != NULL)
 +    {
 +        /* Bound the drift correction the caller may accumulate. Kept even so
 +         * that the accumulator can still reach exactly 0 in steps of the
@@ -88,51 +88,42 @@ index b62fa21fc1..7d81345f4b 100644
 +            (int)((input_format.i_rate * (uint64_t)permille) / 1000) & ~1;
 +    }
      if (filters->rate_filter == NULL)
-         filters->rate_filter = filters->resampler;
+         filters->rate_filter = filters->resampler.f;
  
-@@ -681,7 +698,9 @@ void aout_FiltersDelete (vlc_object_t *obj, aout_filters_t *filters)
+@@ -769,7 +786,9 @@ void aout_FiltersDelete (vlc_object_t *obj, aout_filters_t *filters)
  
  bool aout_FiltersCanResample (aout_filters_t *filters)
  {
--    return (filters->resampler != NULL);
+-    return (filters->resampler.f != NULL);
 +    /* A zeroed bound disables drift correction by resampling entirely; the
 +     * resampler itself may still be needed for plain rate conversion. */
-+    return filters->resampler != NULL && filters->max_resampling > 0;
++    return filters->resampler.f != NULL && filters->max_resampling > 0;
  }
  
  bool aout_FiltersAdjustResampling (aout_filters_t *filters, int adjust)
-@@ -691,21 +710,11 @@ bool aout_FiltersAdjustResampling (aout_filters_t *filters, int adjust)
- 
-     if (adjust)
-     {
--        /* Bound the accumulated correction.
--         *
--         * Without a bound, absorbing a large drift ramps this offset into the
--         * kHz range - several percent of the nominal rate - because the rate
--         * at which the drift is made up is itself proportional to the offset.
--         * Since the offset is applied to the resampler's input rate, that is
--         * heard as the stream playing badly out of tune for as long as the
+@@ -786,14 +805,12 @@ bool aout_FiltersAdjustResampling (aout_filters_t *filters, int adjust)
+          * at which the drift is made up is itself proportional to the offset.
+          * Since the offset is applied to the resampler's input rate, that is
+          * heard as the stream playing badly out of tune for as long as the
 -         * correction lasts. See AOUT_MAX_RESAMPLING_PERMILLE.
--         *
--         * The bound is forced even so that the accumulator can still reach
--         * exactly 0 in steps of `adjust` and stop the resampling. */
++         * correction lasts. The bound comes from the "aout-max-resampling"
++         * option; see AOUT_MAX_RESAMPLING_PERMILLE for its default.
+          *
+          * The bound is forced even so that the accumulator can still reach
+          * exactly 0 in steps of `adjust` and stop the resampling. */
 -        const unsigned nominal_rate =
--            filters->resampler->fmt_in.audio.i_rate;
+-            filters->resampler.f->fmt_in.audio.i_rate;
 -        const int max =
 -            (int)((nominal_rate * AOUT_MAX_RESAMPLING_PERMILLE) / 1000) & ~1;
-+        /* Without a bound this ramps into the kHz range: the rate the drift is
-+         * made up at is proportional to the offset, and the offset is applied
-+         * to the resampler input rate. Kept even so the accumulator can still
-+         * reach exactly zero in steps of `adjust`. */
 +        const int max = filters->max_resampling;
          int resampling = filters->resampling + adjust;
  
          if (resampling > max)
 diff --git a/src/libvlc-module.c b/src/libvlc-module.c
-index 56342523f3..8f91f821aa 100644
+index 8729a17556..960e5f666b 100644
 --- a/src/libvlc-module.c
 +++ b/src/libvlc-module.c
-@@ -232,6 +232,16 @@ static const char *const ppsz_stereo_mode_texts[] = { N_("Unset"),
+@@ -252,6 +252,16 @@ static const char *const ppsz_mix_mode_texts[] = {
      "This allows playing audio at lower or higher speed without " \
      "affecting the audio pitch" )
  
@@ -149,13 +140,13 @@ index 56342523f3..8f91f821aa 100644
  
  static const char *const ppsz_replay_gain_mode[] = {
      "none", "track", "album" };
-@@ -1525,6 +1535,9 @@ vlc_module_begin ()
- 
-     add_bool( "audio-time-stretch", true,
-               AUDIO_TIME_STRETCH_TEXT, AUDIO_TIME_STRETCH_LONGTEXT, false )
+@@ -1609,6 +1619,9 @@ vlc_module_begin ()
+     add_bool( "volume-save", true, VOLUME_SAVE_TEXT, NULL )
+     add_bool( "audio-time-stretch", true, AUDIO_TIME_STRETCH_TEXT,
+                 AUDIO_TIME_STRETCH_LONGTEXT )
 +    add_integer( "aout-max-resampling", AOUT_MAX_RESAMPLING_PERMILLE,
-+                 AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT, true )
++                 AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT )
 +        change_integer_range( 0, 100 )
- 
-     set_subcategory( SUBCAT_AUDIO_AOUT )
-     add_module( "aout", "audio output", NULL, AOUT_TEXT, AOUT_LONGTEXT,
+ #if defined(__ANDROID__) || defined(__APPLE__) || defined(_WIN32)
+     add_bool( "spdif", false, SPDIF_TEXT, SPDIF_LONGTEXT )
+ #else

@@ -1,7 +1,7 @@
-From 923d902d5a750d15a9f8cd93b4e866082ca2659b Mon Sep 17 00:00:00 2001
+From 693a55f42f9d1d2640f9f92deecffee03819e9d4 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 19:34:14 -0400
-Subject: [PATCH 11/31] demux: asf: do not dereference the file properties when
+Date: Sun, 13 Sep 2026 19:34:11 -0400
+Subject: [PATCH 08/20] demux: asf: do not dereference the file properties when
  they are gone
 
 DemuxEnd() leaves p_sys->p_fp NULL, which happens when a chained header
@@ -27,10 +27,10 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/modules/demux/asf/asf.c b/modules/demux/asf/asf.c
-index 2ab028f2cc..1862faa818 100644
+index 6b7668b82b..10f7bc431e 100644
 --- a/modules/demux/asf/asf.c
 +++ b/modules/demux/asf/asf.c
-@@ -523,11 +523,16 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
+@@ -533,11 +533,16 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
              *pf = p_sys->i_time / (double)p_sys->i_length;
              return VLC_SUCCESS;
          }

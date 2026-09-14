@@ -1,7 +1,7 @@
-From e70a0e4a8e9bce05e29103b369f569b48f908ba2 Mon Sep 17 00:00:00 2001
+From e052b81c23e5fb5a5009ea0fe1ab7ce9bdcd905d Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 19:10:30 -0400
-Subject: [PATCH 08/31] demux: gme: keep the track index in range at end of
+Date: Sun, 13 Sep 2026 19:13:22 -0400
+Subject: [PATCH 05/20] demux: gme: keep the track index in range at end of
  playback
 
 The track index is advanced before it is tested, so when the last track
@@ -20,10 +20,10 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
  1 file changed, 7 insertions(+), 1 deletion(-)
 
 diff --git a/modules/demux/gme.c b/modules/demux/gme.c
-index 6e449cfa00..ca63454aff 100644
+index 47169d7adf..d9de5f4354 100644
 --- a/modules/demux/gme.c
 +++ b/modules/demux/gme.c
-@@ -213,9 +213,15 @@ static int Demux (demux_t *demux)
+@@ -227,9 +227,15 @@ static int Demux (demux_t *demux)
      if (gme_track_ended (sys->emu))
      {
          msg_Dbg (demux, "track %u ended", sys->track_id);
@@ -33,10 +33,10 @@ index 6e449cfa00..ca63454aff 100644
 +         * titlev[] bails on that, so seeking and the length are lost once
 +         * playback has ended. */
 +        if (sys->track_id + 1 >= (unsigned)gme_track_count (sys->emu))
-             return 0;
+             return VLC_DEMUXER_EOF;
  
 +        sys->track_id++;
 +
-         demux->info.i_update |= INPUT_UPDATE_TITLE;
-         demux->info.i_title = sys->track_id;
+         sys->title_changed = true;
          gme_start_track (sys->emu, sys->track_id);
+     }

@@ -1,7 +1,7 @@
-From 3c2b1630f72cd411eb5bf1a579410edc0c7ef682 Mon Sep 17 00:00:00 2001
+From a66be7673cb80e78d5f04a7d446e5f8cecca397c Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 19:46:26 -0400
-Subject: [PATCH 15/31] demux: webvtt: clamp a seek past the last cue to the
+Date: Sun, 13 Sep 2026 19:46:35 -0400
+Subject: [PATCH 11/20] demux: webvtt: clamp a seek past the last cue to the
  end
 
 getIndexByTime() returns 0 when no entry starts at or after the requested
@@ -18,19 +18,22 @@ keeps returning 0 harmlessly.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 ---
- modules/demux/webvtt.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ modules/demux/webvtt.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/modules/demux/webvtt.c b/modules/demux/webvtt.c
-index ec18cd421b..afbf025996 100644
+index b5b7e272b3..886a30dbc5 100644
 --- a/modules/demux/webvtt.c
 +++ b/modules/demux/webvtt.c
-@@ -313,7 +313,8 @@ static size_t getIndexByTime( demux_sys_t *p_sys, vlc_tick_t i_time )
+@@ -313,7 +313,11 @@ static size_t getIndexByTime( demux_sys_t *p_sys, vlc_tick_t i_time )
          if( p_sys->index.p_array[i].time >= i_time )
              return i;
      }
 -    return 0;
-+    /* Past the last cue: land on it rather than rewinding to the start. */
++    /* Nothing starts at or after the requested time, so it lies past the
++     * last entry; that is where the caller should land. Returning 0 was
++     * indistinguishable from a match on the first entry and rewound to the
++     * beginning instead. */
 +    return ( p_sys->index.i_count > 0 ) ? p_sys->index.i_count - 1 : 0;
  }
  

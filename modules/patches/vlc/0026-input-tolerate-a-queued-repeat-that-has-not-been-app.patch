@@ -1,0 +1,103 @@
+From 677a4684016650923c98e0a7a5002bc1145d895d Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 00:57:39 -0400
+Subject: [PATCH 26/31] input: tolerate a queued repeat that has not been
+ applied yet
+
+The guard added with repeat-in-place refused a second repeat if the first
+had not demuxed anything, to stop a repeat whose seek never takes from
+spinning the main loop. It was a single boolean, so one spurious pass was
+enough to trip it.
+
+The seek is queued with input_ControlPush() rather than performed inline,
+so the main loop can come back around and hit end of stream again before
+it has been applied. That is a race, not a failure, and on a very short
+input the loop is tight enough to lose it almost every time. A one second
+ogg file showed the result: every loop gave up and fell back to the
+playlist destroying and rebuilding the input, 15 inputs and 15 decoders
+for 14 loops, while a four second file of the same codec did 1 and 1.
+
+Count the queued repeats instead of flagging them and give up after a few,
+which keeps the spin bounded while leaving room for the seek to land.
+
+Found by a synthetic repeat test over a matrix of containers; the one
+second case was the only failure in fifteen.
+---
+ src/input/input.c          | 27 +++++++++++++++++++--------
+ src/input/input_internal.h |  4 ++--
+ 2 files changed, 21 insertions(+), 10 deletions(-)
+
+diff --git a/src/input/input.c b/src/input/input.c
+index 5c3b7c1f33..20e804c56c 100644
+--- a/src/input/input.c
++++ b/src/input/input.c
+@@ -578,7 +578,7 @@ static void MainLoopDemux( input_thread_t *p_input, bool *pb_changed )
+         i_ret = demux_Demux( p_demux );
+ 
+     if( i_ret > 0 )
+-        p_priv->b_repeat_pending = false;
++        p_priv->i_repeat_pending = 0;
+ 
+     i_ret = i_ret > 0 ? VLC_DEMUXER_SUCCESS : ( i_ret < 0 ? VLC_DEMUXER_EGENERIC : VLC_DEMUXER_EOF);
+ 
+@@ -609,6 +609,12 @@ static void MainLoopDemux( input_thread_t *p_input, bool *pb_changed )
+     else if( p_priv->i_slave > 0 )
+         SlaveDemux( p_input );
+ }
++/* How many queued repeats may go by without the demuxer producing anything
++ * before the repeat is treated as not taking. Covers the latency between
++ * queueing the seek and it being applied, which is a couple of passes of the
++ * main loop on a very short input. */
++#define INPUT_REPEAT_MAX_PENDING 5
++
+ 
+ static int MainLoopTryRepeat( input_thread_t *p_input )
+ {
+@@ -633,12 +639,17 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
+      * leaves the end of stream exactly as it was, so the next pass through the
+      * main loop asks for the same repeat again. Nothing bounded that beyond
+      * the repeat count itself: with a large count it spins as fast as it can,
+-     * writing an error line per attempt and getting nowhere. Require the
+-     * previous repeat to have demuxed something before allowing another. */
+-    if( priv->b_repeat_pending )
+-    {
+-        msg_Warn( p_input, "repeating the input did not get anywhere, "
+-                  "giving up" );
++     * writing an error line per attempt and getting nowhere.
++     *
++     * The seek is queued rather than performed here, so the main loop can come
++     * back around and hit the end of stream again before it has been applied.
++     * That is an ordinary race, not a failure, and it is routine on very short
++     * inputs where the loop is tight. Allow a few such passes and give up only
++     * once it is clear the seek is not taking. */
++    if( priv->i_repeat_pending >= INPUT_REPEAT_MAX_PENDING )
++    {
++        msg_Warn( p_input, "repeating the input did not get anywhere after "
++                  "%u tries, giving up", priv->i_repeat_pending );
+         return VLC_EGENERIC;
+     }
+ 
+@@ -650,7 +661,7 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
+         i_repeat--;
+         var_SetInteger( p_input, "input-repeat", i_repeat );
+     }
+-    priv->b_repeat_pending = true;
++    priv->i_repeat_pending++;
+ 
+     /* Seek to start title/seekpoint */
+     val.i_int = input_priv(p_input)->master->i_title_start -
+diff --git a/src/input/input_internal.h b/src/input/input_internal.h
+index 7be8bb3f24..7496552c82 100644
+--- a/src/input/input_internal.h
++++ b/src/input/input_internal.h
+@@ -105,8 +105,8 @@ typedef struct input_thread_private_t
+     int64_t     i_stop;     /* :stop-time, 0 if none */
+     int64_t     i_time;     /* Current time */
+     bool        b_fast_seek;/* :input-fast-seek */
+-    bool        b_repeat_pending; /* a repeat was asked for and has not
+-                                     demuxed anything since */
++    unsigned    i_repeat_pending; /* repeats asked for that have not demuxed
++                                     anything yet */
+ 
+     /* Output */
+     bool            b_out_pace_control; /* XXX Move it ot es_sout ? */

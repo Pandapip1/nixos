@@ -1,0 +1,143 @@
+From 65a9c102d075db8f8ba757b9741e67bd73400961 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 13:05:08 -0400
+Subject: [PATCH] pulse-server: report the device latency to clients
+
+fill_sink_info() and fill_source_info() sent a hardcoded zero for both the
+latency and the configured latency, so every sink and source looked free:
+
+  Latency: 0 usec, configured 0 usec
+
+even for devices whose latency is large and exactly known. A bluez5 A2DP
+sink publishes SPA_PARAM_Latency with minNs = maxNs = 213999999, and the
+manager already enumerates and caches that param for nodes, but nothing
+ever read it back out.
+
+A client that wants to know what a device costs it before opening one was
+told nothing, leaving it to start a stream and read sink_usec back to find
+out - which it can only do once the stream is running, having already
+started playback on the wrong figure. Report the node's own latency.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ .../module-protocol-pulse/pulse-server.c      | 41 +++++++++++++++++--
+ 1 file changed, 37 insertions(+), 4 deletions(-)
+
+diff --git a/src/modules/module-protocol-pulse/pulse-server.c b/src/modules/module-protocol-pulse/pulse-server.c
+index 7f19739a1..d9f34a02a 100644
+--- a/src/modules/module-protocol-pulse/pulse-server.c
++++ b/src/modules/module-protocol-pulse/pulse-server.c
+@@ -25,6 +25,7 @@
+ #include <spa/param/audio/raw.h>
+ #include <spa/pod/pod.h>
+ #include <spa/param/audio/format-utils.h>
++#include <spa/param/latency-utils.h>
+ #include <spa/param/props.h>
+ #include <spa/utils/ringbuffer.h>
+ #include <spa/utils/json-builder.h>
+@@ -330,6 +331,28 @@ static int64_t get_node_latency_offset(struct pw_manager_object *o)
+ 	return latency_offset;
+ }
+ 
++/* The latency a device adds on top of whatever is queued for it, which is what
++ * PulseAudio reports as the sink or source latency. */
++static uint64_t get_device_latency_usec(struct pw_manager_object *o,
++		enum spa_direction direction, uint32_t rate)
++{
++	struct pw_manager_param *p;
++
++	spa_list_for_each(p, &o->param_list, link) {
++		struct spa_latency_info info;
++
++		if (p->id != SPA_PARAM_Latency)
++			continue;
++		if (spa_latency_parse(p->param, &info) < 0 ||
++		    info.direction != direction)
++			continue;
++
++		return info.max_ns / SPA_NSEC_PER_USEC +
++			(rate > 0 ? (uint64_t)info.max_rate * SPA_USEC_PER_SEC / rate : 0);
++	}
++	return 0;
++}
++
+ static void send_latency_offset_subscribe_event(struct client *client, struct pw_manager_object *o)
+ {
+ 	struct pw_manager *manager = client->manager;
+@@ -3799,6 +3822,7 @@ static int fill_sink_info(struct client *client, struct message *m,
+ 	uint32_t flags;
+ 	struct card_info card_info = CARD_INFO_INIT;
+ 	struct device_info dev_info;
++	uint64_t lat_usec;
+ 	size_t size;
+ 
+ 	if (!pw_manager_object_is_sink(o) || info == NULL || info->props == NULL)
+@@ -3855,6 +3879,9 @@ static int fill_sink_info(struct client *client, struct message *m,
+ 	if (client->quirks & QUIRK_FORCE_S16_FORMAT)
+ 		dev_info.ss.format = SPA_AUDIO_FORMAT_S16;
+ 
++	/* A sink's own latency is what it adds on its input side. */
++	lat_usec = get_device_latency_usec(o, SPA_DIRECTION_INPUT, dev_info.ss.rate);
++
+ 	message_put(m,
+ 		TAG_U32, o->index,			/* sink index */
+ 		TAG_STRING, name,
+@@ -3866,7 +3893,7 @@ static int fill_sink_info(struct client *client, struct message *m,
+ 		TAG_BOOLEAN, dev_info.volume_info.mute,
+ 		TAG_U32, o->index,			/* monitor source index */
+ 		TAG_STRING, monitor_name,		/* monitor source name */
+-		TAG_USEC, 0LL,				/* latency */
++		TAG_USEC, lat_usec,			/* latency */
+ 		TAG_STRING, "PipeWire",			/* driver */
+ 		TAG_U32, flags,				/* flags */
+ 		TAG_INVALID);
+@@ -3876,7 +3903,7 @@ static int fill_sink_info(struct client *client, struct message *m,
+ 		if ((res = fill_sink_info_proplist(m, info->props, card)) < 0)
+ 			return res;
+ 		message_put(m,
+-			TAG_USEC, 0LL,			/* requested latency */
++			TAG_USEC, lat_usec,		/* requested latency */
+ 			TAG_INVALID);
+ 	}
+ 	if (client->version >= 15) {
+@@ -3997,6 +4024,7 @@ static int fill_source_info(struct client *client, struct message *m,
+ 	uint32_t flags;
+ 	struct card_info card_info = CARD_INFO_INIT;
+ 	struct device_info dev_info;
++	uint64_t lat_usec;
+ 	size_t size;
+ 
+ 	is_monitor = pw_manager_object_is_monitor(o);
+@@ -4053,6 +4081,11 @@ static int fill_source_info(struct client *client, struct message *m,
+ 	if (client->quirks & QUIRK_FORCE_S16_FORMAT)
+ 		dev_info.ss.format = SPA_AUDIO_FORMAT_S16;
+ 
++	/* A source's own latency is what it adds on its output side; a monitor
++	 * takes it from the sink it follows, which reports it on its input. */
++	lat_usec = get_device_latency_usec(o, is_monitor ?
++			SPA_DIRECTION_INPUT : SPA_DIRECTION_OUTPUT, dev_info.ss.rate);
++
+ 	message_put(m,
+ 		TAG_U32, o->index,				/* source index */
+ 		TAG_STRING, is_monitor ? monitor_name : name,
+@@ -4064,7 +4097,7 @@ static int fill_source_info(struct client *client, struct message *m,
+ 		TAG_BOOLEAN, dev_info.volume_info.mute,
+ 		TAG_U32, is_monitor ? o->index : SPA_ID_INVALID,/* monitor of sink */
+ 		TAG_STRING, is_monitor ? name : NULL,		/* monitor of sink name */
+-		TAG_USEC, 0LL,					/* latency */
++		TAG_USEC, lat_usec,				/* latency */
+ 		TAG_STRING, "PipeWire",				/* driver */
+ 		TAG_U32, flags,					/* flags */
+ 		TAG_INVALID);
+@@ -4074,7 +4107,7 @@ static int fill_source_info(struct client *client, struct message *m,
+ 		if ((res = fill_source_info_proplist(m, info->props, card, is_monitor)) < 0)
+ 			return res;
+ 		message_put(m,
+-			TAG_USEC, 0LL,			/* requested latency */
++			TAG_USEC, lat_usec,		/* requested latency */
+ 			TAG_INVALID);
+ 	}
+ 	if (client->version >= 15) {
+-- 
+2.55.0
+

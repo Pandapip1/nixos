@@ -1,7 +1,7 @@
-From 98f85aa5baf4cd888637d698ed8192362943b086 Mon Sep 17 00:00:00 2001
+From 2d99ef589d3a47245f3906c58492ac7831c80248 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 15:43:07 -0400
-Subject: [PATCH 03/26] aout: re-establish the timing reference after a flush
+Subject: [PATCH 03/31] aout: re-establish the timing reference after a flush
 
 aout_DecSynchronize() picks its thresholds from sync.discontinuity: when
 it is set, any offset is absorbed at once by inserting silence or by
@@ -22,23 +22,20 @@ reference is invalidated on reset.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 ---
- src/audio_output/dec.c | 7 +++++++
- 1 file changed, 7 insertions(+)
+ src/audio_output/dec.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
 diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
-index e5c4abbefc..701ad4c821 100644
+index 6e7ea17599..08802319d9 100644
 --- a/src/audio_output/dec.c
 +++ b/src/audio_output/dec.c
-@@ -482,6 +482,13 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
-          * derived from already gone. */
+@@ -477,6 +477,10 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
+         /* Drop the correction with the data it was computed for. */
          aout_StopResampling (aout);
      }
 +
-+    /* Treat what follows as a discontinuity, so that aout_DecSynchronize()
-+     * re-establishes its reference from the first block instead of trying to
-+     * make up an offset that is only an artefact of the flush. Otherwise a
-+     * seek or a pause leaves a 40-180 ms offset to be "caught up" by
-+     * resampling, which is heard as the stream playing out of tune. */
++    /* The offset a flush leaves behind is not drift; do not resample to
++     * catch it up. */
 +    owner->sync.discontinuity = true;
      aout_OutputUnlock (aout);
  }

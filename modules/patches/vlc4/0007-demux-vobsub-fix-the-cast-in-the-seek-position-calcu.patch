@@ -1,10 +1,10 @@
-From 9c4fd698f2d58f1ce40639ce326cc83501b6b69a Mon Sep 17 00:00:00 2001
+From 0b48facf3acef8f0943aeaf563e8e33ee2a526cb Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 19:12:07 -0400
-Subject: [PATCH 10/31] demux: vobsub: fix the cast in the seek position
+Date: Sun, 13 Sep 2026 19:13:22 -0400
+Subject: [PATCH 07/20] demux: vobsub: fix the cast in the seek position
  calculation
 
-    i64 = (int64_t) f * p_sys->i_length;
+    i64 = (vlc_tick_t) f * p_sys->i_length;
 
 The cast binds to f, which is the requested position between 0.0 and 1.0,
 so it truncated to 0 for everything except a seek to the very end and the
@@ -18,18 +18,18 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/modules/demux/vobsub.c b/modules/demux/vobsub.c
-index 8c18a6cc1f..6733607944 100644
+index e05d2e0aad..bf23f37183 100644
 --- a/modules/demux/vobsub.c
 +++ b/modules/demux/vobsub.c
-@@ -316,7 +316,10 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
+@@ -311,7 +311,10 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
  
          case DEMUX_SET_POSITION:
              f = va_arg( args, double );
--            i64 = (int64_t) f * p_sys->i_length;
+-            i64 = (vlc_tick_t) f * p_sys->i_length;
 +            /* The cast binds to f, not to the product, so every position
 +              * below 1.0 truncated to 0 and every seek landed on the first
 +              * subtitle. */
-+            i64 = (int64_t)( f * p_sys->i_length );
++            i64 = (vlc_tick_t)( f * p_sys->i_length );
+             return demux_Control(p_demux, DEMUX_SET_TIME, i64, false);
  
-             for( i = 0; i < p_sys->i_tracks; i++ )
-             {
+         case DEMUX_SET_NEXT_DEMUX_TIME:

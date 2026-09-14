@@ -1,7 +1,7 @@
-From 28f9add258a233134f258f15209d364722f953ca Mon Sep 17 00:00:00 2001
+From 4a22573cb21fb99f3220f8e6c7791ff152e6f3dd Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 22:13:48 -0400
-Subject: [PATCH 23/31] demux: mkv: clamp a seek to the end of an ordered
+Subject: [PATCH 18/20] demux: mkv: clamp a seek to the end of an ordered
  edition
 
 For an ordered edition the duration of the edition is the virtual stop
@@ -22,17 +22,15 @@ the end.
 
 Clamp to the last chapter when the requested time is within it, keeping
 the existing behaviour for a last chapter with no known stop time.
-
-(cherry picked from commit 4a22573cb21fb99f3220f8e6c7791ff152e6f3dd)
 ---
  modules/demux/mkv/virtual_segment.cpp | 7 ++++++-
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/modules/demux/mkv/virtual_segment.cpp b/modules/demux/mkv/virtual_segment.cpp
-index 4070d64373..336edb91ef 100644
+index d48f5ab9d9..a1c93fa4fd 100644
 --- a/modules/demux/mkv/virtual_segment.cpp
 +++ b/modules/demux/mkv/virtual_segment.cpp
-@@ -412,8 +412,13 @@ virtual_chapter_c* virtual_edition_c::getChapterbyTimecode( int64_t time )
+@@ -411,8 +411,13 @@ virtual_chapter_c* virtual_edition_c::getChapterbyTimecode( vlc_tick_t time )
      {
          virtual_chapter_c* last_chapter = vchapters.back();
  

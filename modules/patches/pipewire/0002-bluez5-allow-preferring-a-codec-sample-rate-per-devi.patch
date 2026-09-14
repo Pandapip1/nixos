@@ -1,0 +1,374 @@
+From 723819bf67b16690c0e44d4310cad681d2346211 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 01:40:32 -0400
+Subject: [PATCH 2/3] bluez5: allow preferring a codec sample rate per device,
+ at runtime
+
+The A2DP sample rate is fixed when the codec configuration is selected,
+not per stream, and the rate that gets preferred there could so far only
+be set once, monitor-wide, via the bluez5.default.rate property. Picking
+a different rate for one device meant editing the config and
+reconnecting it.
+
+Give spa_bt_device its own preferred rate, which overrides the
+monitor-wide default when a codec configuration is selected for that
+device. It can be set as a device property, and it is exposed on the
+device Props param, so it can also be changed at runtime:
+
+  pw-cli set-param <id> Props '{ params = [ "bluez5.default.rate", 44100 ] }'
+
+Changing it renegotiates the codec configuration of a connected device,
+which tears the transport down and sets it up again: there is a short
+audible gap, unavoidably, as the rate is a property of the transport.
+
+BlueZ-initiated connections select their configuration through
+endpoint_select_configuration(), which cannot tell which device the call
+belongs to and therefore cannot honour a per-device preference. So also
+check, when ensuring a codec, whether the configuration an existing
+transport carries is still the one that would be selected now, and
+renegotiate if not. The check compares configuration bytes rather than
+the rate itself, so a preference the remote cannot satisfy settles after
+one renegotiation instead of being retried forever, and it is skipped
+entirely for devices without a preference of their own, so behaviour is
+unchanged unless the property is set.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ doc/dox/config/pipewire-props.7.md | 21 +++++++
+ spa/plugins/bluez5/bluez5-dbus.c   | 90 ++++++++++++++++++++++++++++--
+ spa/plugins/bluez5/bluez5-device.c | 54 ++++++++++++++++--
+ spa/plugins/bluez5/defs.h          | 10 +++-
+ 4 files changed, 164 insertions(+), 11 deletions(-)
+
+diff --git a/doc/dox/config/pipewire-props.7.md b/doc/dox/config/pipewire-props.7.md
+index 5555e3408..6f83368bb 100644
+--- a/doc/dox/config/pipewire-props.7.md
++++ b/doc/dox/config/pipewire-props.7.md
+@@ -1130,8 +1130,29 @@ Enabled A2DP codecs (default: all).  Possible values: `sbc`, `sbc_xq`,
+ `lc3`.
+ 
+ @PAR@ monitor-prop  bluez5.default.rate   # integer
++\parblock
+ Default audio rate.
+ 
++This is the sample rate preferred when selecting an A2DP codec
++configuration. Codecs generally support several rates, and the one picked at
++configuration time is the rate of the Bluetooth transport for as long as that
++configuration lasts: anything else is resampled before encoding.
++
++It can also be set per device, either as a device property (for example from a
++session manager rule matching on `device.name`), or at runtime on the device
++Props param:
++
++```
++pw-cli set-param <bluez_card id> Props '{ params = [ "bluez5.default.rate", 44100 ] }'
++```
++
++Setting it at runtime renegotiates the codec configuration of a connected A2DP
++device, which tears the transport down and sets it up again, so there is a
++short audible gap. A value of 0 means "use the monitor-wide setting". A rate
++the remote device does not support is ignored, in which case the closest
++supported rate is used as usual.
++\endparblock
++
+ @PAR@ monitor-prop  bluez5.default.channels   # integer
+ Default audio channels.
+ 
+diff --git a/spa/plugins/bluez5/bluez5-dbus.c b/spa/plugins/bluez5/bluez5-dbus.c
+index 34b39a98f..bd740805a 100644
+--- a/spa/plugins/bluez5/bluez5-dbus.c
++++ b/spa/plugins/bluez5/bluez5-dbus.c
+@@ -765,6 +765,27 @@ const struct spa_dict *get_device_codec_settings(struct spa_bt_device *device, b
+     return bap ? device->settings : &device->monitor->global_settings;
+ }
+ 
++/*
++ * Preferred audio configuration used when selecting a codec configuration.
++ *
++ * This is the monitor-wide default (bluez5.default.rate / .channels), unless
++ * the device has a preferred rate of its own, which may also be changed at
++ * runtime. Only A2DP is affected: for BAP the configuration is picked from the
++ * remote ASE capabilities by different rules.
++ */
++static const struct media_codec_audio_info *get_device_audio_info(const struct media_codec *codec,
++		struct spa_bt_device *device, struct media_codec_audio_info *tmp)
++{
++	const struct media_codec_audio_info *info = &device->monitor->default_audio_info;
++
++	if (codec == NULL || codec->kind != MEDIA_CODEC_A2DP || device->preferred_rate == 0)
++		return info;
++
++	*tmp = *info;
++	tmp->rate = device->preferred_rate;
++	return tmp;
++}
++
+ static DBusHandlerResult endpoint_select_configuration(DBusConnection *conn, DBusMessage *m, void *userdata)
+ {
+ 	struct spa_bt_monitor *monitor = userdata;
+@@ -4776,6 +4797,7 @@ static bool codec_switch_configure_a2dp(struct spa_bt_codec_switch *sw, const ch
+ 	struct spa_bt_transport *t;
+ 	const struct media_codec *codec;
+ 	uint8_t config[A2DP_MAX_CAPS_SIZE];
++	struct media_codec_audio_info audio_info;
+ 	int res, config_size;
+ 	spa_autofree char *local_endpoint = NULL;
+ 	spa_autoptr(DBusMessage) m = NULL;
+@@ -4805,7 +4827,8 @@ static bool codec_switch_configure_a2dp(struct spa_bt_codec_switch *sw, const ch
+ 	}
+ 
+ 	res = codec->select_config(codec, sink ? MEDIA_CODEC_FLAG_SINK : 0, ep->capabilities, ep->capabilities_len,
+-			&monitor->default_audio_info, &monitor->global_settings, config, NULL);
++			get_device_audio_info(codec, device, &audio_info),
++			&monitor->global_settings, config, NULL);
+ 	if (res < 0) {
+ 		spa_log_error(monitor->log, "media codec switch %p: incompatible capabilities (%d)",
+ 		              sw, res);
+@@ -5088,9 +5111,62 @@ static int codec_switch_cmp(const void *a, const void *b)
+ 			&monitor->global_settings);
+ }
+ 
+-/* Ensure there's a transport for at least one of the listed codecs */
++/*
++ * Whether an existing transport already carries the configuration we would
++ * pick for it now.
++ *
++ * BlueZ-initiated connections go through endpoint_select_configuration(),
++ * which cannot tell which device the call belongs to and therefore always uses
++ * the monitor-wide preferences. A device that prefers a different rate than
++ * the one that got negotiated at connect time must renegotiate to get it, even
++ * though the codec itself does not change.
++ *
++ * Returns true (leave the transport alone) whenever this cannot be determined,
++ * and always for devices without a rate preference of their own, so that the
++ * behaviour is unchanged unless the preference is actually set. The comparison
++ * is against the configuration bytes rather than against the preferred rate,
++ * so a preference the remote cannot satisfy settles after one renegotiation
++ * instead of being retried forever.
++ */
++static bool transport_config_is_current(struct spa_bt_device *device, struct spa_bt_transport *t)
++{
++	const struct media_codec *codec = t->media_codec;
++	struct spa_bt_remote_endpoint *ep;
++	struct media_codec_audio_info audio_info;
++	uint8_t config[A2DP_MAX_CAPS_SIZE];
++	bool sink;
++	int res;
++
++	if (device->preferred_rate == 0)
++		return true;
++	if (codec == NULL || codec->kind != MEDIA_CODEC_A2DP)
++		return true;
++	if (t->configuration == NULL || t->configuration_len <= 0 || t->remote_endpoint_path == NULL)
++		return true;
++
++	ep = device_remote_endpoint_find(device, t->remote_endpoint_path);
++	if (!codec_switch_check_endpoint(ep, codec, &sink, NULL))
++		return true;
++
++	res = codec->select_config(codec, sink ? MEDIA_CODEC_FLAG_SINK : 0,
++			ep->capabilities, ep->capabilities_len,
++			get_device_audio_info(codec, device, &audio_info),
++			&device->monitor->global_settings, config, NULL);
++	if (res < 0)
++		return true;
++
++	return res == t->configuration_len && memcmp(config, t->configuration, res) == 0;
++}
++
++/*
++ * Ensure there's a transport for at least one of the listed codecs.
++ *
++ * With force, the transport is reconfigured even when one for the codec
++ * already exists, so that a changed codec configuration preference takes
++ * effect without a reconnect.
++ */
+ int spa_bt_device_ensure_media_codec(struct spa_bt_device *device, const struct media_codec * const *codecs,
+-		uint32_t profiles)
++		uint32_t profiles, bool force)
+ {
+ 	struct spa_bt_monitor *monitor = device->monitor;
+ 	struct spa_bt_codec_switch *sw, *sw2;
+@@ -5127,12 +5203,18 @@ int spa_bt_device_ensure_media_codec(struct spa_bt_device *device, const struct
+ 	 * However, if there already was a codec switch running, these transports may
+ 	 * disappear soon. In that case, we have to do the full thing.
+ 	 */
+-	if (!has_codec_switch(device)) {
++	if (!has_codec_switch(device) && !force) {
+ 		uint32_t found_profiles = 0;
+ 
+ 		spa_list_for_each(t, &device->transport_list, device_link) {
+ 			if (t->media_codec != codec)
+ 				continue;
++			if (!transport_config_is_current(device, t)) {
++				spa_log_info(monitor->log,
++						"%p: transport %s configuration is stale, reconfiguring",
++						device, t->path);
++				continue;
++			}
+ 
+ 			found_profiles |= t->profile;
+ 		}
+diff --git a/spa/plugins/bluez5/bluez5-device.c b/spa/plugins/bluez5/bluez5-device.c
+index fc659f655..68994586e 100644
+--- a/spa/plugins/bluez5/bluez5-device.c
++++ b/spa/plugins/bluez5/bluez5-device.c
+@@ -1428,7 +1428,14 @@ static void emit_remove_nodes(struct impl *this)
+ static bool validate_profile(struct impl *this, uint32_t profile,
+ 		enum spa_bluetooth_audio_codec codec);
+ 
+-static int set_profile(struct impl *this, uint32_t profile, enum spa_bluetooth_audio_codec codec, bool save)
++/*
++ * Set the device profile and codec. With force, the profile is reconfigured
++ * even when it is already the current one: used when something other than the
++ * profile/codec pair (currently the preferred codec sample rate) changed and
++ * the codec configuration has to be renegotiated.
++ */
++static int set_profile(struct impl *this, uint32_t profile, enum spa_bluetooth_audio_codec codec,
++		bool save, bool force)
+ {
+ 	if (!validate_profile(this, profile, codec)) {
+ 		spa_log_warn(this->log, "trying to set invalid profile %d, codec %d, %08x %08x",
+@@ -1439,7 +1446,7 @@ static int set_profile(struct impl *this, uint32_t profile, enum spa_bluetooth_a
+ 
+ 	this->save_profile = save;
+ 
+-	if (this->profile == profile &&
++	if (!force && this->profile == profile &&
+ 	    (this->profile != DEVICE_PROFILE_ASHA || codec == this->props.codec) &&
+ 	    (this->profile != DEVICE_PROFILE_A2DP || codec == this->props.codec) &&
+ 	    (!profile_is_bap(this->profile) || codec == this->props.codec) &&
+@@ -1492,7 +1499,7 @@ static int set_profile(struct impl *this, uint32_t profile, enum spa_bluetooth_a
+ 			break;
+ 		}
+ 
+-		ret = spa_bt_device_ensure_media_codec(this->bt_dev, codecs, profiles);
++		ret = spa_bt_device_ensure_media_codec(this->bt_dev, codecs, profiles, force);
+ 		if (ret < 0) {
+ 			if (ret != -ENOTSUP)
+ 				spa_log_error(this->log, "failed to switch codec (%d), setting basic profile", ret);
+@@ -1743,7 +1750,7 @@ static void device_switch_profile(void *userdata)
+ 
+ 	spa_log_debug(this->log, "%p: device switch profile %d -> %d", this, this->profile, profile);
+ 
+-	set_profile(this, profile, 0, false);
++	set_profile(this, profile, 0, false, false);
+ }
+ 
+ static const struct spa_bt_device_events bt_dev_events = {
+@@ -2740,6 +2747,8 @@ static struct spa_pod *build_props(struct impl *this, struct spa_pod_builder *b,
+ 	spa_pod_builder_bool(b, this->bt_dev->disable_dummy_call);
+ 	spa_pod_builder_string(b, "bluez5.autoswitch-routes");
+ 	spa_pod_builder_bool(b, this->autoswitch_routes);
++	spa_pod_builder_string(b, "bluez5.default.rate");
++	spa_pod_builder_int(b, this->bt_dev->preferred_rate);
+ 	spa_pod_builder_pop(b, &f[1]);
+ 
+ 	param = spa_pod_builder_pop(b, &f[0]);
+@@ -3088,6 +3097,7 @@ static int parse_prop_params(struct impl *this, struct spa_pod *params)
+ 	struct spa_pod_parser prs;
+ 	struct spa_pod_frame f;
+ 	int changed = 0;
++	bool reconfigure_codec = false;
+ 
+ 	if (params == NULL)
+ 		return 0;
+@@ -3123,6 +3133,18 @@ static int parse_prop_params(struct impl *this, struct spa_pod *params)
+ 			this->params[IDX_EnumRoute].flags ^= SPA_PARAM_INFO_SERIAL;
+ 			this->params[IDX_Profile].flags ^= SPA_PARAM_INFO_SERIAL;
+ 			this->params[IDX_EnumProfile].flags ^= SPA_PARAM_INFO_SERIAL;
++		} else if (spa_streq(name, "bluez5.default.rate") && spa_pod_is_int(pod)) {
++			int32_t rate = SPA_POD_VALUE(struct spa_pod_int, pod);
++			spa_log_info(this->log, "key:'%s' val:'%d'", name, rate);
++
++			/* 0 means "use the monitor-wide bluez5.default.rate" */
++			if (rate != 0 && (rate < 8000 || rate > 384000))
++				continue;
++			if (this->bt_dev->preferred_rate == (uint32_t)rate)
++				continue;
++			this->bt_dev->preferred_rate = rate;
++
++			reconfigure_codec = true;
+ 		} else
+ 			continue;
+ 
+@@ -3134,6 +3156,16 @@ static int parse_prop_params(struct impl *this, struct spa_pod *params)
+ 		this->params[IDX_Props].user++;
+ 	}
+ 
++	/*
++	 * The A2DP sample rate is part of the codec configuration, so it only
++	 * takes effect once the configuration is renegotiated. Do that right
++	 * away, rather than at the next connect: this tears down and re-sets up
++	 * the transport, so there is an audible gap, but it is in response to
++	 * an explicit request and happens only then.
++	 */
++	if (reconfigure_codec && this->profile == DEVICE_PROFILE_A2DP && this->props.codec)
++		set_profile(this, this->profile, this->props.codec, this->save_profile, true);
++
+ 	return changed;
+ }
+ 
+@@ -3172,7 +3204,7 @@ static int impl_set_param(void *object,
+ 
+ 		spa_log_debug(this->log, "%p: setting profile %d codec:%d save:%d", this,
+ 				profile, codec, (int)save);
+-		return set_profile(this, profile, codec, save);
++		return set_profile(this, profile, codec, save, false);
+ 	}
+ 	case SPA_PARAM_Route:
+ 	{
+@@ -3245,7 +3277,7 @@ static int impl_set_param(void *object,
+ 			size_t j;
+ 			for (j = 0; j < this->supported_codec_count; ++j) {
+ 				if (this->supported_codecs[j]->id == codec_id) {
+-					return set_profile(this, this->profile, codec_id, true);
++					return set_profile(this, this->profile, codec_id, true, false);
+ 				}
+ 			}
+ 		}
+@@ -3382,6 +3414,16 @@ impl_init(const struct spa_handle_factory *factory,
+ 
+ 		if ((str = spa_dict_lookup(info, "bluez5.autoswitch-routes")) != NULL)
+ 			this->autoswitch_routes = spa_atob(str);
++
++		/* Per-device override of the monitor-wide bluez5.default.rate,
++		 * so the A2DP codec configuration can prefer a different rate
++		 * for this device only.
++		 */
++		if ((str = spa_dict_lookup(info, "bluez5.default.rate")) != NULL) {
++			uint32_t rate;
++			if (spa_atou32(str, &rate, 0) && rate >= 8000 && rate <= 384000)
++				this->bt_dev->preferred_rate = rate;
++		}
+ 	}
+ 
+ 	this->device.iface = SPA_INTERFACE_INIT(
+diff --git a/spa/plugins/bluez5/defs.h b/spa/plugins/bluez5/defs.h
+index 5e69bb757..639bd95ca 100644
+--- a/spa/plugins/bluez5/defs.h
++++ b/spa/plugins/bluez5/defs.h
+@@ -576,6 +576,14 @@ struct spa_bt_device {
+ 	const struct media_codec *preferred_codec;
+ 	uint32_t preferred_profiles;
+ 
++	/* Preferred A2DP codec sample rate for this device, 0 to use the
++	 * monitor-wide bluez5.default.rate. Settable per device, also at
++	 * runtime via the device Props param, so that the codec configuration
++	 * (and with it the transport sample rate) can be renegotiated without
++	 * reconnecting the device.
++	 */
++	uint32_t preferred_rate;
++
+ 	bool disable_dummy_call;
+ };
+ 
+@@ -584,7 +592,7 @@ struct spa_bt_device *spa_bt_device_find_by_address(struct spa_bt_monitor *monit
+ int spa_bt_device_add_profile(struct spa_bt_device *device, enum spa_bt_profile profile);
+ int spa_bt_device_connect_profile(struct spa_bt_device *device, enum spa_bt_profile profile);
+ int spa_bt_device_check_profiles(struct spa_bt_device *device, bool force);
+-int spa_bt_device_ensure_media_codec(struct spa_bt_device *device, const struct media_codec * const *codecs, uint32_t profiles);
++int spa_bt_device_ensure_media_codec(struct spa_bt_device *device, const struct media_codec * const *codecs, uint32_t profiles, bool force);
+ int spa_bt_device_ensure_hfp_codec(struct spa_bt_device *device, const struct media_codec *codec);
+ bool spa_bt_device_supports_media_codec(struct spa_bt_device *device, const struct media_codec *codec, enum spa_bt_profile profile);
+ const struct media_codec **spa_bt_device_get_supported_media_codecs(struct spa_bt_device *device, size_t *count);

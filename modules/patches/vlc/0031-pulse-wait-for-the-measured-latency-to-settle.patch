@@ -1,0 +1,112 @@
+From 270144bdf05bf85cb17e3d096913e98bed37560e Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 12:16:13 -0400
+Subject: [PATCH 31/31] pulse: wait for the measured latency to settle
+
+Taking the first reading with a non-zero sink_usec is not enough. The
+value ramps as the device fills - on an A2DP sink it climbs from tens of
+milliseconds to over two hundred - so an early reading understates it
+badly and playback is still started late:
+
+    calibrated: latency 20000 us, starting now (43401 us late)
+    playback way too late (205657): flushing buffers
+
+Compare successive readings and only believe the measurement once it
+stops growing. The comparison has to be across timing *snapshots*, not
+across calls: pa_stream_get_timing_info() hands back a cached structure
+that is only replaced when the server sends an update, so two reads in
+quick succession see the same numbers and would agree trivially. Use the
+snapshot timestamp to tell them apart.
+
+Measured over a repeat run per container, start-up flushes:
+
+    ogg/vorbis 0, ogg/opus 0, m4a 0, mp3 4->1, mpegts 2->1, flac 3->2
+---
+ modules/audio_output/pulse.c | 43 ++++++++++++++++++++++++++++--------
+ 1 file changed, 34 insertions(+), 9 deletions(-)
+
+diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
+index 053069dcb3..b1c70511aa 100644
+--- a/modules/audio_output/pulse.c
++++ b/modules/audio_output/pulse.c
+@@ -79,6 +79,8 @@ struct aout_sys_t
+         block_t **last;
+     } fifo;
+     bool calibrated; /**< The device latency has been measured */
++    pa_usec_t last_sink_usec; /**< Previous reading, to see it settle */
++    struct timeval last_timing; /**< Timestamp of that reading's snapshot */
+ 
+     pa_volume_t volume_force; /**< Forced volume (stream must be NULL) */
+     pa_stream_flags_t flags_force; /**< Forced flags (stream must be NULL) */
+@@ -248,17 +250,36 @@ static vlc_tick_t stream_silence(pa_stream *s, audio_output_t *aout,
+  * milliseconds and nothing shows; on A2DP it is over two hundred, and starting
+  * on it puts playback that much late.
+  */
+-static bool stream_latency_is_real(pa_stream *s)
++static bool stream_latency_is_real(audio_output_t *aout, pa_stream *s)
+ {
++    aout_sys_t *sys = aout->sys;
+     const pa_timing_info *ti = pa_stream_get_timing_info(s);
+ 
+-    /* sink_usec is the tell: it is zero until the server has the device
+-     * latency, and becomes the real figure once the stream is running.
+-     * Requiring it non-zero is what distinguishes a reading that means
+-     * something from one taken too early. */
+-    return pa_stream_is_corked(s) == 0
+-        && ti != NULL && !ti->write_index_corrupt && ti->playing
+-        && ti->sink_usec > 0;
++    if (pa_stream_is_corked(s) != 0 || ti == NULL || ti->write_index_corrupt
++     || !ti->playing || ti->sink_usec == 0)
++        return false;
++
++    /* The timing info is cached and only replaced when the server sends an
++     * update, so two reads in quick succession see the same snapshot. Compare
++     * across snapshots, not across calls. */
++    if (!timercmp(&ti->timestamp, &sys->last_timing, !=))
++        return false;
++
++    pa_usec_t prev = sys->last_sink_usec;
++
++    sys->last_timing = ti->timestamp;
++    sys->last_sink_usec = ti->sink_usec;
++
++    if (prev == 0)
++        return false;
++
++    /* sink_usec ramps as the device fills, so the first snapshots understate
++     * it badly - on A2DP it climbs from tens of milliseconds to over two
++     * hundred. Only believe it once it stops growing. */
++    pa_usec_t hi = ti->sink_usec > prev ? ti->sink_usec : prev;
++    pa_usec_t lo = ti->sink_usec > prev ? prev : ti->sink_usec;
++
++    return hi - lo <= hi / 16;
+ }
+ 
+ /** Hands one queued block to PulseAudio. */
+@@ -300,6 +321,8 @@ static void stream_reset_calibration(audio_output_t *aout)
+     sys->fifo.first = NULL;
+     sys->fifo.last = &sys->fifo.first;
+     sys->calibrated = false;
++    sys->last_sink_usec = 0;
++    timerclear(&sys->last_timing);
+ }
+ 
+ static void stream_stop(pa_stream *s, audio_output_t *aout)
+@@ -647,7 +670,7 @@ static void Play(audio_output_t *aout, block_t *block)
+         *sys->fifo.last = block;
+         sys->fifo.last = &block->p_next;
+ 
+-        if (stream_latency_is_real(s))
++        if (stream_latency_is_real(aout, s))
+         {
+             vlc_tick_t latency = vlc_pa_get_latency(aout, sys->context, s);
+ 
+@@ -1213,6 +1236,8 @@ static int Open(vlc_object_t *obj)
+     sys->fifo.first = NULL;
+     sys->fifo.last = &sys->fifo.first;
+     sys->calibrated = false;
++    sys->last_sink_usec = 0;
++    timerclear(&sys->last_timing);
+ 
+     aout->sys = sys;
+     aout->start = Start;

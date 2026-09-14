@@ -1,7 +1,7 @@
-From 4522eeafc53553727e3458a43f52a4bca3027e4b Mon Sep 17 00:00:00 2001
+From 2d9d1963c34d3658cce1ec7350259a7896a486a5 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
-Date: Sun, 13 Sep 2026 19:45:06 -0400
-Subject: [PATCH 14/31] demux: stl: allow seeking to the last subtitle, and in
+Date: Sun, 13 Sep 2026 19:45:09 -0400
+Subject: [PATCH 10/20] demux: stl: allow seeking to the last subtitle, and in
  single entry files
 
 DEMUX_SET_TIME walks the index looking for the first entry whose
@@ -20,7 +20,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
  1 file changed, 13 insertions(+)
 
 diff --git a/modules/demux/stl.c b/modules/demux/stl.c
-index f0664c2bf8..e8099062ea 100644
+index 4e7a688a8c..b1338c18c5 100644
 --- a/modules/demux/stl.c
 +++ b/modules/demux/stl.c
 @@ -130,6 +130,19 @@ static int Control(demux_t *demux, int query, va_list args)

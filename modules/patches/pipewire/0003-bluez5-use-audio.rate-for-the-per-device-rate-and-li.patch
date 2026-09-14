@@ -1,0 +1,273 @@
+From d13f274cfc42d5dd7915887bd46cbfa890be1be8 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 01:49:39 -0400
+Subject: [PATCH 3/3] bluez5: use audio.rate for the per-device rate, and list
+ selectable rates
+
+The per-device rate preference is the same concept the ALSA plugin
+already exposes on its nodes as SPA_KEY_AUDIO_RATE ("audio.rate"), via
+the same SPA_PROP_params mechanism (spa/plugins/alsa/alsa-pcm.c). Use
+that spelling rather than inventing a bluez-specific one, so a client
+that knows how to ask an audio object for a rate does not need to know
+which plugin is behind it. bluez5.default.rate keeps its meaning as the
+monitor-wide default that this overrides.
+
+Also list the rates that can actually be selected, as the values of the
+audio.rate property on the device PropInfo param. Without this a client
+has to guess: the sink node advertises exactly one rate, because
+EnumFormat is built by codec->enum_config() from the configuration that
+was negotiated, not from what the codec and the remote could agree on.
+
+The codec vtable has no rate table to query, so the rates are found by
+probing select_config() with each candidate and collecting the distinct
+results. That needs no per-codec knowledge and automatically reflects
+what the remote endpoint offers, since select_config() already picks
+from the intersection of the two.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ doc/dox/config/pipewire-props.7.md | 23 +++++-----
+ spa/plugins/bluez5/bluez5-dbus.c   | 70 +++++++++++++++++++++++++++++-
+ spa/plugins/bluez5/bluez5-device.c | 61 ++++++++++++++++++++++++--
+ spa/plugins/bluez5/defs.h          |  1 +
+ 4 files changed, 141 insertions(+), 14 deletions(-)
+
+diff --git a/doc/dox/config/pipewire-props.7.md b/doc/dox/config/pipewire-props.7.md
+index 6f83368bb..e7f705640 100644
+--- a/doc/dox/config/pipewire-props.7.md
++++ b/doc/dox/config/pipewire-props.7.md
+@@ -1136,21 +1136,24 @@ Default audio rate.
+ This is the sample rate preferred when selecting an A2DP codec
+ configuration. Codecs generally support several rates, and the one picked at
+ configuration time is the rate of the Bluetooth transport for as long as that
+-configuration lasts: anything else is resampled before encoding.
++configuration lasts: anything the graph sends at another rate is resampled
++before it is encoded.
+ 
+-It can also be set per device, either as a device property (for example from a
+-session manager rule matching on `device.name`), or at runtime on the device
+-Props param:
++It can be overridden per device with the `audio.rate` device property, which
++is also settable at runtime on the device Props param:
+ 
+ ```
+-pw-cli set-param <bluez_card id> Props '{ params = [ "bluez5.default.rate", 44100 ] }'
++pw-cli set-param <bluez_card id> Props '{ params = [ "audio.rate", 44100 ] }'
+ ```
+ 
+-Setting it at runtime renegotiates the codec configuration of a connected A2DP
+-device, which tears the transport down and sets it up again, so there is a
+-short audible gap. A value of 0 means "use the monitor-wide setting". A rate
+-the remote device does not support is ignored, in which case the closest
+-supported rate is used as usual.
++The rates that can be selected for the currently configured codec are listed
++on the device PropInfo param, as the values of the `audio.rate` property. A
++value of 0 means "use this monitor-wide setting".
++
++Unlike the rate of an ALSA device, this is not something the graph can switch
++between freely: it is part of the codec configuration negotiated with the
++remote device, so changing it renegotiates the A2DP transport, which tears it
++down and sets it up again. Expect a short audible gap.
+ \endparblock
+ 
+ @PAR@ monitor-prop  bluez5.default.channels   # integer
+diff --git a/spa/plugins/bluez5/bluez5-dbus.c b/spa/plugins/bluez5/bluez5-dbus.c
+index bd740805a..156731201 100644
+--- a/spa/plugins/bluez5/bluez5-dbus.c
++++ b/spa/plugins/bluez5/bluez5-dbus.c
+@@ -5134,7 +5134,7 @@ static bool transport_config_is_current(struct spa_bt_device *device, struct spa
+ 	struct spa_bt_remote_endpoint *ep;
+ 	struct media_codec_audio_info audio_info;
+ 	uint8_t config[A2DP_MAX_CAPS_SIZE];
+-	bool sink;
++	bool sink = false;
+ 	int res;
+ 
+ 	if (device->preferred_rate == 0)
+@@ -5158,6 +5158,74 @@ static bool transport_config_is_current(struct spa_bt_device *device, struct spa
+ 	return res == t->configuration_len && memcmp(config, t->configuration, res) == 0;
+ }
+ 
++/*
++ * Sample rates that can be selected for a codec on a device.
++ *
++ * The codec vtable has no rate table to ask, so probe select_config() with
++ * each candidate rate and collect the distinct rates it settles on. This works
++ * for any codec, and automatically accounts for what the remote endpoint
++ * actually offers, since select_config() picks from the intersection.
++ *
++ * Returns the number of rates written, in the order probed, or < 0 on error.
++ */
++int spa_bt_device_get_media_codec_rates(struct spa_bt_device *device, const struct media_codec *codec,
++		uint32_t *rates, size_t max_rates)
++{
++	static const uint32_t candidates[] = {
++		8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100,
++		48000, 64000, 88200, 96000, 176400, 192000,
++	};
++	struct spa_bt_remote_endpoint *ep;
++	struct media_codec_audio_info audio_info;
++	uint8_t config[A2DP_MAX_CAPS_SIZE];
++	size_t i, j, n_rates = 0;
++	bool sink = false;
++
++	if (codec == NULL || codec->kind != MEDIA_CODEC_A2DP ||
++			codec->select_config == NULL || codec->validate_config == NULL)
++		return -ENOTSUP;
++
++	/* Any endpoint the codec can be configured on will do: they all belong
++	 * to the same remote device.
++	 */
++	spa_list_for_each(ep, &device->remote_endpoint_list, device_link)
++		if (codec_switch_check_endpoint(ep, codec, &sink, NULL))
++			break;
++	if (spa_list_is_end(ep, &device->remote_endpoint_list, device_link))
++		return -ENODEV;
++
++	audio_info = device->monitor->default_audio_info;
++
++	for (i = 0; i < SPA_N_ELEMENTS(candidates) && n_rates < max_rates; ++i) {
++		struct spa_audio_info info = { 0 };
++		uint32_t rate;
++		int res;
++
++		audio_info.rate = candidates[i];
++
++		res = codec->select_config(codec, sink ? MEDIA_CODEC_FLAG_SINK : 0,
++				ep->capabilities, ep->capabilities_len,
++				&audio_info, &device->monitor->global_settings, config, NULL);
++		if (res < 0)
++			continue;
++		if (codec->validate_config(codec, sink ? MEDIA_CODEC_FLAG_SINK : 0,
++					config, res, &info) < 0)
++			continue;
++
++		rate = info.info.raw.rate;
++		if (rate == 0)
++			continue;
++
++		for (j = 0; j < n_rates; ++j)
++			if (rates[j] == rate)
++				break;
++		if (j == n_rates)
++			rates[n_rates++] = rate;
++	}
++
++	return n_rates;
++}
++
+ /*
+  * Ensure there's a transport for at least one of the listed codecs.
+  *
+diff --git a/spa/plugins/bluez5/bluez5-device.c b/spa/plugins/bluez5/bluez5-device.c
+index 68994586e..b570f3fb0 100644
+--- a/spa/plugins/bluez5/bluez5-device.c
++++ b/spa/plugins/bluez5/bluez5-device.c
+@@ -2729,6 +2729,55 @@ static struct spa_pod *build_prop_info_codec(struct impl *this, struct spa_pod_b
+ #undef FOR_EACH_MEDIA_CODEC
+ }
+ 
++/*
++ * The sample rates that can be selected for the currently configured codec.
++ *
++ * The A2DP rate is part of the codec configuration, not of the stream format,
++ * so the node only ever advertises the one rate that was negotiated. Listing
++ * the alternatives here is what makes them discoverable, and writing one back
++ * as audio.rate renegotiates the configuration.
++ */
++static struct spa_pod *build_prop_info_rate(struct impl *this, struct spa_pod_builder *b, uint32_t id)
++{
++	const struct media_codec *codec;
++	struct spa_pod_frame f[2];
++	uint32_t rates[16];
++	int n_rates, i;
++
++	if (this->profile != DEVICE_PROFILE_A2DP || !this->props.codec)
++		return NULL;
++
++	codec = get_supported_media_codec(this, this->props.codec, NULL,
++			this->bt_dev->connected_profiles);
++	if (codec == NULL)
++		return NULL;
++
++	n_rates = spa_bt_device_get_media_codec_rates(this->bt_dev, codec, rates, SPA_N_ELEMENTS(rates));
++	if (n_rates <= 0)
++		return NULL;
++
++	spa_pod_builder_push_object(b, &f[0], SPA_TYPE_OBJECT_PropInfo, id);
++	spa_pod_builder_add(b,
++			SPA_PROP_INFO_name, SPA_POD_String(SPA_KEY_AUDIO_RATE),
++			SPA_PROP_INFO_description, SPA_POD_String("Bluetooth codec sample rate"),
++			0);
++
++	spa_pod_builder_prop(b, SPA_PROP_INFO_type, 0);
++	spa_pod_builder_push_choice(b, &f[1], SPA_CHOICE_Enum, 0);
++	/* Current value first, then the alternatives. 0 means "follow the
++	 * monitor-wide bluez5.default.rate". */
++	spa_pod_builder_int(b, this->bt_dev->preferred_rate);
++	spa_pod_builder_int(b, 0);
++	for (i = 0; i < n_rates; ++i)
++		spa_pod_builder_int(b, rates[i]);
++	spa_pod_builder_pop(b, &f[1]);
++
++	spa_pod_builder_prop(b, SPA_PROP_INFO_params, 0);
++	spa_pod_builder_bool(b, true);
++
++	return spa_pod_builder_pop(b, &f[0]);
++}
++
+ static struct spa_pod *build_props(struct impl *this, struct spa_pod_builder *b, uint32_t id)
+ {
+ 	struct props *p = &this->props;
+@@ -2747,7 +2796,7 @@ static struct spa_pod *build_props(struct impl *this, struct spa_pod_builder *b,
+ 	spa_pod_builder_bool(b, this->bt_dev->disable_dummy_call);
+ 	spa_pod_builder_string(b, "bluez5.autoswitch-routes");
+ 	spa_pod_builder_bool(b, this->autoswitch_routes);
+-	spa_pod_builder_string(b, "bluez5.default.rate");
++	spa_pod_builder_string(b, SPA_KEY_AUDIO_RATE);
+ 	spa_pod_builder_int(b, this->bt_dev->preferred_rate);
+ 	spa_pod_builder_pop(b, &f[1]);
+ 
+@@ -2844,6 +2893,12 @@ static int impl_enum_params(void *object, int seq,
+ 					SPA_PROP_INFO_description, SPA_POD_String("Bluetooth audio offload active"),
+ 					SPA_PROP_INFO_type, SPA_POD_CHOICE_Bool(false));
+ 			break;
++		case 2:
++			/* Last entry: if the selectable rates cannot be
++			 * determined, just end the enumeration here. */
++			if ((param = build_prop_info_rate(this, &b, id)) == NULL)
++				return 0;
++			break;
+ 		default:
+ 			return 0;
+ 		}
+@@ -3133,7 +3188,7 @@ static int parse_prop_params(struct impl *this, struct spa_pod *params)
+ 			this->params[IDX_EnumRoute].flags ^= SPA_PARAM_INFO_SERIAL;
+ 			this->params[IDX_Profile].flags ^= SPA_PARAM_INFO_SERIAL;
+ 			this->params[IDX_EnumProfile].flags ^= SPA_PARAM_INFO_SERIAL;
+-		} else if (spa_streq(name, "bluez5.default.rate") && spa_pod_is_int(pod)) {
++		} else if (spa_streq(name, SPA_KEY_AUDIO_RATE) && spa_pod_is_int(pod)) {
+ 			int32_t rate = SPA_POD_VALUE(struct spa_pod_int, pod);
+ 			spa_log_info(this->log, "key:'%s' val:'%d'", name, rate);
+ 
+@@ -3419,7 +3474,7 @@ impl_init(const struct spa_handle_factory *factory,
+ 		 * so the A2DP codec configuration can prefer a different rate
+ 		 * for this device only.
+ 		 */
+-		if ((str = spa_dict_lookup(info, "bluez5.default.rate")) != NULL) {
++		if ((str = spa_dict_lookup(info, SPA_KEY_AUDIO_RATE)) != NULL) {
+ 			uint32_t rate;
+ 			if (spa_atou32(str, &rate, 0) && rate >= 8000 && rate <= 384000)
+ 				this->bt_dev->preferred_rate = rate;
+diff --git a/spa/plugins/bluez5/defs.h b/spa/plugins/bluez5/defs.h
+index 639bd95ca..49e3bb7b2 100644
+--- a/spa/plugins/bluez5/defs.h
++++ b/spa/plugins/bluez5/defs.h
+@@ -593,6 +593,7 @@ int spa_bt_device_add_profile(struct spa_bt_device *device, enum spa_bt_profile
+ int spa_bt_device_connect_profile(struct spa_bt_device *device, enum spa_bt_profile profile);
+ int spa_bt_device_check_profiles(struct spa_bt_device *device, bool force);
+ int spa_bt_device_ensure_media_codec(struct spa_bt_device *device, const struct media_codec * const *codecs, uint32_t profiles, bool force);
++int spa_bt_device_get_media_codec_rates(struct spa_bt_device *device, const struct media_codec *codec, uint32_t *rates, size_t max_rates);
+ int spa_bt_device_ensure_hfp_codec(struct spa_bt_device *device, const struct media_codec *codec);
+ bool spa_bt_device_supports_media_codec(struct spa_bt_device *device, const struct media_codec *codec, enum spa_bt_profile profile);
+ const struct media_codec **spa_bt_device_get_supported_media_codecs(struct spa_bt_device *device, size_t *count);
