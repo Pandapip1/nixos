@@ -1,7 +1,7 @@
 From 98f85aa5baf4cd888637d698ed8192362943b086 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 15:43:07 -0400
-Subject: [PATCH 03/22] aout: re-establish the timing reference after a flush
+Subject: [PATCH 03/26] aout: re-establish the timing reference after a flush
 
 aout_DecSynchronize() picks its thresholds from sync.discontinuity: when
 it is set, any offset is absorbed at once by inserting silence or by

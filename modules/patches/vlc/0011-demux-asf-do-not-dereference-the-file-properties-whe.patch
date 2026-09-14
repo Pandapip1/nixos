@@ -1,7 +1,7 @@
 From ad72082af52d3f2c493ded54a075a820c00e3d06 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:34:14 -0400
-Subject: [PATCH 11/22] demux: asf: do not dereference the file properties when
+Subject: [PATCH 11/26] demux: asf: do not dereference the file properties when
  they are gone
 
 DemuxEnd() leaves p_sys->p_fp NULL, which happens when a chained header

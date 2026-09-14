@@ -1,7 +1,7 @@
 From 38461e7743e5c6a552f105c849dd84128bcc24cc Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:07:04 -0400
-Subject: [PATCH 06/22] input: repeat the current item in place
+Subject: [PATCH 06/26] input: repeat the current item in place
 
 Repeating one item is currently the playlist's job: the input reaches the
 end and dies, NextItem() hands the same item straight back, and

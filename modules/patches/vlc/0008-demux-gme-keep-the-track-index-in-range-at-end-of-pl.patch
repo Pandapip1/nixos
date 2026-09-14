@@ -1,7 +1,7 @@
 From e8561f41a66f31c9d428a2273768405d6a5502ff Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:10:30 -0400
-Subject: [PATCH 08/22] demux: gme: keep the track index in range at end of
+Subject: [PATCH 08/26] demux: gme: keep the track index in range at end of
  playback
 
 The track index is advanced before it is tested, so when the last track

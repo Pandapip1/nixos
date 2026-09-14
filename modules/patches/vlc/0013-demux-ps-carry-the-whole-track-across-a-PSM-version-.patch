@@ -1,7 +1,7 @@
 From ea3105453cf9b2eb58926fff61620d8340184d5f Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:44:08 -0400
-Subject: [PATCH 13/22] demux: ps: carry the whole track across a PSM version
+Subject: [PATCH 13/26] demux: ps: carry the whole track across a PSM version
  change
 
 When a program stream map announces a new version, each configured track

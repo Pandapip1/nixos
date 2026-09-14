@@ -1,7 +1,7 @@
 From a19d0e01b9188c3f707170cbfa8f549a5eaaea99 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:45:06 -0400
-Subject: [PATCH 14/22] demux: stl: allow seeking to the last subtitle, and in
+Subject: [PATCH 14/26] demux: stl: allow seeking to the last subtitle, and in
  single entry files
 
 DEMUX_SET_TIME walks the index looking for the first entry whose

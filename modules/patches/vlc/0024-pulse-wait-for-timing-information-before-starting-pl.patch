@@ -1,0 +1,124 @@
+From 6f1c69afee809e3bd4b197df3ef17debe4ca845f Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 13 Sep 2026 22:19:36 -0400
+Subject: [PATCH 24/26] pulse: wait for timing information before starting
+ playback
+
+The stream latency is how far ahead of the sink playback has to start for
+the samples to come out at first_pts:
+
+    delta = (sys->first_pts - mdate()) - delta;
+
+When vlc_pa_get_latency() has nothing to report yet, the latency was
+taken to be zero, with a comment saying the result was "screwed". It is
+worse than merely inaccurate: assuming zero defers the start by the full
+(first_pts - now) instead of subtracting the latency, so playback begins
+exactly one sink latency late. The core sees that as drift and corrects
+it by resampling, and resampling shifts pitch as well as speed - so a
+sink that is slow to report timing detunes the audio.
+
+Put the start off and wait for timing information instead. Both callers
+only reach stream_start() while the stream is corked, so a start skipped
+here is retried from the next latency callback or the next Play(). After
+a few tries, start anyway with the old behaviour, so a sink that never
+reports timing still plays rather than staying silent.
+
+Very short inputs that are drained before the retries are exhausted are
+already handled: Flush() force starts a corked stream before draining it.
+
+This is observable on an ordinary pipewire-pulse setup, which logs
+"cannot synchronize start" repeatedly during normal playback.
+---
+ modules/audio_output/pulse.c | 40 ++++++++++++++++++++++++++++++------
+ 1 file changed, 34 insertions(+), 6 deletions(-)
+
+diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
+index 4af14b0bb0..c27528a24f 100644
+--- a/modules/audio_output/pulse.c
++++ b/modules/audio_output/pulse.c
+@@ -35,6 +35,10 @@
+ #include <pulse/pulseaudio.h>
+ #include "audio_output/vlcpulse.h"
+ 
++/** How many times to put off starting the stream while the sink has yet to
++ * report any timing information, before giving up and starting anyway. */
++#define PULSE_START_TRIES 5
++
+ static int  Open        ( vlc_object_t * );
+ static void Close       ( vlc_object_t * );
+ 
+@@ -69,6 +73,7 @@ struct aout_sys_t
+     pa_time_event *trigger; /**< Deferred stream trigger */
+     pa_cvolume cvolume; /**< actual sink input volume */
+     vlc_tick_t first_pts; /**< Play time of buffer start */
++    unsigned start_tries; /**< Starts delayed waiting for timing information */
+ 
+     pa_volume_t volume_force; /**< Forced volume (stream must be NULL) */
+     pa_stream_flags_t flags_force; /**< Forced flags (stream must be NULL) */
+@@ -228,16 +233,36 @@ static void stream_start(pa_stream *s, audio_output_t *aout)
+ 
+     assert (sys->first_pts != VLC_TICK_INVALID);
+ 
+-    if (sys->trigger != NULL) {
+-        vlc_pa_rttime_free(sys->mainloop, sys->trigger);
+-        sys->trigger = NULL;
+-    }
+-
+     delta = vlc_pa_get_latency(aout, sys->context, s);
+     if (unlikely(delta == VLC_TICK_INVALID)) {
+-        msg_Dbg(aout, "cannot synchronize start");
++        /* The stream latency is how far ahead of the sink we have to start in
++         * order for the samples to come out at first_pts. Treating an unknown
++         * latency as zero does not merely lose accuracy, it starts playback
++         * exactly one sink latency too late, and the core then takes that for
++         * drift and corrects it by resampling - which shifts pitch. Wait for
++         * timing information instead: both callers only call us while the
++         * stream is corked, so a start we skip here is retried from the next
++         * latency callback or the next Play(). Give up after a few tries so a
++         * sink that never reports timing still plays, late, as it used to. */
++        if (sys->start_tries < PULSE_START_TRIES) {
++            sys->start_tries++;
++            msg_Dbg(aout, "deferring start, waiting for timing information");
++            return;
++        }
++
++        msg_Warn(aout, "cannot synchronize start, starting without timing "
++                       "information after %u tries", sys->start_tries);
+         delta = 0; /* screwed */
+     }
++    sys->start_tries = 0;
++
++    /* Only now that the start is actually going ahead: cancelling a pending
++     * trigger on a path that then defers would drop an already scheduled
++     * start without replacing it. */
++    if (sys->trigger != NULL) {
++        vlc_pa_rttime_free(sys->mainloop, sys->trigger);
++        sys->trigger = NULL;
++    }
+ 
+     delta = (sys->first_pts - mdate()) - delta;
+     if (delta > 0) {
+@@ -331,6 +356,7 @@ static void stream_overflow_cb(pa_stream *s, void *userdata)
+         return;
+     pa_operation_unref(op);
+     sys->first_pts = VLC_TICK_INVALID;
++    sys->start_tries = 0;
+ }
+ 
+ static void stream_started_cb(pa_stream *s, void *userdata)
+@@ -588,6 +614,7 @@ static void Flush(audio_output_t *aout, bool wait)
+     if (op != NULL)
+         pa_operation_unref(op);
+     sys->first_pts = VLC_TICK_INVALID;
++    sys->start_tries = 0;
+     stream_stop(s, aout);
+ 
+     pa_threaded_mainloop_unlock(sys->mainloop);
+@@ -819,6 +846,7 @@ static int Start(audio_output_t *aout, audio_sample_format_t *restrict fmt)
+     sys->trigger = NULL;
+     pa_cvolume_init(&sys->cvolume);
+     sys->first_pts = VLC_TICK_INVALID;
++    sys->start_tries = 0;
+ 
+     pa_format_info *formatv = pa_format_info_new();
+     formatv->encoding = encoding;

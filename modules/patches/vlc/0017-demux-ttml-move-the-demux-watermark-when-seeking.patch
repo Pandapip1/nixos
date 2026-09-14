@@ -1,7 +1,7 @@
 From 87a07c2a17d686a91b7188cdd9ba02668c318501 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:53:58 -0400
-Subject: [PATCH 17/22] demux: ttml: move the demux watermark when seeking
+Subject: [PATCH 17/26] demux: ttml: move the demux watermark when seeking
 
 Demux() emits cues while their time is at or below i_next_demux_time and
 otherwise only ever advances it, an eighth of a second per pass. Seeking
