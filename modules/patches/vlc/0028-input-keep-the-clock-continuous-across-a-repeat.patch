@@ -1,7 +1,7 @@
 From a2694191d7aeef299009b00a5dfafebd39af2dca Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 01:29:58 -0400
-Subject: [PATCH 28/31] input: keep the clock continuous across a repeat
+Subject: [PATCH 28/34] input: keep the clock continuous across a repeat
 
 Not discarding the decoded data was only half of it. The repeat still
 went through the ordinary reposition, which resets the clock reference
@@ -128,3 +128,6 @@ index 2477c45b46..e056b1dc61 100644
  }
  
  
+-- 
+2.55.0
+

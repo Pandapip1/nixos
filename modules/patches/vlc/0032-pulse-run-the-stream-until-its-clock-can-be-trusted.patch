@@ -1,0 +1,482 @@
+From 52c74632e1a559a943bfd386af06f38e3b8f47b9 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 19:46:22 -0400
+Subject: [PATCH 32/34] pulse: run the stream until its clock can be trusted
+
+The device latency cannot be known before the stream runs: while corked
+PulseAudio leaves the sink and transport latencies out of its timing, and
+this sink reports nothing for itself either. Measuring it by running the
+stream on silence was right, but the result was sampled from Play(),
+which cannot work: while the measurement is outstanding every block is
+held back, so the core's FIFO fills, the decoder stalls, and Play() is
+never called again. Whether the measurement finished before that happened
+came down to block cadence - a property of the container, which the
+device latency has nothing to do with. Measured over a fifteen second
+repeat, mp3 got 1.4 seconds of audio to the device and m4a none at all,
+while mkv played throughout.
+
+Drive the silence from the write callback instead, where the server asks
+for it regardless of what the decoder is doing.
+
+Measure once per stream, too. What the device costs does not change when
+the material loops, and a flush leaves the read index as far along as
+ever, so the figure stays good and the next start can be timed from it
+directly. Measuring again after every flush meant holding the audio back
+again, and covering the wait with silence written in front of it - up to
+a second and nine tenths of it, which the core then read as lateness and
+flushed away.
+
+Stop requiring the latency to be non-zero as well. A sink that really
+costs nothing can never satisfy that, and so never started at all: a null
+sink played fifteen seconds of silence. Whether pa_stream_get_time() has
+stopped clamping is the real question, and the read index answers it.
+
+Audio reaching the device over a fifteen second repeat: mp3 1.4s -> 14.9s,
+m4a 0s -> 14.2s, ogg 3.0s -> 6.5s; mkv, flac and avi played before and
+still do.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/audio_output/pulse.c | 285 ++++++++++++++++++++++++-----------
+ 1 file changed, 195 insertions(+), 90 deletions(-)
+
+diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
+index b1c70511aa..3a77d19775 100644
+--- a/modules/audio_output/pulse.c
++++ b/modules/audio_output/pulse.c
+@@ -78,9 +78,8 @@ struct aout_sys_t
+         block_t *first;
+         block_t **last;
+     } fifo;
+-    bool calibrated; /**< The device latency has been measured */
+-    pa_usec_t last_sink_usec; /**< Previous reading, to see it settle */
+-    struct timeval last_timing; /**< Timestamp of that reading's snapshot */
++    bool calibrated; /**< The stream clock has been let settle */
++    vlc_tick_t device_latency; /**< What the device adds, once known */
+ 
+     pa_volume_t volume_force; /**< Forced volume (stream must be NULL) */
+     pa_stream_flags_t flags_force; /**< Forced flags (stream must be NULL) */
+@@ -204,9 +203,9 @@ static void data_free(void *data);
+ /**
+  * Writes up to i_duration of silence, returning what it managed to write.
+  *
+- * Used to keep the stream running while the device latency is measured, and
+- * then to cover the remaining wait until playback is due. It is never written
+- * while idle: once real audio is flowing there is nothing left to cover.
++ * Used to keep the stream running until its clock can be trusted. It is never
++ * written while idle: once real audio is flowing there is nothing left to
++ * cover.
+  */
+ static vlc_tick_t stream_silence(pa_stream *s, audio_output_t *aout,
+                                  vlc_tick_t i_duration)
+@@ -240,8 +239,43 @@ static vlc_tick_t stream_silence(pa_stream *s, audio_output_t *aout,
+     return written;
+ }
+ 
++/** How much has been handed to the server but not yet played. */
++static vlc_tick_t stream_queued(pa_stream *s)
++{
++    const pa_timing_info *ti = pa_stream_get_timing_info(s);
++    const pa_sample_spec *ss = pa_stream_get_sample_spec(s);
++    int64_t queued;
++
++    if (ti == NULL || ti->write_index_corrupt || ti->read_index_corrupt)
++        return VLC_TICK_INVALID;
++
++    queued = ti->write_index - ti->read_index;
++
++    return queued > 0 ? pa_bytes_to_usec(queued, ss) : 0;
++}
++
++/**
++ * How long after the stream is started its first sample would be heard.
++ *
++ * Only the device is in the way of it: whatever else is queued sits behind it
++ * and has no say in when playback should begin. What PulseAudio reports counts
++ * that queue in, and while corked leaves the device out altogether, so it is
++ * wrong on both sides for timing a start - too early by the queue, too late by
++ * the device.
++ */
++static vlc_tick_t stream_start_delay(audio_output_t *aout, pa_stream *s)
++{
++    aout_sys_t *sys = aout->sys;
++
++    if (sys->device_latency != 0)
++        return sys->device_latency;
++
++    /* Not yet known: nothing better than what the stream says. */
++    return vlc_pa_get_latency(aout, sys->context, s);
++}
++
+ /**
+- * Whether the latency the stream reports can be believed yet.
++ * Whether the stream clock can be trusted yet.
+  *
+  * PulseAudio only folds the sink and transport latencies into its timing once
+  * the stream is actually running - calc_time() guards that with
+@@ -249,62 +283,71 @@ static vlc_tick_t stream_silence(pa_stream *s, audio_output_t *aout,
+  * device latency missing entirely. On a local sink that is a couple of
+  * milliseconds and nothing shows; on A2DP it is over two hundred, and starting
+  * on it puts playback that much late.
++ *
++ * Running it does not make the figure right straight away either: calc_time()
++ * subtracts those latencies from the playback position and clamps the result
++ * at zero, so it keeps reporting a delay short by the device latency until the
++ * stream has played as much as the device holds. Wait for that, and both this
++ * module and the core read the same truth from then on.
+  */
+-static bool stream_latency_is_real(audio_output_t *aout, pa_stream *s)
++static bool stream_clock_is_synced(pa_stream *s)
+ {
+-    aout_sys_t *sys = aout->sys;
+     const pa_timing_info *ti = pa_stream_get_timing_info(s);
++    const pa_sample_spec *ss = pa_stream_get_sample_spec(s);
+ 
+-    if (pa_stream_is_corked(s) != 0 || ti == NULL || ti->write_index_corrupt
+-     || !ti->playing || ti->sink_usec == 0)
+-        return false;
+-
+-    /* The timing info is cached and only replaced when the server sends an
+-     * update, so two reads in quick succession see the same snapshot. Compare
+-     * across snapshots, not across calls. */
+-    if (!timercmp(&ti->timestamp, &sys->last_timing, !=))
+-        return false;
+-
+-    pa_usec_t prev = sys->last_sink_usec;
+-
+-    sys->last_timing = ti->timestamp;
+-    sys->last_sink_usec = ti->sink_usec;
+-
+-    if (prev == 0)
++    if (pa_stream_is_corked(s) != 0 || ti == NULL || !ti->playing
++     || ti->read_index_corrupt || ti->read_index <= 0)
+         return false;
+ 
+-    /* sink_usec ramps as the device fills, so the first snapshots understate
+-     * it badly - on A2DP it climbs from tens of milliseconds to over two
+-     * hundred. Only believe it once it stops growing. */
+-    pa_usec_t hi = ti->sink_usec > prev ? ti->sink_usec : prev;
+-    pa_usec_t lo = ti->sink_usec > prev ? prev : ti->sink_usec;
+-
+-    return hi - lo <= hi / 16;
++    /* A device that really costs nothing clears this as soon as it has played
++     * anything; demanding a non-zero cost would never let such a sink start. */
++    return pa_bytes_to_usec(ti->read_index, ss)
++         > ti->sink_usec + ti->transport_usec;
+ }
+ 
+-/** Hands one queued block to PulseAudio. */
++/** Hands one queued block to PulseAudio at the given position. */
+ static void stream_write_block(pa_stream *s, audio_output_t *aout,
+-                               block_t *block)
++                               block_t *block, int64_t offset,
++                               pa_seek_mode_t seek)
+ {
+-    if (pa_stream_write(s, block->p_buffer, block->i_buffer, data_free, 0,
+-                        PA_SEEK_RELATIVE) < 0)
++    if (pa_stream_write(s, block->p_buffer, block->i_buffer, data_free, offset,
++                        seek) < 0)
+     {
+         vlc_pa_error(aout, "cannot write", aout->sys->context);
+         block_Release(block);
+     }
+ }
+ 
+-/** Writes out everything held back during calibration. */
+-static void stream_drain_fifo(pa_stream *s, audio_output_t *aout)
++/**
++ * Writes out everything held back, placing it i_wait from where the stream
++ * has got to.
++ *
++ * A positive wait leaves a hole, which PulseAudio plays as silence. A negative
++ * one means playback is already due: seeking on the read index puts the audio
++ * in as soon as the server can take it, dropping the silence that was written
++ * to get here rather than playing it out first.
++ */
++static void stream_drain_fifo(pa_stream *s, audio_output_t *aout,
++                              vlc_tick_t i_wait)
+ {
+     aout_sys_t *sys = aout->sys;
++    const pa_sample_spec *ss = pa_stream_get_sample_spec(s);
++    pa_seek_mode_t seek = PA_SEEK_RELATIVE;
++    int64_t offset = 0;
++
++    if (i_wait > 0)
++        offset = pa_usec_to_bytes(i_wait, ss);
++    else
++        seek = PA_SEEK_RELATIVE_ON_READ;
+ 
+     for (block_t *b = sys->fifo.first; b != NULL; )
+     {
+         block_t *next = b->p_next;
+ 
+         b->p_next = NULL;
+-        stream_write_block(s, aout, b);
++        stream_write_block(s, aout, b, offset, seek);
++        offset = 0;
++        seek = PA_SEEK_RELATIVE;
+         b = next;
+     }
+ 
+@@ -312,7 +355,15 @@ static void stream_drain_fifo(pa_stream *s, audio_output_t *aout)
+     sys->fifo.last = &sys->fifo.first;
+ }
+ 
+-/** Drops anything held back and requires the latency to be measured again. */
++/**
++ * Drops anything held back and has the clock settle again.
++ *
++ * Corking stops PulseAudio interpolating and restarts it from zero, so for a
++ * while after a flush what it reports is not the real delay; reporting it
++ * anyway is what had the core see lateness that was not there. What the device
++ * costs is kept - that belongs to the device, which a flush does not move, and
++ * it is what lets the next start be timed without measuring again.
++ */
+ static void stream_reset_calibration(audio_output_t *aout)
+ {
+     aout_sys_t *sys = aout->sys;
+@@ -321,8 +372,13 @@ static void stream_reset_calibration(audio_output_t *aout)
+     sys->fifo.first = NULL;
+     sys->fifo.last = &sys->fifo.first;
+     sys->calibrated = false;
+-    sys->last_sink_usec = 0;
+-    timerclear(&sys->last_timing);
++}
++
++/** Forgets the device too, for a stream that is going away or is new. */
++static void stream_forget_device(audio_output_t *aout)
++{
++    stream_reset_calibration(aout);
++    aout->sys->device_latency = 0;
+ }
+ 
+ static void stream_stop(pa_stream *s, audio_output_t *aout)
+@@ -364,16 +420,25 @@ static void stream_trigger_cb(pa_mainloop_api *api, pa_time_event *e,
+ static void stream_start(pa_stream *s, audio_output_t *aout)
+ {
+     aout_sys_t *sys = aout->sys;
+-    vlc_tick_t delta;
++    vlc_tick_t delta, queued;
+ 
+     assert (sys->first_pts != VLC_TICK_INVALID);
+ 
++    /* prebuf is zero so that the start can be timed here rather than left to
++     * the server, which also means the server starts on whatever is queued.
++     * A flush empties the stream, so the first block back is on its own and
++     * the device runs dry the moment it plays. Wait until there is enough
++     * behind it to keep going; Play() comes back with the next one. */
++    queued = stream_queued(s);
++    if (queued != VLC_TICK_INVALID && queued < AOUT_MIN_PREPARE_TIME)
++        return;
++
+     if (sys->trigger != NULL) {
+         vlc_pa_rttime_free(sys->mainloop, sys->trigger);
+         sys->trigger = NULL;
+     }
+ 
+-    delta = vlc_pa_get_latency(aout, sys->context, s);
++    delta = stream_start_delay(aout, s);
+     if (unlikely(delta == VLC_TICK_INVALID)) {
+         msg_Dbg(aout, "cannot synchronize start");
+         delta = 0; /* screwed */
+@@ -589,8 +654,8 @@ static int TimeGet(audio_output_t *aout, vlc_tick_t *restrict delay)
+     /* While the stream is running on silence to measure the device latency,
+      * what it reports describes the silence, not the audio. Reporting it
+      * would have the core treat the padding as lateness and flush. */
+-    if (sys->calibrated && pa_stream_is_corked(s) <= 0)
+-    {   /* latency is relevant only if not corked */
++    if (stream_clock_is_synced(s))
++    {
+         vlc_tick_t delta = vlc_pa_get_latency(aout, sys->context, s);
+         if (delta != VLC_TICK_INVALID)
+         {
+@@ -626,6 +691,72 @@ static void *data_convert(block_t **pp)
+     return block->p_buffer;
+ }
+ 
++/**
++ * Lets the held audio go once the stream clock can be trusted.
++ * @note PulseAudio lock required.
++ */
++static void stream_try_start(pa_stream *s, audio_output_t *aout)
++{
++    aout_sys_t *sys = aout->sys;
++    const pa_timing_info *ti;
++    vlc_tick_t latency, wait;
++
++    if (sys->device_latency != 0 || sys->first_pts == VLC_TICK_INVALID
++     || !stream_clock_is_synced(s))
++        return;
++
++    ti = pa_stream_get_timing_info(s);
++
++    latency = vlc_pa_get_latency(aout, sys->context, s);
++    if (latency == VLC_TICK_INVALID || latency <= 0
++     || latency >= VLC_TICK_FROM_SEC(5))
++        return;
++
++    /* The silence written to get here sits in front of the audio, so drop
++     * whatever of it is not needed to reach the start. */
++    wait = (sys->first_pts - mdate()) - latency;
++
++    sys->device_latency = ti->sink_usec + ti->transport_usec;
++    msg_Dbg(aout, "clock synced: device %"PRId64" us, latency %"PRId64" us, "
++            "starting in %"PRId64" us", sys->device_latency, latency, wait);
++    sys->calibrated = true;
++    stream_drain_fifo(s, aout, wait);
++}
++
++/**
++ * Feeds the stream while it is running on silence.
++ *
++ * Reaching the sync point takes as much silence as the device holds, which is
++ * far more than priming writes. It cannot be topped up from Play(): holding
++ * the audio back fills the core's FIFO, which stalls the decoder, which stops
++ * Play() being called at all. Let the server ask for what it needs instead.
++ */
++static void stream_write_cb(pa_stream *s, size_t nbytes, void *userdata)
++{
++    audio_output_t *aout = userdata;
++    aout_sys_t *sys = aout->sys;
++    vlc_tick_t queued, room;
++
++    if (sys->device_latency != 0)
++        return;
++
++    /* Only ever up to the target fill. The server will take as much as
++     * maxlength allows, which is seconds of it, and every one of those is a
++     * second of delay the audio has to sit behind. */
++    queued = stream_queued(s);
++    room = 3 * AOUT_MIN_PREPARE_TIME - (queued == VLC_TICK_INVALID ? 0 : queued);
++
++    if (room > 0)
++    {
++        vlc_tick_t asked = pa_bytes_to_usec(nbytes,
++                                            pa_stream_get_sample_spec(s));
++
++        stream_silence(s, aout, room < asked ? room : asked);
++    }
++
++    stream_try_start(s, aout);
++}
++
+ /**
+  * Queue one audio frame to the playback stream
+  */
+@@ -650,19 +781,21 @@ static void Play(audio_output_t *aout, block_t *block)
+     if (sys->first_pts == VLC_TICK_INVALID)
+         sys->first_pts = block->i_pts;
+ 
+-    if (!sys->calibrated)
++    if (sys->device_latency == 0)
+     {
+-        /* The device latency is not knowable until the stream runs: while
+-         * corked PulseAudio reports sink_usec as zero, and this sink reports
+-         * nothing for itself either. So run the stream on silence and measure
+-         * it, holding real audio back meanwhile - starting on the corked
+-         * figure is what put playback a fifth of a second late on Bluetooth
+-         * and had the core flush for lateness. */
++        /* The stream clock cannot be trusted until the stream has run for as
++         * long as the device holds: while corked PulseAudio reports sink_usec
++         * as zero, this sink reports nothing for itself either, and once
++         * running the reported delay stays short by the device latency until
++         * the stream has played that much. So run it on silence until the
++         * clock agrees with itself, holding real audio back meanwhile -
++         * starting on the corked figure is what put playback a fifth of a
++         * second late on Bluetooth and had the core flush for lateness. */
+         if (pa_stream_is_corked(s) > 0)
+         {
+-            /* Prime it with a little silence so there is something to play,
+-             * then let it run. */
+-            stream_silence(s, aout, VLC_TICK_FROM_MS(20));
++            /* Prime it so the server has something to ask about, then let it
++             * run; stream_write_cb() keeps it fed from there. */
++            stream_silence(s, aout, AOUT_MIN_PREPARE_TIME);
+             stream_start_now(s, aout);
+         }
+ 
+@@ -670,36 +803,7 @@ static void Play(audio_output_t *aout, block_t *block)
+         *sys->fifo.last = block;
+         sys->fifo.last = &block->p_next;
+ 
+-        if (stream_latency_is_real(aout, s))
+-        {
+-            vlc_tick_t latency = vlc_pa_get_latency(aout, sys->context, s);
+-
+-            /* A reading can still be nonsense the first time round - the
+-             * write index can sit behind the read index, which gives a
+-             * negative answer. Only act on one that could be a real device
+-             * latency. */
+-            if (latency != VLC_TICK_INVALID && latency > 0
+-             && latency < VLC_TICK_FROM_SEC(5))
+-            {
+-                /* Now that the latency is real, cover whatever is left until
+-                 * playback is due, and let the held audio go. */
+-                vlc_tick_t wait = (sys->first_pts - mdate()) - latency;
+-
+-                if (wait > 0)
+-                {
+-                    vlc_tick_t got = stream_silence(s, aout, wait);
+-                    msg_Dbg(aout, "calibrated: latency %"PRId64" us, covering "
+-                            "%"PRId64" of %"PRId64" us before start",
+-                            latency, got, wait);
+-                }
+-                else
+-                    msg_Dbg(aout, "calibrated: latency %"PRId64" us, starting "
+-                            "now (%"PRId64" us late)", latency, -wait);
+-
+-                sys->calibrated = true;
+-                stream_drain_fifo(s, aout);
+-            }
+-        }
++        stream_try_start(s, aout);
+ 
+         pa_threaded_mainloop_unlock(sys->mainloop);
+         return;
+@@ -1020,7 +1124,7 @@ static int Start(audio_output_t *aout, audio_sample_format_t *restrict fmt)
+     sys->trigger = NULL;
+     pa_cvolume_init(&sys->cvolume);
+     sys->first_pts = VLC_TICK_INVALID;
+-    stream_reset_calibration(aout);
++    stream_forget_device(aout);
+ 
+     pa_format_info *formatv = pa_format_info_new();
+     formatv->encoding = encoding;
+@@ -1147,6 +1251,7 @@ static int Start(audio_output_t *aout, audio_sample_format_t *restrict fmt)
+     pa_stream_set_started_callback(s, stream_started_cb, aout);
+     pa_stream_set_suspended_callback(s, stream_suspended_cb, aout);
+     pa_stream_set_underflow_callback(s, stream_underflow_cb, aout);
++    pa_stream_set_write_callback(s, stream_write_cb, aout);
+ 
+     if (pa_stream_connect_playback(s, sys->sink_force, &attr, flags,
+                                    cvolume, NULL) < 0
+@@ -1190,7 +1295,7 @@ static void Stop(audio_output_t *aout)
+     pa_stream *s = sys->stream;
+ 
+     pa_threaded_mainloop_lock(sys->mainloop);
+-    stream_reset_calibration(aout); /* nothing held back outlives the stream */
++    stream_forget_device(aout); /* nothing held back outlives the stream */
+     if (unlikely(sys->trigger != NULL))
+         vlc_pa_rttime_free(sys->mainloop, sys->trigger);
+     pa_stream_disconnect(s);
+@@ -1205,6 +1310,7 @@ static void Stop(audio_output_t *aout)
+     pa_stream_set_started_callback(s, NULL, NULL);
+     pa_stream_set_suspended_callback(s, NULL, NULL);
+     pa_stream_set_underflow_callback(s, NULL, NULL);
++    pa_stream_set_write_callback(s, NULL, NULL);
+ 
+     pa_stream_unref(s);
+     sys->stream = NULL;
+@@ -1236,8 +1342,7 @@ static int Open(vlc_object_t *obj)
+     sys->fifo.first = NULL;
+     sys->fifo.last = &sys->fifo.first;
+     sys->calibrated = false;
+-    sys->last_sink_usec = 0;
+-    timerclear(&sys->last_timing);
++    sys->device_latency = 0;
+ 
+     aout->sys = sys;
+     aout->start = Start;
+-- 
+2.55.0
+

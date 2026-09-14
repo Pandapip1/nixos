@@ -1,7 +1,7 @@
 From b2c5e9ad00747f6680a02b69a802e2a5b79783c9 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:01:24 -0400
-Subject: [PATCH 05/31] input: stop repeating an input that is not making
+Subject: [PATCH 05/34] input: stop repeating an input that is not making
  progress
 
 MainLoopTryRepeat() repeats by seeking back to the start, and a seek that
@@ -86,3 +86,6 @@ index ea02f39f5a..7be8bb3f24 100644
  
      /* Output */
      bool            b_out_pace_control; /* XXX Move it ot es_sout ? */
+-- 
+2.55.0
+

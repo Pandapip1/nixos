@@ -1,0 +1,158 @@
+From c596083c64873007c30ee276e31f4ffd3a38f025 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 19:46:22 -0400
+Subject: [PATCH 34/34] Revert "src: bypass libsamplerate when the ratio is
+ exactly one"
+
+This reverts commit cc723354b7e1505eeed9cf78bd6a8b56a14f3e0a.
+
+The bypass was worth having while the resampler sat at a ratio of one for
+the whole of an ordinary playback. It no longer does: the correction is
+now kept for the life of playback rather than dropped at every flush, so
+the ratio is rarely exactly one, and every time it passes through one the
+bypass drains libsamplerate and resets it - a seam in the middle of
+playback, which is precisely what keeping the correction is meant to
+avoid.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/audio_filter/resampler/src.c | 68 ++++------------------------
+ 1 file changed, 9 insertions(+), 59 deletions(-)
+
+diff --git a/modules/audio_filter/resampler/src.c b/modules/audio_filter/resampler/src.c
+index e6ad7ef3d9..93febbf644 100644
+--- a/modules/audio_filter/resampler/src.c
++++ b/modules/audio_filter/resampler/src.c
+@@ -70,18 +70,6 @@ vlc_module_begin ()
+     set_callbacks (OpenResampler, Close)
+ vlc_module_end ()
+ 
+-struct filter_sys_t
+-{
+-    SRC_STATE *state;
+-    bool dirty; /**< Whether the resampler holds buffered input frames */
+-};
+-
+-/* Upper bound, in frames, on the amount of input that libsamplerate keeps in
+- * hand while resampling, i.e. half the length of its interpolation filter:
+- * 20, 47 and 144 frames for the fast, medium and best sinc converters
+- * respectively, and none for the linear and zero order hold ones. */
+-#define SRC_LOOKAHEAD 256
+-
+ static block_t *Resample (filter_t *, block_t *);
+ 
+ static int Open (vlc_object_t *obj)
+@@ -105,10 +93,6 @@ static int OpenResampler (vlc_object_t *obj)
+      || filter->fmt_in.audio.i_channels != filter->fmt_out.audio.i_channels )
+         return VLC_EGENERIC;
+ 
+-    struct filter_sys_t *sys = malloc (sizeof (*sys));
+-    if (unlikely(sys == NULL))
+-        return VLC_ENOMEM;
+-
+     int type = var_InheritInteger (obj, "src-converter-type");
+     int err;
+ 
+@@ -116,14 +100,10 @@ static int OpenResampler (vlc_object_t *obj)
+     if (s == NULL)
+     {
+         msg_Err (obj, "cannot initialize resampler: %s", src_strerror (err));
+-        free (sys);
+         return VLC_EGENERIC;
+     }
+ 
+-    sys->state = s;
+-    sys->dirty = false; /* a fresh state holds nothing */
+-
+-    filter->p_sys = sys;
++    filter->p_sys = (filter_sys_t *)s;
+     filter->pf_audio_filter = Resample;
+     return VLC_SUCCESS;
+ }
+@@ -131,39 +111,21 @@ static int OpenResampler (vlc_object_t *obj)
+ static void Close (vlc_object_t *obj)
+ {
+     filter_t *filter = (filter_t *)obj;
+-    struct filter_sys_t *sys = filter->p_sys;
++    SRC_STATE *s = (SRC_STATE *)filter->p_sys;
+ 
+-    src_delete (sys->state);
+-    free (sys);
++    src_delete (s);
+ }
+ 
+ static block_t *Resample (filter_t *filter, block_t *in)
+ {
+     block_t *out = NULL;
+     const size_t framesize = filter->fmt_out.audio.i_bytes_per_frame;
+-    const unsigned irate = filter->fmt_in.audio.i_rate;
+-    const unsigned orate = filter->fmt_out.audio.i_rate;
+ 
+-    struct filter_sys_t *sys = filter->p_sys;
+-    SRC_STATE *s = sys->state;
++    SRC_STATE *s = (SRC_STATE *)filter->p_sys;
+     SRC_DATA src;
+ 
+-    if (irate == orate && !sys->dirty)
+-    {   /* Nothing to do: the ratio is exactly one and the resampler holds no
+-         * buffered frames. The audio output instantiates this filter for
+-         * drift correction alone, with equal rates, and only offsets the
+-         * input rate while it is actually correcting a drift. Running the
+-         * interpolation filter in the meantime would burn CPU and lowpass
+-         * the samples for nothing. */
+-        in->i_length = in->i_nb_samples * CLOCK_FREQ / orate;
+-        return in;
+-    }
+-
+-    src.src_ratio = (double)orate / (double)irate;
+-    /* If the ratio is back to one, this is the last pass: flush the frames
+-     * that the resampler still holds, rather than dropping them when the fast
+-     * path above takes over. */
+-    src.end_of_input = (irate == orate);
++    src.src_ratio = (double)filter->fmt_out.audio.i_rate
++                  / (double)filter->fmt_in.audio.i_rate;
+ 
+     int err = src_set_ratio (s, src.src_ratio);
+     if (err != 0)
+@@ -175,8 +137,7 @@ static block_t *Resample (filter_t *filter, block_t *in)
+ 
+     src.input_frames = in->i_nb_samples;
+     src.output_frames = ceil (src.src_ratio * src.input_frames);
+-    if (src.end_of_input)
+-        src.output_frames += SRC_LOOKAHEAD; /* room for the flushed frames */
++    src.end_of_input = 0;
+ 
+     out = block_Alloc (src.output_frames * framesize);
+     if (unlikely(out == NULL))
+@@ -186,18 +147,6 @@ static block_t *Resample (filter_t *filter, block_t *in)
+     src.data_out = (float *)out->p_buffer;
+ 
+     err = src_process (s, &src);
+-
+-    if (src.end_of_input)
+-    {   /* A terminated state cannot be fed again as is. Resetting it also
+-         * keeps the invariant that the resampler holds nothing at all while
+-         * the fast path bypasses it, so that re-engaging it later cannot
+-         * replay frames buffered an arbitrarily long time ago. */
+-        src_reset (s);
+-        sys->dirty = false;
+-    }
+-    else
+-        sys->dirty = true;
+-
+     if (err != 0)
+     {
+         msg_Err (filter, "cannot resample: %s", src_strerror (err));
+@@ -213,7 +162,8 @@ static block_t *Resample (filter_t *filter, block_t *in)
+     out->i_buffer = src.output_frames_gen * framesize;
+     out->i_nb_samples = src.output_frames_gen;
+     out->i_pts = in->i_pts;
+-    out->i_length = src.output_frames_gen * CLOCK_FREQ / orate;
++    out->i_length = src.output_frames_gen * CLOCK_FREQ
++                  / filter->fmt_out.audio.i_rate;
+ error:
+     block_Release (in);
+     return out;
+-- 
+2.55.0
+

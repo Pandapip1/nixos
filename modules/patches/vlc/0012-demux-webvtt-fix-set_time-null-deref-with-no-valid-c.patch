@@ -1,7 +1,7 @@
 From e950f9686c80bc73731419c2012733eb5df82eda Mon Sep 17 00:00:00 2001
 From: Francois Cartegnie <fcvlcdev@free.fr>
 Date: Wed, 19 Jun 2019 18:00:11 +0200
-Subject: [PATCH 12/31] demux: webvtt: fix set_time null deref with no valid
+Subject: [PATCH 12/34] demux: webvtt: fix set_time null deref with no valid
  cues (fix #22448)
 
 (cherry picked from commit 13408f65758f3bfb11761535df8e44c4c28e04d4)
@@ -29,3 +29,6 @@ index d51db8b982..ec18cd421b 100644
  
          case DEMUX_GET_POSITION:
              pf = va_arg( args, double * );
+-- 
+2.55.0
+

@@ -1,7 +1,7 @@
 From 270144bdf05bf85cb17e3d096913e98bed37560e Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 12:16:13 -0400
-Subject: [PATCH 31/31] pulse: wait for the measured latency to settle
+Subject: [PATCH 31/34] pulse: wait for the measured latency to settle
 
 Taking the first reading with a non-zero sink_usec is not enough. The
 value ramps as the device fills - on an A2DP sink it climbs from tens of
@@ -110,3 +110,6 @@ index 053069dcb3..b1c70511aa 100644
  
      aout->sys = sys;
      aout->start = Start;
+-- 
+2.55.0
+

@@ -1,7 +1,7 @@
 From fcc5c93ec8cabbae9327096e5b285bdd6cc0d8a2 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:12:07 -0400
-Subject: [PATCH 09/31] demux: ty: clear the end of file flag when seeking
+Subject: [PATCH 09/34] demux: ty: clear the end of file flag when seeking
 
 Demux() returns early on p_sys->eof, and once the flag is raised at the
 end of the file nothing lowers it again: the two seek helpers only ever
@@ -48,3 +48,6 @@ index dc8aa6083d..8a9e7ed349 100644
          return ty_stream_seek_time(p_demux, i64 * 1000);
      case DEMUX_GET_FPS:
      default:
+-- 
+2.55.0
+

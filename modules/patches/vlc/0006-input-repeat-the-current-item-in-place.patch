@@ -1,7 +1,7 @@
 From 3a515a79adcd001f158290b4fb88b00a61a4eca0 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:07:04 -0400
-Subject: [PATCH 06/31] input: repeat the current item in place
+Subject: [PATCH 06/34] input: repeat the current item in place
 
 Repeating one item is currently the playlist's job: the input reaches the
 end and dies, NextItem() hands the same item straight back, and
@@ -59,3 +59,6 @@ index 35a8c35fb7..5c3b7c1f33 100644
      /* A repeat is a seek back to the start, and a seek that does not take
       * leaves the end of stream exactly as it was, so the next pass through the
       * main loop asks for the same repeat again. Nothing bounded that beyond
+-- 
+2.55.0
+

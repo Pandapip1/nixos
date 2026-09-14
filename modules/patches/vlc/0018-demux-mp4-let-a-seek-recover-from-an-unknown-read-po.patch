@@ -1,7 +1,7 @@
 From 8814ab1f942022a8eccb5a8228f3e62dc00eaa8c Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:04:50 -0400
-Subject: [PATCH 18/31] demux: mp4: let a seek recover from an unknown read
+Subject: [PATCH 18/34] demux: mp4: let a seek recover from an unknown read
  position
 
 b_error is raised when a seek fails and the seek back to where we were
@@ -50,3 +50,6 @@ index e5db797c8b..fc3d36f297 100644
      uint64_t i64 = UINT64_MAX;
      uint32_t i_segment_type = ATOM_moof;
      stime_t  i_segment_time = INT64_MAX;
+-- 
+2.55.0
+

@@ -1,7 +1,7 @@
 From 86bcf2ed4794179f8a2175c944465b9cafff8973 Mon Sep 17 00:00:00 2001
 From: Steve Lhomme <robux4@ycbcr.xyz>
 Date: Tue, 2 Jul 2024 14:12:49 +0200
-Subject: [PATCH 19/31] Revert "demux: mkv: fix seek segfault with invalid
+Subject: [PATCH 19/34] Revert "demux: mkv: fix seek segfault with invalid
  chapters"
 
 This reverts commit 4ba01f2831193b2a59513c897b159c14c0a9f086.
@@ -40,3 +40,6 @@ index 90a5bd5bc5..6bdaeb3e39 100644
  
      /* seek without index or without date */
      if( f_percent >= 0 && (var_InheritBool( p_demux, "mkv-seek-percent" ) || i_mk_date < 0 ))
+-- 
+2.55.0
+

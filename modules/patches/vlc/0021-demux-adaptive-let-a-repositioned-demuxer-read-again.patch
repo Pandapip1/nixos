@@ -1,7 +1,7 @@
 From 2bacf427a97d434eeccc9d4f6b4f828fbfea7400 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:30:44 -0400
-Subject: [PATCH 21/31] demux: adaptive: let a repositioned demuxer read again
+Subject: [PATCH 21/34] demux: adaptive: let a repositioned demuxer read again
 
 AbstractStream::resetForNewPosition() has two paths. The one that rebuilds
 the demuxer ends with the elementary stream output being told it is no
@@ -97,3 +97,6 @@ index b22a21855f..34aa51f4c6 100644
  
          protected:
              AbstractSourceStream *sourcestream;
+-- 
+2.55.0
+

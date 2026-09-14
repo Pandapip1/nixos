@@ -1,7 +1,7 @@
 From 1979ddb1cd25862fdb637741081427c2a92e1d50 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 00:24:38 -0400
-Subject: [PATCH 25/31] demux: ogg: allow speex and theora to reuse their
+Subject: [PATCH 25/34] demux: ogg: allow speex and theora to reuse their
  elementary stream
 
 Ogg_LogicalStreamResetEsFormat() decides whether a stream that has just
@@ -71,3 +71,6 @@ index 779572f529..3c6c0b7f9d 100644
      else if( p_stream->fmt.i_codec == VLC_CODEC_OPUS )
          b_compatible = Ogg_IsOpusFormatCompatible( &p_stream->fmt, &p_stream->fmt_old );
      else if( p_stream->fmt.i_codec == VLC_CODEC_FLAC )
+-- 
+2.55.0
+
