@@ -1,0 +1,46 @@
+From 4f0f9feb9e343d69f45933ddf85f34e3bcfd3dd7 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 13 Sep 2026 19:53:58 -0400
+Subject: [PATCH 14/36] demux: ttml: move the demux watermark when seeking
+
+Demux() emits cues while their time is at or below i_next_demux_time and
+otherwise only ever advances it, an eighth of a second per pass. Seeking
+moved times.i_current but left the watermark where playback had reached,
+so a seek backwards - including the seek to the start that repeats a file
+- left every remaining cue at or below it. The next pass emitted the lot
+in one go, timestamped in the past.
+
+Set it to the requested time, as the webvtt and subtitle demuxers do.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ modules/demux/ttml.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/modules/demux/ttml.c b/modules/demux/ttml.c
+index 8e5471cb46..91b11b84b2 100644
+--- a/modules/demux/ttml.c
++++ b/modules/demux/ttml.c
+@@ -243,6 +243,9 @@ static int Control( demux_t* p_demux, int i_query, va_list args )
+                                                             p_sys->times.i_count, t, &b );
+                 p_sys->times.i_current = i_index;
+                 p_sys->b_first_time = true;
++                /* Demux() only ever advances this; leaving it behind would
++                 * flush every remaining cue at once. */
++                p_sys->i_next_demux_time = i64 - VLC_TICK_0;
+                 return VLC_SUCCESS;
+             }
+             break;
+@@ -287,6 +290,9 @@ static int Control( demux_t* p_demux, int i_query, va_list args )
+                                                             p_sys->times.i_count, t, &b );
+                 p_sys->times.i_current = i_index;
+                 p_sys->b_first_time = true;
++                /* Demux() only ever advances this; leaving it behind would
++                 * flush every remaining cue at once. */
++                p_sys->i_next_demux_time = i64;
+                 return VLC_SUCCESS;
+             }
+             break;
+-- 
+2.55.0
+

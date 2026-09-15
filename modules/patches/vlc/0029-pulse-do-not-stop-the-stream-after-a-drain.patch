@@ -1,0 +1,40 @@
+From 331268feba92a57020bafd4cb38edde80e0532a6 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 15 Sep 2026 04:11:29 -0400
+Subject: [PATCH 29/36] pulse: do not stop the stream after a drain
+
+A drain plays the queue out; it does not finish with the device. What
+follows one is usually the next pass of the same item, and stopping the
+stream means starting it again for that - corking it, dropping the
+device, losing the settled clock and leaving a gap underneath, all to
+carry on with what was already playing.
+
+Leave it running. If nothing more arrives the idle timeout parks it.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/audio_output/pulse.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
+index 0f1e63db7a..fde0f6ba6d 100644
+--- a/modules/audio_output/pulse.c
++++ b/modules/audio_output/pulse.c
+@@ -876,7 +876,13 @@ static void Flush(audio_output_t *aout, bool wait)
+         pa_operation_unref(op);
+     sys->first_pts = VLC_TICK_INVALID;
+     stream_drop_held(aout);
+-    stream_stop(s, aout);
++
++    /* A drain plays the queue out; it does not finish with the device. What
++     * follows one is usually the next pass of the same item, and stopping the
++     * stream means starting it again for that. The idle timeout parks it if
++     * nothing more arrives. */
++    if (!wait)
++        stream_stop(s, aout);
+ 
+     pa_threaded_mainloop_unlock(sys->mainloop);
+ }
+-- 
+2.55.0
+

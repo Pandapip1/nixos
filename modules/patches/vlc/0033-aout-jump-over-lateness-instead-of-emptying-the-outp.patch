@@ -1,0 +1,214 @@
+From 6996699d0c14f8b17e663632261d7c907c5562fe Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 15 Sep 2026 04:52:00 -0400
+Subject: [PATCH 33/36] aout: jump over lateness instead of emptying the output
+
+When the output falls behind, aout_DecSynchronize() flushed it. That
+throws away everything queued - a second or more of audio - which is heard
+as a hole, and leaves the output to start again from nothing: on a device
+with a real latency that means corking it and paying the start-up cost
+over again, all to correct an offset.
+
+Let what is queued play out and drop as much from what follows instead.
+The material jumps by the same amount; the sound does not stop. The
+comment here has long noted that seeking the output backwards would be
+the tidier answer and is not portable - skipping forward in what has not
+been written yet asks nothing of the output at all.
+
+One jump at a time. It shortens what is still to come, not what the output
+already holds, so the drift goes on reading high until that has played
+out, and asking again on every buffer meanwhile skips the same lateness
+over and over: doing so cost a quarter of the audio and fired fifty times
+in fifteen seconds, against four when held to one.
+
+The offset a flush leaves behind is not drift either, so it is marked as a
+discontinuity rather than resampled away.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/audio_output/aout_internal.h |   2 +
+ src/audio_output/dec.c           | 102 +++++++++++++++++++++++--------
+ 2 files changed, 79 insertions(+), 25 deletions(-)
+
+diff --git a/src/audio_output/aout_internal.h b/src/audio_output/aout_internal.h
+index e4265335fe..d8aa8b3542 100644
+--- a/src/audio_output/aout_internal.h
++++ b/src/audio_output/aout_internal.h
+@@ -78,6 +78,8 @@ typedef struct
+     struct
+     {
+         vlc_tick_t end; /**< Last seen PTS */
++        vlc_tick_t skip; /**< Material still to be jumped over */
++        vlc_tick_t skip_settles; /**< When a jump can have taken effect */
+         unsigned resamp_start_drift; /**< Resampler drift absolute value */
+         int resamp_type; /**< Resampler mode (FIXME: redundant / resampling) */
+         bool discontinuity;
+diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
+index 732596699c..d029716070 100644
+--- a/src/audio_output/dec.c
++++ b/src/audio_output/dec.c
+@@ -110,6 +110,8 @@ error:
+     owner->sync.end = VLC_TICK_INVALID;
+     owner->sync.resamp_type = AOUT_RESAMPLING_NONE;
+     owner->sync.discontinuity = true;
++    owner->sync.skip = 0;
++    owner->sync.skip_settles = 0;
+     aout_OutputUnlock (p_aout);
+ 
+     atomic_init (&owner->buffers_lost, 0);
+@@ -205,12 +207,37 @@ void aout_RequestRestart (audio_output_t *aout, unsigned mode)
+  * Buffer management
+  */
+ 
+-static void aout_StopResampling (audio_output_t *aout)
++/**
++ * Takes i_length off the front of a buffer, or all of it if it is shorter.
++ * \return what is left of the buffer, or NULL if none of it is.
++ */
++static block_t *aout_DecSkipBuffer (audio_output_t *aout, block_t *block,
++                                    vlc_tick_t *restrict skip)
+ {
+     aout_owner_t *owner = aout_owner (aout);
++    const audio_sample_format_t *fmt = &owner->mixer_format;
++    size_t frames, bytes;
+ 
+-    owner->sync.resamp_type = AOUT_RESAMPLING_NONE;
+-    aout_FiltersAdjustResampling (owner->filters, 0);
++    if (block->i_length <= *skip)
++    {
++        *skip -= block->i_length;
++        block_Release (block);
++        return NULL;
++    }
++
++    frames = (fmt->i_rate * *skip) / CLOCK_FREQ;
++    if (frames == 0 || frames >= block->i_nb_samples)
++        return block;
++
++    bytes = frames * fmt->i_bytes_per_frame / fmt->i_frame_length;
++    block->p_buffer += bytes;
++    block->i_buffer -= bytes;
++    block->i_nb_samples -= frames;
++    block->i_pts += *skip;
++    block->i_dts += *skip;
++    block->i_length -= *skip;
++    *skip = 0;
++    return block;
+ }
+ 
+ static void aout_DecSilence (audio_output_t *aout, vlc_tick_t length, vlc_tick_t pts)
+@@ -257,7 +284,10 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+      */
+     if (aout_OutputTimeGet (aout, &drift) != 0)
+         return; /* nothing can be done if timing is unknown */
+-    drift += mdate () - dec_pts;
++
++    const vlc_tick_t delay = drift, now = mdate ();
++
++    drift += now - dec_pts;
+ 
+     /* Late audio output.
+      * This can happen due to insufficient caching, scheduling jitter
+@@ -268,22 +298,28 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+     if (drift > (owner->sync.discontinuity ? 0
+                   : +3 * input_rate * AOUT_MAX_PTS_DELAY / INPUT_RATE_DEFAULT))
+     {
+-        if (!owner->sync.discontinuity)
+-            msg_Warn (aout, "playback way too late (%"PRId64"): "
+-                      "flushing buffers", drift);
+-        else
+-            msg_Dbg (aout, "playback too late (%"PRId64"): "
+-                     "flushing buffers", drift);
+-        aout_OutputFlush (aout, false);
+-
+-        aout_StopResampling (aout);
+-        owner->sync.end = VLC_TICK_INVALID;
+-        owner->sync.discontinuity = true;
+-
+-        /* Now the output might be too early... Recheck. */
+-        if (aout_OutputTimeGet (aout, &drift) != 0)
+-            return; /* nothing can be done if timing is unknown */
+-        drift += mdate () - dec_pts;
++        /* Jump over it rather than emptying the output. Flushing throws away
++         * everything queued - a second or more - which is heard as a hole,
++         * and leaves the output to start from nothing again. Letting what is
++         * queued play out and dropping as much from what follows costs a jump
++         * in the material instead of a gap in the sound.
++         *
++         * Only one at a time: the jump shortens what is still to come, not
++         * what the output already holds, so the drift keeps reading high
++         * until that has played out. */
++        if (now >= owner->sync.skip_settles)
++        {
++            if (!owner->sync.discontinuity)
++                msg_Warn (aout, "playback way too late (%"PRId64"): "
++                          "jumping ahead", drift);
++            else
++                msg_Dbg (aout, "playback too late (%"PRId64"): "
++                         "jumping ahead", drift);
++            owner->sync.skip += drift;
++            owner->sync.skip_settles = now + delay;
++            owner->sync.end = VLC_TICK_INVALID;
++        }
++        return;
+     }
+ 
+     /* Early audio output.
+@@ -296,7 +332,6 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+                       "playing silence", drift);
+         aout_DecSilence (aout, -drift, dec_pts);
+ 
+-        aout_StopResampling (aout);
+         owner->sync.discontinuity = true;
+         drift = 0;
+     }
+@@ -326,11 +361,17 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+         return; /* Everything is fine. Nothing to do. */
+ 
+     if (llabs (drift) > 2 * owner->sync.resamp_start_drift)
+-    {   /* If the drift is ever increasing, then something is seriously wrong.
+-         * Cease resampling and hope for the best. */
++    {   /* Resampling is not closing the gap - it is bounded, and cannot pull
++         * back more than a few permille. Hand the difference to the skip,
++         * which jumps over it in one go, and keep the correction: it
++         * describes the device and is still right. */
+         msg_Warn (aout, "timing screwed (drift: %"PRId64" us): "
+-                  "stopping resampling", drift);
+-        aout_StopResampling (aout);
++                  "jumping instead", drift);
++        if (drift > 0 && mdate () >= owner->sync.skip_settles)
++        {
++            owner->sync.skip += drift;
++            owner->sync.skip_settles = mdate () + delay;
++        }
+         return;
+     }
+ 
+@@ -404,6 +445,13 @@ int aout_DecPlay (audio_output_t *aout, block_t *block, int input_rate)
+     /* Drift correction */
+     aout_DecSynchronize (aout, block->i_pts, input_rate);
+ 
++    if (unlikely(owner->sync.skip > 0))
++    {
++        block = aout_DecSkipBuffer (aout, block, &owner->sync.skip);
++        if (block == NULL)
++            goto lost;
++    }
++
+     /* Output */
+     owner->sync.end = block->i_pts + block->i_length + 1;
+     owner->sync.discontinuity = false;
+@@ -488,6 +536,10 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
+             aout_FiltersFlush (owner->filters);
+         aout_OutputFlush (aout, wait);
+     }
++
++    /* The offset a flush leaves behind is not drift; do not resample to
++     * catch it up. */
++    owner->sync.discontinuity = true;
+     aout_OutputUnlock (aout);
+ }
+ 
+-- 
+2.55.0
+

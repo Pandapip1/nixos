@@ -1,0 +1,34 @@
+From 1bd6358f2867bd2448e5f2e88d98576782ab3cf7 Mon Sep 17 00:00:00 2001
+From: Francois Cartegnie <fcvlcdev@free.fr>
+Date: Wed, 19 Jun 2019 18:00:11 +0200
+Subject: [PATCH 09/36] demux: webvtt: fix set_time null deref with no valid
+ cues (fix #22448)
+
+(cherry picked from commit 13408f65758f3bfb11761535df8e44c4c28e04d4)
+---
+ modules/demux/webvtt.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/modules/demux/webvtt.c b/modules/demux/webvtt.c
+index d51db8b982..ec18cd421b 100644
+--- a/modules/demux/webvtt.c
++++ b/modules/demux/webvtt.c
+@@ -454,6 +454,7 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
+ 
+         case DEMUX_SET_TIME:
+             i64 = va_arg( args, int64_t );
++            if( p_sys->cues.i_count )
+             {
+                 p_sys->index.i_current = getIndexByTime( p_sys, i64 );
+                 p_sys->b_first_time = true;
+@@ -462,6 +463,7 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
+                 p_sys->i_next_block_flags |= BLOCK_FLAG_DISCONTINUITY;
+                 return VLC_SUCCESS;
+             }
++            break;
+ 
+         case DEMUX_GET_POSITION:
+             pf = va_arg( args, double * );
+-- 
+2.55.0
+

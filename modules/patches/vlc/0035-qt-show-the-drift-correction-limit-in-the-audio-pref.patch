@@ -1,7 +1,7 @@
-From e92b4a461e9c24b3dc6913f12c49be23a024000f Mon Sep 17 00:00:00 2001
+From fa8ac5ae9b2a242005f85d7b9a95400a55aa6ca3 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:11:02 -0400
-Subject: [PATCH 35/40] qt: show the drift correction limit in the audio
+Subject: [PATCH 35/36] qt: show the drift correction limit in the audio
  preferences
 
 "aout-max-resampling" was declared advanced, so the knob that decides
@@ -20,8 +20,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  .../gui/qt/components/simple_preferences.cpp  |  2 ++
  modules/gui/qt/ui/sprefs_audio.ui             | 27 +++++++++++++++++++
- src/libvlc-module.c                           |  3 ++-
- 3 files changed, 31 insertions(+), 1 deletion(-)
+ src/libvlc-module.c                           |  2 +-
+ 3 files changed, 30 insertions(+), 1 deletion(-)
 
 diff --git a/modules/gui/qt/components/simple_preferences.cpp b/modules/gui/qt/components/simple_preferences.cpp
 index fe5b6ed874..1becca22a2 100644
@@ -82,15 +82,14 @@ index 4ef4b8bd71..c35ad4837e 100644
    <tabstop>volNormSpin</tabstop>
    <tabstop>replayCombo</tabstop>
 diff --git a/src/libvlc-module.c b/src/libvlc-module.c
-index 9f12c4293d..67bddf35a7 100644
+index d5e20d3246..67bddf35a7 100644
 --- a/src/libvlc-module.c
 +++ b/src/libvlc-module.c
-@@ -1553,7 +1553,8 @@ vlc_module_begin ()
-     add_bool( "audio-time-stretch", true,
+@@ -1554,7 +1554,7 @@ vlc_module_begin ()
                AUDIO_TIME_STRETCH_TEXT, AUDIO_TIME_STRETCH_LONGTEXT, false )
      add_integer( "aout-max-resampling", AOUT_MAX_RESAMPLING_CENTS,
--                 AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT, true )
-+                 AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT,
+                  AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT,
+-                 true )
 +                 false )
          change_integer_range( 0, AOUT_MAX_RESAMPLING_CENTS_MAX )
      add_float( "aout-drift-gain", AOUT_DRIFT_GAIN,
