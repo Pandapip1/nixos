@@ -1,7 +1,7 @@
 From 2729177aaebb03016ef880489c564145558882c1 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:23:01 -0400
-Subject: [PATCH 35/41] input: leave the clock alone when repeating an item
+Subject: [PATCH 35/44] input: leave the clock alone when repeating an item
 
 a2694191d7 moved the stream side of the clock reference back by the pass
 just played, on the reasoning that the stream clock restarts from zero

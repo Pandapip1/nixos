@@ -1,7 +1,7 @@
 From edd64c80c815639959053e1c0f07fe977c121691 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:04:12 -0400
-Subject: [PATCH 39/41] aout: bound the drift correction in cents, not permille
+Subject: [PATCH 39/44] aout: bound the drift correction in cents, not permille
 
 The bound on the drift correction was a permille of the sample rate, which
 says nothing about the thing it exists to limit. Resampling corrects drift

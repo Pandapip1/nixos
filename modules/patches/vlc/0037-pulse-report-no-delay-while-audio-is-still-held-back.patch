@@ -1,7 +1,7 @@
 From 370a9377b05f881904133e4130bb0b2afa3ec3a9 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:47:22 -0400
-Subject: [PATCH 37/41] pulse: report no delay while audio is still held back
+Subject: [PATCH 37/44] pulse: report no delay while audio is still held back
 
 Audio waiting for the clock to settle is not queued, so the stream knows
 nothing about it, and what the stream does report is the silence it is

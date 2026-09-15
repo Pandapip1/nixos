@@ -1,7 +1,7 @@
 From 2660a397b4b8624d2ede9db865605f828eb74844 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:39:33 -0400
-Subject: [PATCH 36/41] input: do not wait out the idle interval for the tail
+Subject: [PATCH 36/44] input: do not wait out the idle interval for the tail
  to finish
 
 At the end of a pass the decoders are drained and the main loop waits for
