@@ -1,7 +1,7 @@
 From a92f686ef920a9b9cf5bff3ecd7d9987d204db51 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 19:46:22 -0400
-Subject: [PATCH 33/34] aout: correct the timeline without stopping the sound
+Subject: [PATCH 33/41] aout: correct the timeline without stopping the sound
 
 Two halves of the same thing.
 

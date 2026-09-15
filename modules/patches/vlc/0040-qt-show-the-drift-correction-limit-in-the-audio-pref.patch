@@ -1,0 +1,100 @@
+From 63cd238cb2c3d117df797d3f6357772dd7cef8ec Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 20:11:02 -0400
+Subject: [PATCH 40/41] qt: show the drift correction limit in the audio
+ preferences
+
+"aout-max-resampling" was declared advanced, so the knob that decides
+whether a drift correction is heard as detuning could only be reached
+by turning advanced options on first. Clear the flag, and give it a spin
+box in the simple audio panel next to time stretching, the other setting
+there that trades pitch against timing. Anyone who can hear the
+correction is exactly the user who goes looking for it, and zero, which
+stops playback from ever being detuned, is a choice worth offering
+without a detour through the advanced tree.
+
+The spin box takes its range from the option and its tooltip from the
+long text, so it follows whatever the core declares.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ .../gui/qt/components/simple_preferences.cpp  |  2 ++
+ modules/gui/qt/ui/sprefs_audio.ui             | 27 +++++++++++++++++++
+ src/libvlc-module.c                           |  3 ++-
+ 3 files changed, 31 insertions(+), 1 deletion(-)
+
+diff --git a/modules/gui/qt/components/simple_preferences.cpp b/modules/gui/qt/components/simple_preferences.cpp
+index fe5b6ed874..1becca22a2 100644
+--- a/modules/gui/qt/components/simple_preferences.cpp
++++ b/modules/gui/qt/components/simple_preferences.cpp
+@@ -560,6 +560,8 @@ SPrefsPanel::SPrefsPanel( intf_thread_t *_p_intf, QWidget *_parent,
+             CONFIG_GENERIC( "audio-visual" , StringList, ui.visuLabel,
+                             visualisation);
+             CONFIG_BOOL( "audio-time-stretch", autoscaleBox );
++            CONFIG_GENERIC_NO_BOOL( "aout-max-resampling", IntegerRange,
++                                    ui.maxResamplingLabel, maxResamplingSpin );
+ 
+             /* Audio Output Specifics */
+             CONFIG_GENERIC( "aout", StringList, ui.outputLabel, outputModule );
+diff --git a/modules/gui/qt/ui/sprefs_audio.ui b/modules/gui/qt/ui/sprefs_audio.ui
+index 4ef4b8bd71..c35ad4837e 100644
+--- a/modules/gui/qt/ui/sprefs_audio.ui
++++ b/modules/gui/qt/ui/sprefs_audio.ui
+@@ -329,6 +329,32 @@
+            </property>
+           </widget>
+          </item>
++         <item row="1" column="0">
++          <widget class="QLabel" name="maxResamplingLabel">
++           <property name="minimumSize">
++            <size>
++             <width>250</width>
++             <height>0</height>
++            </size>
++           </property>
++           <property name="text">
++            <string>Maximum drift correction:</string>
++           </property>
++           <property name="buddy">
++            <cstring>maxResamplingSpin</cstring>
++           </property>
++          </widget>
++         </item>
++         <item row="1" column="2">
++          <widget class="QSpinBox" name="maxResamplingSpin">
++           <property name="alignment">
++            <set>Qt::AlignRight</set>
++           </property>
++           <property name="suffix">
++            <string> cents</string>
++           </property>
++          </widget>
++         </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="replayLabel">
+            <property name="minimumSize">
+@@ -565,6 +591,7 @@
+   <tabstop>spdifBox</tabstop>
+   <tabstop>mmdevicePassthroughBox</tabstop>
+   <tabstop>autoscaleBox</tabstop>
++  <tabstop>maxResamplingSpin</tabstop>
+   <tabstop>volNormBox</tabstop>
+   <tabstop>volNormSpin</tabstop>
+   <tabstop>replayCombo</tabstop>
+diff --git a/src/libvlc-module.c b/src/libvlc-module.c
+index 9f12c4293d..67bddf35a7 100644
+--- a/src/libvlc-module.c
++++ b/src/libvlc-module.c
+@@ -1553,7 +1553,8 @@ vlc_module_begin ()
+     add_bool( "audio-time-stretch", true,
+               AUDIO_TIME_STRETCH_TEXT, AUDIO_TIME_STRETCH_LONGTEXT, false )
+     add_integer( "aout-max-resampling", AOUT_MAX_RESAMPLING_CENTS,
+-                 AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT, true )
++                 AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT,
++                 false )
+         change_integer_range( 0, AOUT_MAX_RESAMPLING_CENTS_MAX )
+     add_float( "aout-drift-gain", AOUT_DRIFT_GAIN,
+                AUDIO_DRIFT_GAIN_TEXT, AUDIO_DRIFT_GAIN_LONGTEXT, true )
+-- 
+2.55.0
+

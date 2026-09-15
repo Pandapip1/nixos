@@ -1,0 +1,363 @@
+From edd64c80c815639959053e1c0f07fe977c121691 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 20:04:12 -0400
+Subject: [PATCH 39/41] aout: bound the drift correction in cents, not permille
+
+The bound on the drift correction was a permille of the sample rate, which
+says nothing about the thing it exists to limit. Resampling corrects drift
+by changing the rate, and changing the rate changes pitch; what has to stay
+inaudible is how far out of tune it pushes the material. State it as one:
+cents, hundredths of a semitone. The default of 9 cents is 5.2 permille,
+against the 5 permille it replaces, so what it allows is all but unchanged.
+
+The figure is kept as an interval rather than converted to a rate offset
+when the filters are built, because the clamp has to be applied in that
+unit. Cents are logarithmic: a ratio of 1 + x is a smaller interval than
+1 - x, so bounding the offset symmetrically allows more detuning downwards
+than up, and by a different amount at every rate. Bounding the interval is
+symmetric by construction.
+
+The controller works in cents throughout for the same reason - its own
+clamp on the integral has to mean the same thing as the clamp on its
+output, or the two disagree about where the bound is.
+
+What reaches the resampler is not what the controller asks for: it is a
+whole number of Hz, and it may have been clamped. Integrating against the
+request would make the integral answer for a correction that was never
+applied - winding up while pinned at the bound, and accumulating the
+rounding either side of it. aout_FiltersSetDetune() returns the detune it
+managed, and the difference is fed back over the time constant the gains
+already imply, so the integral tracks what the output is actually doing.
+
+"aout-max-resampling" keeps its name and its meaning of zero (no
+correction), and no previously valid setting now asks for more detuning
+than it did. It was added earlier on this branch and has never been in a
+release, so nothing in the field is set in permille.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ include/vlc_aout.h               | 40 +++++++++++----------
+ src/audio_output/aout_internal.h |  4 +--
+ src/audio_output/dec.c           | 42 +++++++++++-----------
+ src/audio_output/filters.c       | 60 +++++++++++++++++++-------------
+ src/libvlc-module.c              | 20 +++++------
+ 5 files changed, 89 insertions(+), 77 deletions(-)
+
+diff --git a/include/vlc_aout.h b/include/vlc_aout.h
+index 605e4eb603..0af79e0cf9 100644
+--- a/include/vlc_aout.h
++++ b/include/vlc_aout.h
+@@ -55,33 +55,37 @@
+ #define AOUT_MAX_PTS_DELAY              (3 * CLOCK_FREQ / 50)
+ 
+ /* Default for "aout-max-resampling": the maximum drift correction applied by
+- * the resampler, in 1/1000 of the nominal sample rate.
++ * the resampler, in cents (hundredths of a semitone) of detune.
+  *
+  * Resampling changes pitch as well as speed, so this bound is what keeps a
+- * drift correction from being heard as the stream playing out of tune; 5/1000
+- * is about 8.6 cents. It only has to cover genuine clock drift between the
+- * source and the audio device, which is a few tens of ppm for real hardware.
+- * Larger offsets - notably the 60-120 ms a high latency sink typically reports
+- * at start-up - are latency rather than drift, and are absorbed by the silence
+- * insertion and flush paths instead of by detuning the audio.
++ * drift correction from being heard as the stream playing out of tune, which
++ * is why it is an interval rather than a fraction of the sample rate. It only
++ * has to cover genuine clock drift between the source and the audio device,
++ * which is a few tens of ppm for real hardware. Larger offsets - notably the
++ * 60-120 ms a high latency sink typically reports at start-up - are latency
++ * rather than drift, and are absorbed by the silence insertion and flush paths
++ * instead of by detuning the audio.
+  *
+  * Lowering this trades slower resynchronisation for less audible detuning;
+  * zero leaves drift correction by resampling disabled altogether. */
+-#define AOUT_MAX_RESAMPLING_PERMILLE    5
++#define AOUT_MAX_RESAMPLING_CENTS       9
++
++/** Highest value accepted for "aout-max-resampling" (a whole tone) */
++#define AOUT_MAX_RESAMPLING_CENTS_MAX   200
+ 
+ /* Defaults for "aout-drift-gain" and "aout-drift-integral-gain", the gains of
+- * the controller that turns the measured drift into a resampling offset. Its
+- * input is a drift in seconds and its output an offset expressed as a fraction
+- * of the nominal sample rate, so the proportional gain is in 1/s and the
+- * integral one in 1/s^2.
++ * the controller that turns the measured drift into a detune. Its input is a
++ * drift in seconds and its output an interval in cents, so the proportional
++ * gain is in cents/s and the integral one in cents/s^2.
+  *
+- * An offset of u closes the drift at du/dt, so the loop is a plain integrator
+- * and the PI controller makes it second order. These values give it a natural
+- * frequency of 0.045 rad/s and a damping ratio of 0.89, and let the
++ * A detune of u closes the drift at a rate proportional to u, so the loop is a
++ * plain integrator and the PI controller makes it second order. These keep the
++ * ratio between the two terms that gives a damping ratio of 0.89, and let the
+  * proportional term alone ask for the whole of the default bound at one
+- * AOUT_MAX_PTS_DELAY of drift. */
+-#define AOUT_DRIFT_GAIN                 0.08
+-#define AOUT_DRIFT_INTEGRAL_GAIN        0.002
++ * AOUT_MAX_PTS_DELAY of drift:
++ * AOUT_MAX_RESAMPLING_CENTS / (AOUT_MAX_PTS_DELAY / CLOCK_FREQ). */
++#define AOUT_DRIFT_GAIN                 150.f
++#define AOUT_DRIFT_INTEGRAL_GAIN        3.75f
+ 
+ #include "vlc_es.h"
+ 
+diff --git a/src/audio_output/aout_internal.h b/src/audio_output/aout_internal.h
+index 5a3085b546..3b56958c35 100644
+--- a/src/audio_output/aout_internal.h
++++ b/src/audio_output/aout_internal.h
+@@ -177,8 +177,8 @@ static inline void aout_SetWavePhysicalChannels(audio_sample_format_t *fmt)
+ }
+ 
+ /* From filters.c */
+-float aout_FiltersGetMaxResampling (aout_filters_t *filters);
+-void aout_FiltersSetResampling (aout_filters_t *filters, float ratio);
++float aout_FiltersGetMaxDetune (aout_filters_t *filters);
++float aout_FiltersSetDetune (aout_filters_t *filters, float cents);
+ 
+ void aout_ChangeViewpoint(audio_output_t *aout,
+                           const vlc_viewpoint_t *p_viewpoint);
+diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
+index 27aecc3bd5..74eff71ce8 100644
+--- a/src/audio_output/dec.c
++++ b/src/audio_output/dec.c
+@@ -353,7 +353,7 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+      * instead. There is no derivative term: the drift is quantised by whatever
+      * granularity the output reports its delay with, and differentiating that
+      * yields noise rather than a trend. */
+-    const float max = aout_FiltersGetMaxResampling (owner->filters);
++    const float max = aout_FiltersGetMaxDetune (owner->filters);
+ 
+     if (max <= 0.f)
+         return; /* correction by resampling is disabled */
+@@ -369,26 +369,12 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+         return;
+     }
+ 
+-    float correction = owner->sync.drift_kp * (drift / (float)CLOCK_FREQ)
+-                       + owner->sync.drift_integral;
+-    bool bound = false;
++    const float commanded = owner->sync.drift_kp * (drift / (float)CLOCK_FREQ)
++                            + owner->sync.drift_integral;
++    const float applied = aout_FiltersSetDetune (owner->filters, commanded);
++    const bool bound = fabsf (applied) >= max;
+ 
+-    if (correction > +max)
+-    {
+-        correction = +max;
+-        bound = true;
+-    }
+-    else if (correction < -max)
+-    {
+-        correction = -max;
+-        bound = true;
+-    }
+-
+-    /* Conditional integration: pinned at the bound, the integral can no longer
+-     * change the output, and whatever it piles up there only has to be unwound
+-     * before the correction can come off the bound again. */
+-    if (owner->sync.update != VLC_TICK_INVALID
+-     && !(bound && (correction > 0.f) == (drift > 0)))
++    if (owner->sync.update != VLC_TICK_INVALID)
+     {
+         vlc_tick_t dt = now - owner->sync.update;
+ 
+@@ -399,9 +385,22 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+ 
+         if (dt > 0)
+         {
++            const float seconds = dt / (float)CLOCK_FREQ;
+             float i = owner->sync.drift_integral
+                       + owner->sync.drift_ki * (drift / (float)CLOCK_FREQ)
+-                        * (dt / (float)CLOCK_FREQ);
++                        * seconds;
++
++            /* What went to the resampler is not what was asked of it: it is a
++             * whole number of Hz, and it was clamped to the bound. Integrating
++             * against what was asked would have the integral answer for a
++             * correction that was never made - winding up against the bound,
++             * and quietly accumulating the rounding either side of it. Feed
++             * the difference back instead, over the time constant the gains
++             * already imply, so the integral tracks what the output is really
++             * doing. */
++            if (owner->sync.drift_kp > 0.f)
++                i += (applied - commanded)
++                     * (owner->sync.drift_ki / owner->sync.drift_kp) * seconds;
+ 
+             /* The integral on its own may not ask for more than the bound. */
+             owner->sync.drift_integral = (i > +max) ? +max
+@@ -417,7 +416,6 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+                  bound ? "reached" : "left", drift);
+     }
+ 
+-    aout_FiltersSetResampling (owner->filters, correction);
+ }
+ 
+ /*****************************************************************************
+diff --git a/src/audio_output/filters.c b/src/audio_output/filters.c
+index 3933760e74..a29722205a 100644
+--- a/src/audio_output/filters.c
++++ b/src/audio_output/filters.c
+@@ -28,9 +28,9 @@
+ # include "config.h"
+ #endif
+ 
++#include <math.h>
+ #include <string.h>
+ #include <assert.h>
+-#include <math.h>
+ 
+ #include <vlc_common.h>
+ #include <vlc_dialog.h>
+@@ -348,7 +348,7 @@ struct aout_filters
+         (either the scaletempo filter or a resampler) */
+     filter_t *resampler; /**< The resampler */
+     int resampling; /**< Current resampling (Hz) */
+-    int max_resampling; /**< Bound on resampling (Hz); 0 disables it */
++    int max_cents; /**< Bound on the detune (cents); 0 disables it */
+ 
+     unsigned count; /**< Number of filters */
+     filter_t *tab[AOUT_MAX_FILTERS]; /**< Configured user filters
+@@ -510,7 +510,7 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+         return NULL;
+ 
+     filters->rate_filter = NULL;
+-    filters->max_resampling = 0;
++    filters->max_cents = 0;
+     filters->resampler = NULL;
+     filters->resampling = 0;
+     filters->count = 0;
+@@ -652,16 +652,19 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+     }
+     if (filters->resampler != NULL)
+     {
+-        /* Bound the drift correction the caller may ask for. */
+-        int64_t permille = var_InheritInteger (obj, "aout-max-resampling");
+-
+-        if (permille < 0)
+-            permille = 0;
+-        else if (permille > 100)
+-            permille = 100;
+-
+-        filters->max_resampling =
+-            (int)((input_format.i_rate * (uint64_t)permille) / 1000);
++        /* Bound the drift correction the caller may ask for. It is kept as the
++         * interval it is given in rather than turned into a rate offset here:
++         * cents are logarithmic, so a bound applied to the offset would not be
++         * symmetric in the unit the bound is stated in, and the controller
++         * clamps its own integral against this same figure. */
++        int64_t cents = var_InheritInteger (obj, "aout-max-resampling");
++
++        if (cents < 0)
++            cents = 0;
++        else if (cents > AOUT_MAX_RESAMPLING_CENTS_MAX)
++            cents = AOUT_MAX_RESAMPLING_CENTS_MAX;
++
++        filters->max_cents = cents;
+     }
+     if (filters->rate_filter == NULL)
+         filters->rate_filter = filters->resampler;
+@@ -701,13 +704,12 @@ void aout_FiltersDelete (vlc_object_t *obj, aout_filters_t *filters)
+  * resampling entirely; the resampler itself may still be needed for plain rate
+  * conversion.
+  */
+-float aout_FiltersGetMaxResampling (aout_filters_t *filters)
++float aout_FiltersGetMaxDetune (aout_filters_t *filters)
+ {
+     if (filters->resampler == NULL)
+         return 0.f;
+ 
+-    return filters->max_resampling
+-           / (float)filters->resampler->fmt_in.audio.i_rate;
++    return filters->max_cents;
+ }
+ 
+ /**
+@@ -717,20 +719,28 @@ float aout_FiltersGetMaxResampling (aout_filters_t *filters)
+  * proportional to the offset, and the offset is applied to the resampler
+  * input rate.
+  */
+-void aout_FiltersSetResampling (aout_filters_t *filters, float ratio)
++float aout_FiltersSetDetune (aout_filters_t *filters, float cents)
+ {
+     if (filters->resampler == NULL)
+-        return;
++        return 0.f;
++
++    const unsigned rate = filters->resampler->fmt_in.audio.i_rate;
++    const float max = filters->max_cents;
+ 
+-    const int max = filters->max_resampling;
+-    int resampling = lroundf (ratio * filters->resampler->fmt_in.audio.i_rate);
++    /* Clamped as an interval, so that as much detuning is allowed downwards as
++     * upwards. Clamping the rate offset instead would not: a ratio of 1 + x is
++     * a smaller interval than 1 - x is. */
++    if (cents > +max)
++        cents = +max;
++    else if (cents < -max)
++        cents = -max;
+ 
+-    if (resampling > max)
+-        resampling = max;
+-    else if (resampling < -max)
+-        resampling = -max;
++    filters->resampling = lroundf (rate * (exp2f (cents / 1200.f) - 1.f));
+ 
+-    filters->resampling = resampling;
++    /* What the rate offset amounts to, which is not quite what was asked for:
++     * it is a whole number of Hz, and it was clamped. The caller needs to know
++     * so that it can answer for the difference. */
++    return 1200.f * log2f (1.f + filters->resampling / (float)rate);
+ }
+ 
+ block_t *aout_FiltersPlay (aout_filters_t *filters, block_t *block, int rate)
+diff --git a/src/libvlc-module.c b/src/libvlc-module.c
+index 7617909e97..9f12c4293d 100644
+--- a/src/libvlc-module.c
++++ b/src/libvlc-module.c
+@@ -233,14 +233,14 @@ static const char *const ppsz_stereo_mode_texts[] = { N_("Unset"),
+     "affecting the audio pitch" )
+ 
+ #define AUDIO_MAX_RESAMPLING_TEXT N_( \
+-    "Maximum drift correction by resampling" )
++    "Maximum drift correction by resampling (cents)" )
+ #define AUDIO_MAX_RESAMPLING_LONGTEXT N_( \
+     "How much resampling may be used to correct drift between the stream and " \
+-    "the audio device, in 1/1000 of the sample rate. Resampling shifts pitch " \
+-    "as well as speed, so this bounds how far playback can be detuned while a " \
+-    "drift is being corrected: 5 is about 8.6 cents. Lower it if you can hear " \
+-    "the correction, at the cost of slower resynchronisation. Set it to 0 to " \
+-    "never correct drift by resampling." )
++    "the audio device, in cents of detune (100 cents is one semitone). " \
++    "Resampling shifts pitch as well as speed, so this bounds how far " \
++    "playback can be detuned while a drift is being corrected. Lower it if " \
++    "you can hear the correction, at the cost of slower resynchronisation. " \
++    "Set it to 0 to never correct drift by resampling." )
+ 
+ #define AUDIO_DRIFT_GAIN_TEXT N_( \
+     "Drift correction gain" )
+@@ -1552,16 +1552,16 @@ vlc_module_begin ()
+ 
+     add_bool( "audio-time-stretch", true,
+               AUDIO_TIME_STRETCH_TEXT, AUDIO_TIME_STRETCH_LONGTEXT, false )
+-    add_integer( "aout-max-resampling", AOUT_MAX_RESAMPLING_PERMILLE,
++    add_integer( "aout-max-resampling", AOUT_MAX_RESAMPLING_CENTS,
+                  AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT, true )
+-        change_integer_range( 0, 100 )
++        change_integer_range( 0, AOUT_MAX_RESAMPLING_CENTS_MAX )
+     add_float( "aout-drift-gain", AOUT_DRIFT_GAIN,
+                AUDIO_DRIFT_GAIN_TEXT, AUDIO_DRIFT_GAIN_LONGTEXT, true )
+-        change_float_range( 0.f, 10.f )
++        change_float_range( 0.f, 10000.f )
+     add_float( "aout-drift-integral-gain", AOUT_DRIFT_INTEGRAL_GAIN,
+                AUDIO_DRIFT_INTEGRAL_GAIN_TEXT,
+                AUDIO_DRIFT_INTEGRAL_GAIN_LONGTEXT, true )
+-        change_float_range( 0.f, 10.f )
++        change_float_range( 0.f, 10000.f )
+ 
+     set_subcategory( SUBCAT_AUDIO_AOUT )
+     add_module( "aout", "audio output", NULL, AOUT_TEXT, AOUT_LONGTEXT,
+-- 
+2.55.0
+

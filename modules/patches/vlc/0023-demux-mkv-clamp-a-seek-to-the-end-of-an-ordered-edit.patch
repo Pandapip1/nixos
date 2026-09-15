@@ -1,7 +1,7 @@
 From 28f9add258a233134f258f15209d364722f953ca Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 22:13:48 -0400
-Subject: [PATCH 23/34] demux: mkv: clamp a seek to the end of an ordered
+Subject: [PATCH 23/41] demux: mkv: clamp a seek to the end of an ordered
  edition
 
 For an ordered edition the duration of the edition is the virtual stop

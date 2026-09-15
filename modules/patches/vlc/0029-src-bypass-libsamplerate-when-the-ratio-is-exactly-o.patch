@@ -1,7 +1,7 @@
 From cc723354b7e1505eeed9cf78bd6a8b56a14f3e0a Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 01:40:21 -0400
-Subject: [PATCH 29/34] src: bypass libsamplerate when the ratio is exactly one
+Subject: [PATCH 29/41] src: bypass libsamplerate when the ratio is exactly one
 
 aout_FiltersNew() forces the pipeline output rate to the input rate
 before building the conversion chain, then inserts a resampler for the

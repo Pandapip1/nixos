@@ -1,7 +1,7 @@
 From 52c74632e1a559a943bfd386af06f38e3b8f47b9 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 19:46:22 -0400
-Subject: [PATCH 32/34] pulse: run the stream until its clock can be trusted
+Subject: [PATCH 32/41] pulse: run the stream until its clock can be trusted
 
 The device latency cannot be known before the stream runs: while corked
 PulseAudio leaves the sink and transport latencies out of its timing, and

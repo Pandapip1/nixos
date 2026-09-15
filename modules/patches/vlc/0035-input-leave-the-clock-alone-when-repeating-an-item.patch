@@ -1,0 +1,123 @@
+From 2729177aaebb03016ef880489c564145558882c1 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 20:23:01 -0400
+Subject: [PATCH 35/41] input: leave the clock alone when repeating an item
+
+a2694191d7 moved the stream side of the clock reference back by the pass
+just played, on the reasoning that the stream clock restarts from zero
+while the system clock carries on. It does not: the timestamps the
+demuxer emits carry straight on across a repeat. Logging the PCR at each
+repeat of a four second file gives 3.95s, then 7.95s, then 11.9s - so the
+reference already describes the new pass, and moving it back schedules
+that pass one whole pass-duration into the future.
+
+What that cost, measured by capturing the sink's monitor while repeating
+a four second sweep: the core withholds audio until it is within
+AOUT_MAX_PREPARE_TIME, so it sat on the new pass for about 1.9s, then
+handed over a first buffer dated 2s out, which the output duly deferred -
+a little under four seconds of silence at every repeat.
+
+    before   0.45-4.45 audio | 3.95s silence | 8.40-12.35 audio
+    after    0.45-4.10 audio | 0.05s silence | 4.15-8.15  audio
+
+Silence across a fourteen second run falls from about 48% to 2%, and what
+is left is 50-125ms at each repeat. Audio actually reaching the device
+over fifteen seconds: ogg 6.5s -> 12.5s, with mkv, mp3, m4a, flac and avi
+all between 14.2s and 15.4s.
+
+input_clock_ChangeStreamOrigin() had no other caller and goes with it.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/input/clock.c  | 15 ---------------
+ src/input/clock.h  | 13 -------------
+ src/input/es_out.c | 22 +++++++++-------------
+ 3 files changed, 9 insertions(+), 41 deletions(-)
+
+diff --git a/src/input/clock.c b/src/input/clock.c
+index df2a9a0575..3099cfeec5 100644
+--- a/src/input/clock.c
++++ b/src/input/clock.c
+@@ -523,21 +523,6 @@ void input_clock_ChangeSystemOrigin( input_clock_t *cl, bool b_absolute, vlc_tic
+     vlc_mutex_unlock( &cl->lock );
+ }
+ 
+-void input_clock_ChangeStreamOrigin( input_clock_t *cl, vlc_tick_t i_duration )
+-{
+-    vlc_mutex_lock( &cl->lock );
+-
+-    assert( cl->b_has_reference );
+-
+-    /* Move the stream side of the reference back, so that a stream date of 0
+-     * in the new pass converts to the system date that i_duration used to.
+-     * The system side is untouched: wall clock time does not restart. */
+-    cl->ref.i_stream  -= i_duration;
+-    cl->last.i_stream -= i_duration;
+-
+-    vlc_mutex_unlock( &cl->lock );
+-}
+-
+ void input_clock_GetSystemOrigin( input_clock_t *cl, vlc_tick_t *pi_system, vlc_tick_t *pi_delay )
+ {
+     vlc_mutex_lock( &cl->lock );
+diff --git a/src/input/clock.h b/src/input/clock.h
+index 1357683215..67a9cf2a24 100644
+--- a/src/input/clock.h
++++ b/src/input/clock.h
+@@ -94,19 +94,6 @@ void    input_clock_GetSystemOrigin( input_clock_t *, vlc_tick_t *pi_system, vlc
+  */
+ void    input_clock_ChangeSystemOrigin( input_clock_t *, bool b_absolute, vlc_tick_t i_system );
+ 
+-/**
+- * This function rebases the stream side of the reference point, moving it back
+- * by i_duration (a valid reference point must have been set).
+- *
+- * It is the counterpart of input_clock_ChangeSystemOrigin() on the other axis,
+- * and exists for repeating an item: the stream clock starts over from zero
+- * while the system clock carries on, so timestamps from the new pass must map
+- * to system dates that continue where the previous pass left off, rather than
+- * to dates that have already gone by. Resetting the clock instead would make
+- * the new pass look late by the length of the pass just played.
+- */
+-void    input_clock_ChangeStreamOrigin( input_clock_t *, vlc_tick_t i_duration );
+-
+ /**
+  * This function converts a pair of timestamp from stream clock to system clock.
+  *
+diff --git a/src/input/es_out.c b/src/input/es_out.c
+index e056b1dc61..623847a378 100644
+--- a/src/input/es_out.c
++++ b/src/input/es_out.c
+@@ -652,20 +652,16 @@ static void EsOutChangePosition( es_out_t *out, bool b_flush )
+     for( int i = 0; i < p_sys->i_pgrm; i++ ) {
+         es_out_pgrm_t *p_pgrm = p_sys->pgrm[i];
+ 
+-        /* Repeating the item restarts the stream clock from zero while the
+-         * system clock carries on. Resetting the reference would make the new
+-         * pass convert to system dates that have already gone by - the output
+-         * then reports it as lateness and flushes, which throws away the very
+-         * data that was kept above. Move the stream side of the reference back
+-         * by the pass just played instead, so the new one converts to dates
+-         * that follow on. */
+-        if( !b_flush && p_pgrm->i_last_pcr != VLC_TICK_INVALID )
+-            input_clock_ChangeStreamOrigin( p_pgrm->p_clock,
+-                                            p_pgrm->i_last_pcr );
+-        else
++        /* A repeat runs the timeline straight on - the demuxer starts over but
++         * the timestamps it emits carry on from where the last pass ended - so
++         * the reference still describes it and is left alone. Resetting it
++         * would make the new pass convert to system dates that have already
++         * gone by, and the output would report that as lateness. */
++        if( b_flush )
++        {
+             input_clock_Reset( p_pgrm->p_clock );
+-
+-        p_pgrm->i_last_pcr = VLC_TICK_INVALID;
++            p_pgrm->i_last_pcr = VLC_TICK_INVALID;
++        }
+     }
+ 
+     /* Buffering again would stall the decoders and, once it ended, rebase the
+-- 
+2.55.0
+

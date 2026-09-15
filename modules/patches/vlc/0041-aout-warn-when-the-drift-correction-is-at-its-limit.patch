@@ -1,0 +1,50 @@
+From b053657c9954086e9fa0b2cd50a286e96b2705fc Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 22:17:33 -0400
+Subject: [PATCH 41/41] aout: warn when the drift correction is at its limit
+
+At the bound the correction has stopped answering the drift: it is giving
+everything it is allowed to and the drift is still going the wrong way.
+What is left accumulates until it is large enough to be jumped over, which
+is heard. That is worth saying out loud - either the device is further off
+nominal than the bound allows for, or what is being corrected is not drift
+at all and no amount of resampling will fix it.
+
+Leaving the bound again is only good news, so that stays at debug level.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/audio_output/dec.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
+index 74eff71ce8..daa410e92b 100644
+--- a/src/audio_output/dec.c
++++ b/src/audio_output/dec.c
+@@ -412,8 +412,21 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+     if (bound != owner->sync.drift_bound)
+     {
+         owner->sync.drift_bound = bound;
+-        msg_Dbg (aout, "drift correction %s the bound (drift: %"PRId64" us)",
+-                 bound ? "reached" : "left", drift);
++
++        /* At the bound the correction is no longer answering the drift: it is
++         * giving all it is allowed to and the drift is still going the wrong
++         * way. Whatever is left accumulates until it is large enough to be
++         * jumped over, which is heard. Worth saying so - either the device is
++         * further off nominal than the bound allows for, or what is being
++         * corrected is not drift at all. */
++        if (bound)
++            msg_Warn (aout, "drift correction at its limit of %.0f cents "
++                      "(drift: %"PRId64" us): raise aout-max-resampling to "
++                      "correct it, at the cost of audible detuning", max,
++                      drift);
++        else
++            msg_Dbg (aout, "drift correction back within its limit "
++                     "(drift: %"PRId64" us)", drift);
+     }
+ 
+ }
+-- 
+2.55.0
+

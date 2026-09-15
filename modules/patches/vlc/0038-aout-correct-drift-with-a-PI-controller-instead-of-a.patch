@@ -1,0 +1,484 @@
+From af498e28b99e128eab5f34d509d0d30bdf426eb2 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 14 Sep 2026 20:12:21 -0400
+Subject: [PATCH 38/41] aout: correct drift with a PI controller instead of a
+ relay
+
+The drift correction was a relay: outside the EBU tolerance it picked a
+direction, stepped the resampling rate by a fixed permille per buffer
+until the drift had halved, then reversed. Two things follow from that.
+It never settles - the only way it can stop is by driving the rate back
+through zero, so it hunts around the set point instead of sitting on it.
+And it cannot hold a standing rate offset, which is precisely what a
+device whose clock does not run at exactly the nominal sample rate needs
+to be kept in sync with: every time the correction is unwound the drift
+starts building again from the same cause.
+
+Feed the drift to a PI controller instead, whose output is the offset
+given to the resampler rather than an increment of it. The proportional
+gain is set so that term alone asks for the whole of the resampling bound
+at one AOUT_MAX_PTS_DELAY of drift: anything outside the tolerance is
+still corrected as fast as the bound allows. The integral term converges
+on the device's own rate offset and holds it, so the steady state is zero
+drift at a non-zero rate offset - a state the relay had no way to express.
+There is no derivative term: the drift is quantised by whatever
+granularity the output reports its delay with, and differentiating that
+gives noise, not a trend.
+
+Windup is guarded by integrating conditionally - never while the output
+is pinned at the bound and the drift pushes it further in - and by
+clamping the integral to the bound in its own right. The interval used
+is measured rather than assumed, and capped, so a stall in the decoder
+is not taken as evidence of drift for its whole length.
+
+The controller is held, rather than reset, whenever the drift reading is
+known to be stale: while a jump is outstanding or still working through
+what the output already holds, and across a discontinuity. The
+accumulated correction survives a flush, a pause and an output restart,
+which is the point of it - it describes the device, not the stream.
+
+Simulated against a device 100 ppm fast with a 60 ms initial drift and
+its reported delay quantised to 10 ms with 2 ms of noise, the drift is
+back within 5 ms after 20 s and stays within 3.5 ms thereafter, with the
+integral settled on 0.0998 permille against the 0.1 permille the device
+actually wants. With the device 10 permille off - past the bound - the
+correction pins at the bound and the integral stops growing; the jump
+path takes over as before.
+
+aout_FiltersAdjustResampling() is replaced by a setter taking an absolute
+offset as a fraction of the sample rate, plus an accessor for the bound,
+both of them core-internal like aout_FiltersCanResample() was. The bound
+no longer has to be even now that nothing steps towards it in twos.
+
+The relay's "timing screwed" escape goes with it: it measured the drift
+against the value it had at the instant the relay engaged, which a
+controller with no engagement has no equivalent of. Gross lateness is
+already handled ahead of the correction by the one-at-a-time jump.
+
+Gains are exposed as "aout-drift-gain" and "aout-drift-integral-gain" so
+libvlc callers can retune them; the defaults need no configuration.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ include/vlc_aout.h               |  15 +++-
+ src/audio_output/aout_internal.h |  16 ++--
+ src/audio_output/dec.c           | 128 +++++++++++++++++++------------
+ src/audio_output/filters.c       |  62 ++++++++-------
+ src/libvlc-module.c              |  24 ++++++
+ src/libvlccore.sym               |   1 -
+ 6 files changed, 156 insertions(+), 90 deletions(-)
+
+diff --git a/include/vlc_aout.h b/include/vlc_aout.h
+index e381258f38..605e4eb603 100644
+--- a/include/vlc_aout.h
++++ b/include/vlc_aout.h
+@@ -69,6 +69,20 @@
+  * zero leaves drift correction by resampling disabled altogether. */
+ #define AOUT_MAX_RESAMPLING_PERMILLE    5
+ 
++/* Defaults for "aout-drift-gain" and "aout-drift-integral-gain", the gains of
++ * the controller that turns the measured drift into a resampling offset. Its
++ * input is a drift in seconds and its output an offset expressed as a fraction
++ * of the nominal sample rate, so the proportional gain is in 1/s and the
++ * integral one in 1/s^2.
++ *
++ * An offset of u closes the drift at du/dt, so the loop is a plain integrator
++ * and the PI controller makes it second order. These values give it a natural
++ * frequency of 0.045 rad/s and a damping ratio of 0.89, and let the
++ * proportional term alone ask for the whole of the default bound at one
++ * AOUT_MAX_PTS_DELAY of drift. */
++#define AOUT_DRIFT_GAIN                 0.08
++#define AOUT_DRIFT_INTEGRAL_GAIN        0.002
++
+ #include "vlc_es.h"
+ 
+ #define AOUT_FMTS_IDENTICAL( p_first, p_second ) (                          \
+@@ -408,7 +422,6 @@ VLC_API aout_filters_t *aout_FiltersNew(vlc_object_t *,
+ VLC_API void aout_FiltersDelete(vlc_object_t *, aout_filters_t *);
+ #define aout_FiltersDelete(o,f) \
+         aout_FiltersDelete(VLC_OBJECT(o),f)
+-VLC_API bool aout_FiltersAdjustResampling(aout_filters_t *, int);
+ VLC_API block_t *aout_FiltersPlay(aout_filters_t *, block_t *, int rate);
+ VLC_API block_t *aout_FiltersDrain(aout_filters_t *);
+ VLC_API void     aout_FiltersFlush(aout_filters_t *);
+diff --git a/src/audio_output/aout_internal.h b/src/audio_output/aout_internal.h
+index b154fd2061..5a3085b546 100644
+--- a/src/audio_output/aout_internal.h
++++ b/src/audio_output/aout_internal.h
+@@ -30,12 +30,6 @@
+ /* Max input rate factor (1/4 -> 4) */
+ # define AOUT_MAX_INPUT_RATE (4)
+ 
+-enum {
+-    AOUT_RESAMPLING_NONE=0,
+-    AOUT_RESAMPLING_UP,
+-    AOUT_RESAMPLING_DOWN
+-};
+-
+ struct aout_request_vout
+ {
+     struct vout_thread_t  *(*pf_request_vout)( void *, struct vout_thread_t *,
+@@ -80,8 +74,11 @@ typedef struct
+         vlc_tick_t end; /**< Last seen PTS */
+         vlc_tick_t skip; /**< Material still to be jumped over */
+         vlc_tick_t skip_settles; /**< When a jump can have taken effect */
+-        unsigned resamp_start_drift; /**< Resampler drift absolute value */
+-        int resamp_type; /**< Resampler mode (FIXME: redundant / resampling) */
++        vlc_tick_t update; /**< When the correction was last updated */
++        float drift_kp; /**< Proportional gain of the drift correction */
++        float drift_ki; /**< Integral gain of the drift correction */
++        float drift_integral; /**< Correction held by the integral term */
++        bool drift_bound; /**< Correction is pinned at the bound */
+         bool discontinuity;
+     } sync;
+ 
+@@ -180,7 +177,8 @@ static inline void aout_SetWavePhysicalChannels(audio_sample_format_t *fmt)
+ }
+ 
+ /* From filters.c */
+-bool aout_FiltersCanResample (aout_filters_t *filters);
++float aout_FiltersGetMaxResampling (aout_filters_t *filters);
++void aout_FiltersSetResampling (aout_filters_t *filters, float ratio);
+ 
+ void aout_ChangeViewpoint(audio_output_t *aout,
+                           const vlc_viewpoint_t *p_viewpoint);
+diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
+index 088aa1b263..27aecc3bd5 100644
+--- a/src/audio_output/dec.c
++++ b/src/audio_output/dec.c
+@@ -108,10 +108,14 @@ error:
+ 
+ 
+     owner->sync.end = VLC_TICK_INVALID;
+-    owner->sync.resamp_type = AOUT_RESAMPLING_NONE;
+     owner->sync.discontinuity = true;
+     owner->sync.skip = 0;
+     owner->sync.skip_settles = 0;
++    owner->sync.update = VLC_TICK_INVALID;
++    owner->sync.drift_kp = var_InheritFloat (p_aout, "aout-drift-gain");
++    owner->sync.drift_ki = var_InheritFloat (p_aout, "aout-drift-integral-gain");
++    owner->sync.drift_integral = 0.f;
++    owner->sync.drift_bound = false;
+     aout_OutputUnlock (p_aout);
+ 
+     atomic_init (&owner->buffers_lost, 0);
+@@ -171,7 +175,9 @@ static int aout_CheckReady (audio_output_t *aout)
+ 
+         msg_Dbg (aout, "restarting filters...");
+         owner->sync.end = VLC_TICK_INVALID;
+-        owner->sync.resamp_type = AOUT_RESAMPLING_NONE;
++        /* The new filters start with no correction, but the controller keeps
++         * what it had learnt and puts it back on the next update. */
++        owner->sync.update = VLC_TICK_INVALID;
+ 
+         if (owner->mixer_format.i_format)
+         {
+@@ -336,65 +342,82 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+         drift = 0;
+     }
+ 
+-    if (!aout_FiltersCanResample(owner->filters))
++    /* Resampling.
++     *
++     * The offset given to the resampler is the output of a PI controller fed
++     * with the drift. The proportional term asks for the whole of the bound at
++     * about one AOUT_MAX_PTS_DELAY, so anything outside the tolerance is
++     * corrected as fast as the bound allows; the integral term settles on the
++     * standing offset a device whose clock does not run at exactly the nominal
++     * rate needs, which a relay could not hold - it hunted around the set point
++     * instead. There is no derivative term: the drift is quantised by whatever
++     * granularity the output reports its delay with, and differentiating that
++     * yields noise rather than a trend. */
++    const float max = aout_FiltersGetMaxResampling (owner->filters);
++
++    if (max <= 0.f)
++        return; /* correction by resampling is disabled */
++
++    if (owner->sync.discontinuity || owner->sync.skip > 0
++     || now < owner->sync.skip_settles)
++    {   /* A jump shortens what is still to come, not what the output already
++         * holds, so the drift keeps reading the old timeline until that has
++         * played out. Correcting - let alone integrating - it here would count
++         * the same lateness twice. The offset either side of a discontinuity
++         * is not drift either. */
++        owner->sync.update = now;
+         return;
++    }
+ 
+-    /* Resampling */
+-    if (drift > +AOUT_MAX_PTS_DELAY
+-     && owner->sync.resamp_type != AOUT_RESAMPLING_UP)
++    float correction = owner->sync.drift_kp * (drift / (float)CLOCK_FREQ)
++                       + owner->sync.drift_integral;
++    bool bound = false;
++
++    if (correction > +max)
+     {
+-        msg_Warn (aout, "playback too late (%"PRId64"): up-sampling",
+-                  drift);
+-        owner->sync.resamp_type = AOUT_RESAMPLING_UP;
+-        owner->sync.resamp_start_drift = +drift;
+-        /* A correction from the other direction pushes the wrong way until
+-         * it unwinds. */
+-        aout_FiltersAdjustResampling (owner->filters, 0);
++        correction = +max;
++        bound = true;
+     }
+-    if (drift < -AOUT_MAX_PTS_ADVANCE
+-     && owner->sync.resamp_type != AOUT_RESAMPLING_DOWN)
++    else if (correction < -max)
+     {
+-        msg_Warn (aout, "playback too early (%"PRId64"): down-sampling",
+-                  drift);
+-        owner->sync.resamp_type = AOUT_RESAMPLING_DOWN;
+-        owner->sync.resamp_start_drift = -drift;
+-        /* See above. */
+-        aout_FiltersAdjustResampling (owner->filters, 0);
++        correction = -max;
++        bound = true;
+     }
+ 
+-    if (owner->sync.resamp_type == AOUT_RESAMPLING_NONE)
+-        return; /* Everything is fine. Nothing to do. */
+-
+-    if (llabs (drift) > 2 * owner->sync.resamp_start_drift)
+-    {   /* Resampling is not closing the gap - it is bounded, and cannot pull
+-         * back more than a few permille. Hand the difference to the skip,
+-         * which jumps over it in one go, and keep the correction: it
+-         * describes the device and is still right. */
+-        msg_Warn (aout, "timing screwed (drift: %"PRId64" us): "
+-                  "jumping instead", drift);
+-        if (drift > 0 && mdate () >= owner->sync.skip_settles)
++    /* Conditional integration: pinned at the bound, the integral can no longer
++     * change the output, and whatever it piles up there only has to be unwound
++     * before the correction can come off the bound again. */
++    if (owner->sync.update != VLC_TICK_INVALID
++     && !(bound && (correction > 0.f) == (drift > 0)))
++    {
++        vlc_tick_t dt = now - owner->sync.update;
++
++        /* A gap in the decoder output is not evidence of drift for its whole
++         * length; the drift is a reading, not an average over the gap. */
++        if (dt > CLOCK_FREQ)
++            dt = CLOCK_FREQ;
++
++        if (dt > 0)
+         {
+-            owner->sync.skip += drift;
+-            owner->sync.skip_settles = mdate () + delay;
++            float i = owner->sync.drift_integral
++                      + owner->sync.drift_ki * (drift / (float)CLOCK_FREQ)
++                        * (dt / (float)CLOCK_FREQ);
++
++            /* The integral on its own may not ask for more than the bound. */
++            owner->sync.drift_integral = (i > +max) ? +max
++                                       : (i < -max) ? -max : i;
+         }
+-        return;
+     }
++    owner->sync.update = now;
+ 
+-    /* Resampling has been triggered earlier. This checks if it needs to be
+-     * increased or decreased. Resampling rate changes must be kept slow for
+-     * the comfort of listeners. */
+-    int adj = (owner->sync.resamp_type == AOUT_RESAMPLING_UP) ? +2 : -2;
+-
+-    if (2 * llabs (drift) <= owner->sync.resamp_start_drift)
+-        /* If the drift has been reduced from more than half its initial
+-         * value, then it is time to switch back the resampling direction. */
+-        adj *= -1;
+-
+-    if (!aout_FiltersAdjustResampling (owner->filters, adj))
+-    {   /* Everything is back to normal: stop resampling. */
+-        owner->sync.resamp_type = AOUT_RESAMPLING_NONE;
+-        msg_Dbg (aout, "resampling stopped (drift: %"PRId64" us)", drift);
++    if (bound != owner->sync.drift_bound)
++    {
++        owner->sync.drift_bound = bound;
++        msg_Dbg (aout, "drift correction %s the bound (drift: %"PRId64" us)",
++                 bound ? "reached" : "left", drift);
+     }
++
++    aout_FiltersSetResampling (owner->filters, correction);
+ }
+ 
+ /*****************************************************************************
+@@ -498,6 +521,9 @@ void aout_DecChangePause (audio_output_t *aout, bool paused, vlc_tick_t date)
+     {
+         aout_OutputPause (aout, paused, date);
+     }
++    /* Nothing was played while paused: the correction stays, only the interval
++     * the integral is about to be fed must not span the pause. */
++    owner->sync.update = VLC_TICK_INVALID;
+     aout_OutputUnlock (aout);
+ }
+ 
+@@ -521,8 +547,10 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
+     }
+ 
+     /* The offset a flush leaves behind is not drift; do not resample to
+-     * catch it up. */
++     * catch it up. The correction accumulated so far describes the device and
++     * is still right, so it is kept. */
+     owner->sync.discontinuity = true;
++    owner->sync.update = VLC_TICK_INVALID;
+     aout_OutputUnlock (aout);
+ }
+ 
+diff --git a/src/audio_output/filters.c b/src/audio_output/filters.c
+index 7d81345f4b..3933760e74 100644
+--- a/src/audio_output/filters.c
++++ b/src/audio_output/filters.c
+@@ -30,6 +30,7 @@
+ 
+ #include <string.h>
+ #include <assert.h>
++#include <math.h>
+ 
+ #include <vlc_common.h>
+ #include <vlc_dialog.h>
+@@ -651,9 +652,7 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+     }
+     if (filters->resampler != NULL)
+     {
+-        /* Bound the drift correction the caller may accumulate. Kept even so
+-         * that the accumulator can still reach exactly 0 in steps of the
+-         * caller's adjustment and stop the resampling. */
++        /* Bound the drift correction the caller may ask for. */
+         int64_t permille = var_InheritInteger (obj, "aout-max-resampling");
+ 
+         if (permille < 0)
+@@ -662,7 +661,7 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+             permille = 100;
+ 
+         filters->max_resampling =
+-            (int)((input_format.i_rate * (uint64_t)permille) / 1000) & ~1;
++            (int)((input_format.i_rate * (uint64_t)permille) / 1000);
+     }
+     if (filters->rate_filter == NULL)
+         filters->rate_filter = filters->resampler;
+@@ -696,37 +695,42 @@ void aout_FiltersDelete (vlc_object_t *obj, aout_filters_t *filters)
+     free (filters);
+ }
+ 
+-bool aout_FiltersCanResample (aout_filters_t *filters)
++/**
++ * Returns the largest drift correction the resampler will apply, as a fraction
++ * of the nominal sample rate. A zeroed bound disables drift correction by
++ * resampling entirely; the resampler itself may still be needed for plain rate
++ * conversion.
++ */
++float aout_FiltersGetMaxResampling (aout_filters_t *filters)
+ {
+-    /* A zeroed bound disables drift correction by resampling entirely; the
+-     * resampler itself may still be needed for plain rate conversion. */
+-    return filters->resampler != NULL && filters->max_resampling > 0;
++    if (filters->resampler == NULL)
++        return 0.f;
++
++    return filters->max_resampling
++           / (float)filters->resampler->fmt_in.audio.i_rate;
+ }
+ 
+-bool aout_FiltersAdjustResampling (aout_filters_t *filters, int adjust)
++/**
++ * Sets the drift correction applied by the resampler, as a fraction of the
++ * nominal sample rate. Out of bound values are clamped: without that this
++ * ramps into the kHz range, as the rate at which the drift is made up is
++ * proportional to the offset, and the offset is applied to the resampler
++ * input rate.
++ */
++void aout_FiltersSetResampling (aout_filters_t *filters, float ratio)
+ {
+     if (filters->resampler == NULL)
+-        return false;
++        return;
+ 
+-    if (adjust)
+-    {
+-        /* Without a bound this ramps into the kHz range: the rate the drift is
+-         * made up at is proportional to the offset, and the offset is applied
+-         * to the resampler input rate. Kept even so the accumulator can still
+-         * reach exactly zero in steps of `adjust`. */
+-        const int max = filters->max_resampling;
+-        int resampling = filters->resampling + adjust;
+-
+-        if (resampling > max)
+-            resampling = max;
+-        else if (resampling < -max)
+-            resampling = -max;
+-
+-        filters->resampling = resampling;
+-    }
+-    else
+-        filters->resampling = 0;
+-    return filters->resampling != 0;
++    const int max = filters->max_resampling;
++    int resampling = lroundf (ratio * filters->resampler->fmt_in.audio.i_rate);
++
++    if (resampling > max)
++        resampling = max;
++    else if (resampling < -max)
++        resampling = -max;
++
++    filters->resampling = resampling;
+ }
+ 
+ block_t *aout_FiltersPlay (aout_filters_t *filters, block_t *block, int rate)
+diff --git a/src/libvlc-module.c b/src/libvlc-module.c
+index 8f91f821aa..7617909e97 100644
+--- a/src/libvlc-module.c
++++ b/src/libvlc-module.c
+@@ -242,6 +242,23 @@ static const char *const ppsz_stereo_mode_texts[] = { N_("Unset"),
+     "the correction, at the cost of slower resynchronisation. Set it to 0 to " \
+     "never correct drift by resampling." )
+ 
++#define AUDIO_DRIFT_GAIN_TEXT N_( \
++    "Drift correction gain" )
++#define AUDIO_DRIFT_GAIN_LONGTEXT N_( \
++    "Proportional gain of the drift correction: how much resampling is asked " \
++    "for per second of measured drift, as a fraction of the sample rate. The " \
++    "default asks for the whole of the \"aout-max-resampling\" bound at 60 ms " \
++    "of drift. Raising it corrects faster but tracks the noise of the delay " \
++    "reported by the audio device." )
++
++#define AUDIO_DRIFT_INTEGRAL_GAIN_TEXT N_( \
++    "Drift correction integral gain" )
++#define AUDIO_DRIFT_INTEGRAL_GAIN_LONGTEXT N_( \
++    "Integral gain of the drift correction. This term settles on the standing " \
++    "resampling offset needed by an audio device whose clock does not run at " \
++    "exactly the nominal sample rate, which the proportional term alone " \
++    "cannot hold. Raising it converges sooner at the cost of overshooting." )
++
+ 
+ static const char *const ppsz_replay_gain_mode[] = {
+     "none", "track", "album" };
+@@ -1538,6 +1555,13 @@ vlc_module_begin ()
+     add_integer( "aout-max-resampling", AOUT_MAX_RESAMPLING_PERMILLE,
+                  AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT, true )
+         change_integer_range( 0, 100 )
++    add_float( "aout-drift-gain", AOUT_DRIFT_GAIN,
++               AUDIO_DRIFT_GAIN_TEXT, AUDIO_DRIFT_GAIN_LONGTEXT, true )
++        change_float_range( 0.f, 10.f )
++    add_float( "aout-drift-integral-gain", AOUT_DRIFT_INTEGRAL_GAIN,
++               AUDIO_DRIFT_INTEGRAL_GAIN_TEXT,
++               AUDIO_DRIFT_INTEGRAL_GAIN_LONGTEXT, true )
++        change_float_range( 0.f, 10.f )
+ 
+     set_subcategory( SUBCAT_AUDIO_AOUT )
+     add_module( "aout", "audio output", NULL, AOUT_TEXT, AOUT_LONGTEXT,
+diff --git a/src/libvlccore.sym b/src/libvlccore.sym
+index a15ba0d923..d8ba1778cc 100644
+--- a/src/libvlccore.sym
++++ b/src/libvlccore.sym
+@@ -26,7 +26,6 @@ aout_FiltersDelete
+ aout_FiltersDrain
+ aout_FiltersFlush
+ aout_FiltersPlay
+-aout_FiltersAdjustResampling
+ block_Alloc
+ block_FifoCount
+ block_FifoEmpty
+-- 
+2.55.0
+
