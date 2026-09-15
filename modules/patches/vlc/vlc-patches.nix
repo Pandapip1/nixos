@@ -14,7 +14,7 @@ in
   nixpkgs.overlays = [
     (_: prev: {
       vlc = prev.vlc.overrideAttrs (prevAttrs: {
-        # Sent upstream against 3.0.x. Three groups:
+        # Sent upstream against 3.0.x. Five groups:
         #
         # 0001-0003 aout. Drift correction in the audio core is applied by
         # resampling, which shifts pitch as well as speed. The accumulated
@@ -37,6 +37,19 @@ in
         # failed or read from a half-dismantled demuxer. Two are cherry-picks
         # of existing upstream fixes (webvtt #22448, and the mkv chapter
         # segfault, which master had already fixed by reverting).
+        #
+        # 0023-0036 seamless repeat. A repeat tore down and rebuilt the audio
+        # output between plays, leaving an audible gap of up to half a second.
+        # The output now keeps what it is holding across a repeat, lateness is
+        # skipped rather than flushed, and drift is corrected by a bounded PI
+        # controller instead of a bang-bang one.
+        #
+        # 0037-0040 device latency. The core handed the output its first sample
+        # ten milliseconds before it was due, whatever the device needed, so on
+        # a sink holding two tenths of a second that sample was born late and
+        # the output skipped over the difference - heard as a splice at every
+        # start and seek. Outputs can now report what the device adds, and the
+        # core gives them that much lead.
         patches = (prevAttrs.patches or [ ]) ++ patches;
       });
     })
