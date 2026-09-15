@@ -1,7 +1,7 @@
-From 43379d64ebc99b132dea65a5c19ab25bb9fed05c Mon Sep 17 00:00:00 2001
+From 35315f4a7a51e646732c1765199b628a91d51d2b Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:34:39 -0400
-Subject: [PATCH 37/40] pulse: tell a zero device latency apart from an unknown
+Subject: [PATCH 36/41] pulse: tell a zero device latency apart from an unknown
  one
 
 Zero doubles as "not measured yet", so an output that really adds no

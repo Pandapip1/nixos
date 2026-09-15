@@ -1,0 +1,482 @@
+From 738b659473ba9bdc1cac0947365dc66c4e39fabf Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 15 Sep 2026 19:53:13 -0400
+Subject: [PATCH 40/41] aout: correct drift by time scaling instead of
+ resampling
+
+Resampling corrects drift by playing the stream at a different rate,
+which shifts pitch along with speed, and it does so through whichever
+resampler the build has - where libsamplerate is absent that is "ugly",
+which drops and duplicates samples. Correcting half a percent of drift
+that way left a 440 Hz tone 7.5 cents sharp with a residual 17% of the
+signal level off-tone, continuously, for as long as it was corrected.
+
+Drive the rate filter instead. That is scaletempo where time stretching
+is enabled, which varies speed without touching pitch: the same tone
+comes out at 440.00 Hz with the residual at 0.2%.
+
+The bound is then a range of playback speeds rather than an interval of
+detune, so "aout-max-resampling" gives way to "aout-timescale-min" and
+"aout-timescale-max". A change of speed is far less noticeable than the
+detuning it replaces, so the range can be wide - it is there to stop a
+runaway, not to keep the correction quiet. Without a time stretcher the
+drift now goes uncorrected rather than being detuned away.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ include/vlc_aout.h               |  48 ++++++------
+ src/audio_output/aout_internal.h |   5 +-
+ src/audio_output/dec.c           |  44 ++++++-----
+ src/audio_output/filters.c       | 127 +++++++++++++++----------------
+ src/libvlc-module.c              |  48 +++++++-----
+ 5 files changed, 144 insertions(+), 128 deletions(-)
+
+diff --git a/include/vlc_aout.h b/include/vlc_aout.h
+index 80bd34af37..1cb536fce3 100644
+--- a/include/vlc_aout.h
++++ b/include/vlc_aout.h
+@@ -54,32 +54,36 @@
+  * above which upsampling will be performed */
+ #define AOUT_MAX_PTS_DELAY              (3 * CLOCK_FREQ / 50)
+ 
+-/* Default for "aout-max-resampling": how far the drift correction may detune
+- * the stream, in cents (hundredths of a semitone).
++/* Defaults for "aout-timescale-min" and "aout-timescale-max": how far the
++ * drift correction may vary playback speed, as a percentage of nominal.
+  *
+- * Resampling changes pitch as well as speed, so the bound is an interval
+- * rather than a fraction of the sample rate. It only has to cover genuine
+- * clock drift between the source and the device, a few tens of ppm on real
+- * hardware; a larger offset is latency rather than drift, and is jumped over
+- * instead of detuned away. Zero disables correction by resampling. */
+-#define AOUT_MAX_RESAMPLING_CENTS       9
+-
+-/** Highest value accepted for "aout-max-resampling" (a whole tone) */
+-#define AOUT_MAX_RESAMPLING_CENTS_MAX   200
++ * Time scaling changes speed without touching pitch, and a change of speed is
++ * far less noticeable than the detuning it replaces - five percent here is a
++ * whole tone if it were applied to the pitch instead. So the bound can be
++ * generous: it is there to stop a runaway, not to keep the correction quiet.
++ * An empty range disables the correction. */
++#define AOUT_TIMESCALE_MIN              95.f
++#define AOUT_TIMESCALE_MAX              105.f
++
++/** Range accepted for "aout-timescale-min" and "aout-timescale-max" */
++#define AOUT_TIMESCALE_FLOOR            50.f
++#define AOUT_TIMESCALE_CEILING          200.f
+ 
+ /* Defaults for "aout-drift-gain" and "aout-drift-integral-gain", the gains of
+- * the controller that turns the measured drift into a detune. Its input is a
+- * drift in seconds and its output an interval in cents, so the proportional
+- * gain is in cents/s and the integral one in cents/s^2.
++ * the controller that turns the measured drift into a change of speed. Its
++ * input is a drift in seconds and its output a percentage of nominal speed, so
++ * the proportional gain is in %/s and the integral one in %/s^2.
+  *
+- * A detune of u closes the drift at a rate proportional to u, so the loop is a
+- * plain integrator and the PI controller makes it second order. These keep the
+- * ratio between the two terms that gives a damping ratio of 0.89, and let the
+- * proportional term alone ask for the whole of the default bound at one
+- * AOUT_MAX_PTS_DELAY of drift:
+- * AOUT_MAX_RESAMPLING_CENTS / (AOUT_MAX_PTS_DELAY / CLOCK_FREQ). */
+-#define AOUT_DRIFT_GAIN                 150.f
+-#define AOUT_DRIFT_INTEGRAL_GAIN        3.75f
++ * A change of speed of u closes the drift at a rate proportional to u, so the
++ * loop is a plain integrator and the PI controller makes it second order.
++ * These keep the ratio between the two terms that gives a damping ratio of
++ * 0.89, and set how hard the loop pulls rather than how far it may go: the
++ * proportional term alone asks for half a percent at one AOUT_MAX_PTS_DELAY
++ * of drift, well inside the bound above. */
++#define AOUT_DRIFT_GAIN                 8.33f
++#define AOUT_DRIFT_INTEGRAL_GAIN        0.208f
++
++
+ 
+ #include "vlc_es.h"
+ 
+diff --git a/src/audio_output/aout_internal.h b/src/audio_output/aout_internal.h
+index e54557c873..2c19441c1e 100644
+--- a/src/audio_output/aout_internal.h
++++ b/src/audio_output/aout_internal.h
+@@ -180,8 +180,9 @@ static inline void aout_SetWavePhysicalChannels(audio_sample_format_t *fmt)
+ }
+ 
+ /* From filters.c */
+-float aout_FiltersGetMaxDetune (aout_filters_t *filters);
+-float aout_FiltersSetDetune (aout_filters_t *filters, float cents);
++void aout_FiltersGetTimeScaleRange (aout_filters_t *filters,
++                                    float *restrict min, float *restrict max);
++float aout_FiltersSetTimeScale (aout_filters_t *filters, float percent);
+ 
+ void aout_ChangeViewpoint(audio_output_t *aout,
+                           const vlc_viewpoint_t *p_viewpoint);
+diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
+index e47c0888c2..2656c7180e 100644
+--- a/src/audio_output/dec.c
++++ b/src/audio_output/dec.c
+@@ -343,15 +343,21 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+         drift = 0;
+     }
+ 
+-    /* The detune is the output of a PI controller fed with the drift: the
++    /* The speed is the output of a PI controller fed with the drift: the
+      * proportional term asks for the whole bound at about one
+      * AOUT_MAX_PTS_DELAY, and the integral settles on the standing offset a
+      * device off nominal rate needs. No derivative term - the drift is
+      * quantised by however the output reports its delay. */
+-    const float max = aout_FiltersGetMaxDetune (owner->filters);
++    float min, max;
+ 
+-    if (max <= 0.f)
+-        return; /* correction by resampling is disabled */
++    aout_FiltersGetTimeScaleRange (owner->filters, &min, &max);
++
++    if (min >= max)
++        return; /* drift correction is disabled */
++
++    /* The controller works in the deviation from nominal, not the speed. */
++    min -= 100.f;
++    max -= 100.f;
+ 
+     if (owner->sync.discontinuity || owner->sync.skip > 0
+      || now < owner->sync.skip_settles)
+@@ -365,8 +371,9 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+ 
+     const float commanded = owner->sync.drift_kp * (drift / (float)CLOCK_FREQ)
+                             + owner->sync.drift_integral;
+-    const float applied = aout_FiltersSetDetune (owner->filters, commanded);
+-    const bool bound = fabsf (applied) >= max;
++    const float applied = aout_FiltersSetTimeScale (owner->filters,
++                                                    100.f + commanded) - 100.f;
++    const bool bound = commanded < min || commanded > max;
+ 
+     if (owner->sync.update != VLC_TICK_INVALID)
+     {
+@@ -384,18 +391,19 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+                       + owner->sync.drift_ki * (drift / (float)CLOCK_FREQ)
+                         * seconds;
+ 
+-            /* What reached the resampler is a whole number of Hz and may have
+-             * been clamped. Integrating against what was asked would have the
+-             * integral answer for a correction never made - winding up at the
+-             * bound, and accumulating the rounding away from it - so feed the
+-             * difference back over the time constant the gains imply. */
++            /* What reached the rate filter is a whole number of Hz and may
++             * have been clamped. Integrating against what was asked would
++             * have the integral answer for a correction never made - winding up
++             * at the bound, and accumulating the rounding away from it - so
++             * feed the difference back over the time constant the gains
++             * imply. */
+             if (owner->sync.drift_kp > 0.f)
+                 i += (applied - commanded)
+                      * (owner->sync.drift_ki / owner->sync.drift_kp) * seconds;
+ 
+             /* The integral on its own may not ask for more than the bound. */
+-            owner->sync.drift_integral = (i > +max) ? +max
+-                                       : (i < -max) ? -max : i;
++            owner->sync.drift_integral = (i > max) ? max
++                                       : (i < min) ? min : i;
+         }
+     }
+     owner->sync.update = now;
+@@ -411,15 +419,15 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+          * further off nominal than the bound allows for, or what is being
+          * corrected is not drift at all. */
+         if (bound)
+-            msg_Warn (aout, "drift correction at its limit of %.0f cents "
+-                      "(drift: %"PRId64" us): raise aout-max-resampling to "
+-                      "correct it, at the cost of audible detuning", max,
+-                      drift);
++            msg_Warn (aout, "drift correction at its limit of %+.2f%% "
++                      "(drift: %"PRId64" us): widen aout-timescale-min and "
++                      "aout-timescale-max to correct it, at the cost of "
++                      "audible speed changes",
++                      (commanded < min) ? min : max, drift);
+         else
+             msg_Dbg (aout, "drift correction back within its limit "
+                      "(drift: %"PRId64" us)", drift);
+     }
+-
+ }
+ 
+ /*****************************************************************************
+diff --git a/src/audio_output/filters.c b/src/audio_output/filters.c
+index a29722205a..cb5318b2f7 100644
+--- a/src/audio_output/filters.c
++++ b/src/audio_output/filters.c
+@@ -347,8 +347,9 @@ struct aout_filters
+     filter_t *rate_filter; /**< The filter adjusting samples count
+         (either the scaletempo filter or a resampler) */
+     filter_t *resampler; /**< The resampler */
+-    int resampling; /**< Current resampling (Hz) */
+-    int max_cents; /**< Bound on the detune (cents); 0 disables it */
++    int timescaling; /**< Offset on the rate filter input rate (Hz) */
++    float scale_min; /**< Slowest the correction may play (percent) */
++    float scale_max; /**< Fastest the correction may play (percent) */
+ 
+     unsigned count; /**< Number of filters */
+     filter_t *tab[AOUT_MAX_FILTERS]; /**< Configured user filters
+@@ -510,9 +511,10 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+         return NULL;
+ 
+     filters->rate_filter = NULL;
+-    filters->max_cents = 0;
++    filters->scale_min = 100.f;
++    filters->scale_max = 100.f;
+     filters->resampler = NULL;
+-    filters->resampling = 0;
++    filters->timescaling = 0;
+     filters->count = 0;
+ 
+     /* Prepare format structure */
+@@ -650,25 +652,33 @@ aout_filters_t *aout_FiltersNew (vlc_object_t *obj,
+         msg_Err (obj, "cannot setup a resampler");
+         goto error;
+     }
+-    if (filters->resampler != NULL)
+-    {
+-        /* Bound the drift correction the caller may ask for. It is kept as the
+-         * interval it is given in rather than turned into a rate offset here:
+-         * cents are logarithmic, so a bound applied to the offset would not be
+-         * symmetric in the unit the bound is stated in, and the controller
+-         * clamps its own integral against this same figure. */
+-        int64_t cents = var_InheritInteger (obj, "aout-max-resampling");
+-
+-        if (cents < 0)
+-            cents = 0;
+-        else if (cents > AOUT_MAX_RESAMPLING_CENTS_MAX)
+-            cents = AOUT_MAX_RESAMPLING_CENTS_MAX;
+-
+-        filters->max_cents = cents;
+-    }
+     if (filters->rate_filter == NULL)
+         filters->rate_filter = filters->resampler;
+ 
++    /* Bound the drift correction the caller may ask for. Correcting by time
++     * scaling needs a filter that varies speed without varying pitch; without
++     * one the drift goes uncorrected rather than being detuned away. */
++    if (filters->rate_filter != NULL
++     && filters->rate_filter != filters->resampler)
++    {
++        float min = var_InheritFloat (obj, "aout-timescale-min");
++        float max = var_InheritFloat (obj, "aout-timescale-max");
++
++        if (min < AOUT_TIMESCALE_FLOOR)
++            min = AOUT_TIMESCALE_FLOOR;
++        if (min > 100.f)
++            min = 100.f;
++        if (max > AOUT_TIMESCALE_CEILING)
++            max = AOUT_TIMESCALE_CEILING;
++        if (max < 100.f)
++            max = 100.f;
++
++        filters->scale_min = min;
++        filters->scale_max = max;
++    }
++    else
++        msg_Dbg (obj, "no time stretcher: drift will not be corrected");
++
+     return filters;
+ 
+ error:
+@@ -699,55 +709,48 @@ void aout_FiltersDelete (vlc_object_t *obj, aout_filters_t *filters)
+ }
+ 
+ /**
+- * Returns the largest drift correction the resampler will apply, as a fraction
+- * of the nominal sample rate. A zeroed bound disables drift correction by
+- * resampling entirely; the resampler itself may still be needed for plain rate
+- * conversion.
++ * Reports the range of playback speeds the drift correction may use, as a
++ * percentage of nominal. An empty range means it is disabled.
+  */
+-float aout_FiltersGetMaxDetune (aout_filters_t *filters)
++void aout_FiltersGetTimeScaleRange (aout_filters_t *filters,
++                                    float *restrict min, float *restrict max)
+ {
+-    if (filters->resampler == NULL)
+-        return 0.f;
+-
+-    return filters->max_cents;
++    *min = filters->scale_min;
++    *max = filters->scale_max;
+ }
+ 
+ /**
+- * Sets the drift correction applied by the resampler, as a fraction of the
+- * nominal sample rate. Out of bound values are clamped: without that this
+- * ramps into the kHz range, as the rate at which the drift is made up is
+- * proportional to the offset, and the offset is applied to the resampler
+- * input rate.
++ * Sets the playback speed the drift correction asks for, as a percentage of
++ * nominal, and returns what was actually applied. Out of range values are
++ * clamped, and the rate filter is driven in whole Hz, so the two rarely agree
++ * exactly; the caller needs the difference to answer for it.
+  */
+-float aout_FiltersSetDetune (aout_filters_t *filters, float cents)
++float aout_FiltersSetTimeScale (aout_filters_t *filters, float percent)
+ {
+-    if (filters->resampler == NULL)
+-        return 0.f;
+-
+-    const unsigned rate = filters->resampler->fmt_in.audio.i_rate;
+-    const float max = filters->max_cents;
+-
+-    /* Clamped as an interval, so that as much detuning is allowed downwards as
+-     * upwards. Clamping the rate offset instead would not: a ratio of 1 + x is
+-     * a smaller interval than 1 - x is. */
+-    if (cents > +max)
+-        cents = +max;
+-    else if (cents < -max)
+-        cents = -max;
+-
+-    filters->resampling = lroundf (rate * (exp2f (cents / 1200.f) - 1.f));
+-
+-    /* What the rate offset amounts to, which is not quite what was asked for:
+-     * it is a whole number of Hz, and it was clamped. The caller needs to know
+-     * so that it can answer for the difference. */
+-    return 1200.f * log2f (1.f + filters->resampling / (float)rate);
++    filter_t *rate_filter = filters->rate_filter;
++
++    if (rate_filter == NULL || rate_filter == filters->resampler)
++        return 100.f;
++
++    if (percent < filters->scale_min)
++        percent = filters->scale_min;
++    else if (percent > filters->scale_max)
++        percent = filters->scale_max;
++
++    /* Consuming the input faster than it is written out plays it faster, so
++     * the offset carries the same sign as the change of speed. */
++    const unsigned rate = rate_filter->fmt_in.audio.i_rate;
++
++    filters->timescaling = lroundf (rate * (percent - 100.f) / 100.f);
++
++    return 100.f + filters->timescaling * 100.f / (float)rate;
+ }
+ 
+ block_t *aout_FiltersPlay (aout_filters_t *filters, block_t *block, int rate)
+ {
+     int nominal_rate = 0;
+ 
+-    if (rate != INPUT_RATE_DEFAULT)
++    if (rate != INPUT_RATE_DEFAULT || filters->timescaling != 0)
+     {
+         filter_t *rate_filter = filters->rate_filter;
+ 
+@@ -757,16 +760,14 @@ block_t *aout_FiltersPlay (aout_filters_t *filters, block_t *block, int rate)
+         /* Override input rate */
+         nominal_rate = rate_filter->fmt_in.audio.i_rate;
+         rate_filter->fmt_in.audio.i_rate =
+-            (nominal_rate * INPUT_RATE_DEFAULT) / rate;
++            (nominal_rate * INPUT_RATE_DEFAULT) / rate + filters->timescaling;
+     }
+ 
+     block = aout_FiltersPipelinePlay (filters->tab, filters->count, block);
+     if (filters->resampler != NULL)
+-    {   /* NOTE: the resampler needs to run even if resampling is 0.
+-         * The decoder and output rates can still be different. */
+-        filters->resampler->fmt_in.audio.i_rate += filters->resampling;
++    {   /* NOTE: the resampler needs to run even when no rate conversion is
++         * wanted. The decoder and output rates can still be different. */
+         block = aout_FiltersPipelinePlay (&filters->resampler, 1, block);
+-        filters->resampler->fmt_in.audio.i_rate -= filters->resampling;
+     }
+ 
+     if (nominal_rate != 0)
+@@ -790,8 +791,6 @@ block_t *aout_FiltersDrain (aout_filters_t *filters)
+     {
+         block_t *chain = NULL;
+ 
+-        filters->resampler->fmt_in.audio.i_rate += filters->resampling;
+-
+         if (block)
+         {
+             /* Resample the drained block from the filters pipeline */
+@@ -805,8 +804,6 @@ block_t *aout_FiltersDrain (aout_filters_t *filters)
+         if (block)
+             block_ChainAppend (&chain, block);
+ 
+-        filters->resampler->fmt_in.audio.i_rate -= filters->resampling;
+-
+         return chain ? block_ChainGather (chain) : NULL;
+     }
+     else
+diff --git a/src/libvlc-module.c b/src/libvlc-module.c
+index d5e20d3246..2ab7356a84 100644
+--- a/src/libvlc-module.c
++++ b/src/libvlc-module.c
+@@ -232,32 +232,36 @@ static const char *const ppsz_stereo_mode_texts[] = { N_("Unset"),
+     "This allows playing audio at lower or higher speed without " \
+     "affecting the audio pitch" )
+ 
+-#define AUDIO_MAX_RESAMPLING_TEXT N_( \
+-    "Maximum drift correction by resampling (cents)" )
+-#define AUDIO_MAX_RESAMPLING_LONGTEXT N_( \
+-    "How much resampling may be used to correct drift between the stream and " \
+-    "the audio device, in cents of detune (100 cents is one semitone). " \
+-    "Resampling shifts pitch as well as speed, so this bounds how far " \
+-    "playback can be detuned while a drift is being corrected. Lower it if " \
+-    "you can hear the correction, at the cost of slower resynchronisation. " \
+-    "Set it to 0 to never correct drift by resampling." )
++#define AUDIO_TIMESCALE_MIN_TEXT N_( \
++    "Slowest drift correction (% of normal speed)" )
++#define AUDIO_TIMESCALE_MIN_LONGTEXT N_( \
++    "How far playback may be slowed down to correct drift between the stream " \
++    "and the audio device. Speed is varied without affecting pitch. Raise it " \
++    "towards 100 if you can hear the correction, at the cost of slower " \
++    "resynchronisation." )
++
++#define AUDIO_TIMESCALE_MAX_TEXT N_( \
++    "Fastest drift correction (% of normal speed)" )
++#define AUDIO_TIMESCALE_MAX_LONGTEXT N_( \
++    "How far playback may be sped up to correct drift between the stream and " \
++    "the audio device. Setting this to 100 along with the slowest speed " \
++    "disables drift correction entirely." )
+ 
+ #define AUDIO_DRIFT_GAIN_TEXT N_( \
+     "Drift correction gain" )
+ #define AUDIO_DRIFT_GAIN_LONGTEXT N_( \
+-    "Proportional gain of the drift correction: how much resampling is asked " \
+-    "for per second of measured drift, as a fraction of the sample rate. The " \
+-    "default asks for the whole of the \"aout-max-resampling\" bound at 60 ms " \
+-    "of drift. Raising it corrects faster but tracks the noise of the delay " \
+-    "reported by the audio device." )
++    "Proportional gain of the drift correction: how much speed is asked for " \
++    "per second of measured drift, as a percentage of nominal. The default " \
++    "asks for half a percent at 60 ms of drift. Raising it corrects faster " \
++    "but tracks the noise of the delay reported by the audio device." )
+ 
+ #define AUDIO_DRIFT_INTEGRAL_GAIN_TEXT N_( \
+     "Drift correction integral gain" )
+ #define AUDIO_DRIFT_INTEGRAL_GAIN_LONGTEXT N_( \
+     "Integral gain of the drift correction. This term settles on the standing " \
+-    "resampling offset needed by an audio device whose clock does not run at " \
+-    "exactly the nominal sample rate, which the proportional term alone " \
+-    "cannot hold. Raising it converges sooner at the cost of overshooting." )
++    "offset in speed needed by an audio device whose clock does not run at " \
++    "exactly the nominal rate, which the proportional term alone cannot " \
++    "hold. Raising it converges sooner at the cost of overshooting." )
+ 
+ 
+ static const char *const ppsz_replay_gain_mode[] = {
+@@ -1552,10 +1556,12 @@ vlc_module_begin ()
+ 
+     add_bool( "audio-time-stretch", true,
+               AUDIO_TIME_STRETCH_TEXT, AUDIO_TIME_STRETCH_LONGTEXT, false )
+-    add_integer( "aout-max-resampling", AOUT_MAX_RESAMPLING_CENTS,
+-                 AUDIO_MAX_RESAMPLING_TEXT, AUDIO_MAX_RESAMPLING_LONGTEXT,
+-                 true )
+-        change_integer_range( 0, AOUT_MAX_RESAMPLING_CENTS_MAX )
++    add_float( "aout-timescale-min", AOUT_TIMESCALE_MIN,
++               AUDIO_TIMESCALE_MIN_TEXT, AUDIO_TIMESCALE_MIN_LONGTEXT, true )
++        change_float_range( AOUT_TIMESCALE_FLOOR, 100.f )
++    add_float( "aout-timescale-max", AOUT_TIMESCALE_MAX,
++               AUDIO_TIMESCALE_MAX_TEXT, AUDIO_TIMESCALE_MAX_LONGTEXT, true )
++        change_float_range( 100.f, AOUT_TIMESCALE_CEILING )
+     add_float( "aout-drift-gain", AOUT_DRIFT_GAIN,
+                AUDIO_DRIFT_GAIN_TEXT, AUDIO_DRIFT_GAIN_LONGTEXT, true )
+         change_float_range( 0.f, 10000.f )
+-- 
+2.55.0
+

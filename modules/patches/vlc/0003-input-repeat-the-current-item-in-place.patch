@@ -1,7 +1,7 @@
 From 0bd4b93b0742b512061d2ba7482d411f91b829d4 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:07:04 -0400
-Subject: [PATCH 03/36] input: repeat the current item in place
+Subject: [PATCH 03/41] input: repeat the current item in place
 
 Repeating one item was the playlist's job: the input reaches the end and
 dies, and PlayItem() builds a new one. Everything underneath goes with it -

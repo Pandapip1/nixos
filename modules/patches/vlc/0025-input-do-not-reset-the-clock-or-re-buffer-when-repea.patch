@@ -1,7 +1,7 @@
 From 2c819a6b98c1a2e20de4693f7f66f056cf48d633 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:08:05 -0400
-Subject: [PATCH 25/36] input: do not reset the clock or re-buffer when
+Subject: [PATCH 25/41] input: do not reset the clock or re-buffer when
  repeating an item
 
 Keeping the decoded data across a repeat is not enough while the repeat

@@ -1,7 +1,7 @@
-From 2e574dcabf07955fe187a540c1d259353dae34ef Mon Sep 17 00:00:00 2001
+From af604c393f9caaf996e7a5e3bfe59e951c060326 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:35:35 -0400
-Subject: [PATCH 38/40] pulse: measure the device before playback starts
+Subject: [PATCH 37/41] pulse: measure the device before playback starts
 
 The device latency only shows up once the stream has run for as long as
 the device holds, so it was learned while the audio was already playing,

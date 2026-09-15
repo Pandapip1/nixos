@@ -14,7 +14,7 @@ in
   nixpkgs.overlays = [
     (_: prev: {
       vlc = prev.vlc.overrideAttrs (prevAttrs: {
-        # Sent upstream against 3.0.x. Five groups:
+        # Sent upstream against 3.0.x. Six groups:
         #
         # 0001-0003 aout. Drift correction in the audio core is applied by
         # resampling, which shifts pitch as well as speed. The accumulated
@@ -38,18 +38,25 @@ in
         # of existing upstream fixes (webvtt #22448, and the mkv chapter
         # segfault, which master had already fixed by reverting).
         #
-        # 0023-0036 seamless repeat. A repeat tore down and rebuilt the audio
+        # 0023-0035 seamless repeat. A repeat tore down and rebuilt the audio
         # output between plays, leaving an audible gap of up to half a second.
         # The output now keeps what it is holding across a repeat, lateness is
         # skipped rather than flushed, and drift is corrected by a bounded PI
         # controller instead of a bang-bang one.
         #
-        # 0037-0040 device latency. The core handed the output its first sample
+        # 0036-0039 device latency. The core handed the output its first sample
         # ten milliseconds before it was due, whatever the device needed, so on
         # a sink holding two tenths of a second that sample was born late and
         # the output skipped over the difference - heard as a splice at every
         # start and seek. Outputs can now report what the device adds, and the
         # core gives them that much lead.
+        #
+        # 0040-0041 time scaling. Drift was corrected by resampling, which shifts
+        # pitch as well as speed, and on a build without libsamplerate it does
+        # so through the "ugly" resampler: half a percent of correction left a
+        # 440 Hz tone 7.5 cents sharp with 17% of the signal level off-tone for
+        # as long as it lasted. It now drives scaletempo instead, which varies
+        # speed without touching pitch.
         patches = (prevAttrs.patches or [ ]) ++ patches;
       });
     })
