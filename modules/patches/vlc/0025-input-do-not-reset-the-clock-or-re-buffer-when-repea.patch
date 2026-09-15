@@ -1,21 +1,19 @@
-From a867835a832b028e9d68285251ad82b79428a951 Mon Sep 17 00:00:00 2001
+From 2c819a6b98c1a2e20de4693f7f66f056cf48d633 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:08:05 -0400
 Subject: [PATCH 25/36] input: do not reset the clock or re-buffer when
  repeating an item
 
-The previous commit kept the decoded data across a repeat, but the repeat
-still went through the ordinary reposition, which resets the clock
-reference and re-enters buffering. A repeat carries the timeline straight
-on - the demuxer starts over, but the timestamps it emits continue from
-where the last pass ended - so the reference still describes them.
-Resetting it makes the new pass convert to system dates that have already
-gone by, and the output reports that as lateness and flushes, throwing
-away the very data the previous commit kept. Measured, the reported
-lateness grew pass over pass, from 200 ms to over a second.
+Keeping the decoded data across a repeat is not enough while the repeat
+still goes through the ordinary reposition, which resets the clock and
+re-enters buffering. A repeat carries the timeline straight on: the demuxer
+starts over, but the timestamps it emits continue from where the last pass
+ended, so the reference still describes them.
 
-Buffering again would stall decoders that were deliberately left loaded,
-and there is nothing to buffer for.
+Resetting it makes the new pass convert to dates that have already gone by;
+the output calls that lateness and flushes, throwing away the data the
+previous commit kept. The reported lateness grew pass over pass, from
+200 ms to over a second.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---

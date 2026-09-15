@@ -1,4 +1,4 @@
-From 7f60b689cf3a990bf4b21ec9580265d0c9a51e61 Mon Sep 17 00:00:00 2001
+From 390fa3cadcd8c7259180359617cecd1d82c2a761 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:10:30 -0400
 Subject: [PATCH 05/36] demux: gme: keep the track index in range at end of

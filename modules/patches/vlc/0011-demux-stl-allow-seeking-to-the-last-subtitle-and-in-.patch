@@ -1,8 +1,8 @@
-From b3b0d4a4c841c4d6e2d9142e9fd86fc65b35e4a2 Mon Sep 17 00:00:00 2001
+From b5a224b66ad9fb5bab648a210396507d18438122 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:45:06 -0400
-Subject: [PATCH 11/36] demux: stl: allow seeking to the last subtitle, and in
- single entry files
+Subject: [PATCH 11/36] demux: stl: allow seeking to the last subtitle and in
+ single-entry files
 
 DEMUX_SET_TIME walks the index looking for the first entry whose
 successor starts at or after the requested time, so it can never reach

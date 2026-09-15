@@ -1,26 +1,23 @@
-From e60294b85450b469f529689284f16f0d2ea62fe4 Mon Sep 17 00:00:00 2001
+From 8bde213d21759204d07266c21f9f5e723d44e283 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:51:19 -0400
 Subject: [PATCH 13/36] demux: ty: keep the record count in step with the
  record headers
 
-get_chunk_header() commits the record count to p_sys straight after
-reading it, then frees the header array and rebuilds it, and can leave
-between the two: a count at or above MAX_NUM_RECS, a short read of the
-four byte prefix, a failed allocation, or a truncated header block. The
-count is left describing an array that is either gone or is the previous,
-smaller one.
+get_chunk_header() commits the record count to p_sys straight after reading
+it, then frees the header array and rebuilds it - and can leave between the
+two: a count at or above MAX_NUM_RECS, a short read, a failed allocation or
+a truncated header block. The count then describes an array that is gone,
+or the previous smaller one.
 
-Demux() checks the return value and the count, so it is safe, but
-ty_stream_seek_pct() and ty_stream_seek_time() call get_chunk_header()
-for its side effects and then index rec_hdrs unconditionally. On a
-truncated or malformed file that is a NULL dereference, or a read past
-the end of the previous allocation.
+Demux() checks the return value, but ty_stream_seek_pct() and
+ty_stream_seek_time() call get_chunk_header() for its side effects and
+index rec_hdrs unconditionally: on a malformed file that is a NULL
+dereference or a read past the previous allocation.
 
-Commit the count only once the array it describes exists, and clear it
-where the array is released. The parse failure path already did this.
+Commit the count only once the array it describes exists.
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  modules/demux/ty.c | 10 ++++++++--
  1 file changed, 8 insertions(+), 2 deletions(-)

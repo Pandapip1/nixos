@@ -1,35 +1,22 @@
-From 9485ae3de8e3ff1abff958d26db8787619871683 Mon Sep 17 00:00:00 2001
+From a267e463a02be75bf402d920bc593e85b0fb9d1d Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 01:18:13 -0400
 Subject: [PATCH 24/36] input: do not discard decoded data when repeating an
  item
 
-A repeat is a seek back to the start, so it went through the ordinary
-seek path, and the first thing that path does is EsOutChangePosition(),
-which calls input_DecoderFlush() on every elementary stream.
+A repeat is a seek back to the start, so it went through the ordinary seek
+path, whose first act is EsOutChangePosition() calling input_DecoderFlush()
+on every elementary stream. For a move elsewhere that is right; for a
+repeat it is exactly wrong. The decoded data is the tail of the pass still
+playing, and is what would cover the gap while the demuxer starts over.
 
-For a move elsewhere in the item that is right: what is decoded is no
-longer wanted. For a repeat it is exactly wrong. The decoded data is
-still wanted - it is the tail of the pass that is still playing, and it
-is precisely what would cover the gap while the demuxer starts over.
-Discarding it empties the audio output, so the sink runs dry at every
-loop. On PipeWire a drained sink is parked (node.pause-on-idle defaults
-true) and has to be resumed, which costs a renegotiation and is audible:
-playback starts, cuts out, comes back, cuts out again, then settles.
-
-Worse, the flush is not even what the lateness logic was reacting to.
-aout_DecSynchronize() computes drift from the decoder timestamp, which
-restarts near zero on the new pass while the output clock is seconds
-ahead, and calls aout_OutputFlush() - so the queued audio was being
-thrown away twice over.
+Discarding it empties the audio output, so the sink runs dry at every loop;
+on PipeWire a drained sink is parked and has to be resumed, which is heard.
 
 Add ES_OUT_SET_TIME_REPEAT, which repositions without flushing the
-decoders, and use it when the seek came from MainLoopTryRepeat(). The
-flag is cleared as soon as it is consumed so an ordinary user seek still
-flushes, which it must.
+decoders, and use it when the seek came from MainLoopTryRepeat().
 
-Files with titles still flush through the SET_TITLE control, which is
-correct: a title change is a real reposition.
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  src/input/es_out.c           | 30 +++++++++++++++++++++++-------
  src/input/es_out.h           |  5 +++++

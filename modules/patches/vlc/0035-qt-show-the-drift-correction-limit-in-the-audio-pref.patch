@@ -1,20 +1,17 @@
-From fa8ac5ae9b2a242005f85d7b9a95400a55aa6ca3 Mon Sep 17 00:00:00 2001
+From 78a625ba436892f0ebda3bcdd8508258b39a00cd Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:11:02 -0400
 Subject: [PATCH 35/36] qt: show the drift correction limit in the audio
  preferences
 
-"aout-max-resampling" was declared advanced, so the knob that decides
-whether a drift correction is heard as detuning could only be reached
-by turning advanced options on first. Clear the flag, and give it a spin
-box in the simple audio panel next to time stretching, the other setting
-there that trades pitch against timing. Anyone who can hear the
-correction is exactly the user who goes looking for it, and zero, which
-stops playback from ever being detuned, is a choice worth offering
-without a detour through the advanced tree.
+"aout-max-resampling" was declared advanced, so the setting that decides
+whether a drift correction is heard as detuning could only be reached by
+turning advanced options on. Clear the flag and give it a spin box in the
+simple audio panel, next to time stretching - the other setting there that
+trades pitch against timing.
 
-The spin box takes its range from the option and its tooltip from the
-long text, so it follows whatever the core declares.
+The spin box takes its range from the option and its tooltip from the long
+text, so it follows whatever the core declares.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---

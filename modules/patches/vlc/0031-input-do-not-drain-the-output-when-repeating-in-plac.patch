@@ -1,26 +1,16 @@
-From 54ea62f045f37b6ed004e3a47c614a2d16452883 Mon Sep 17 00:00:00 2001
+From 96374f73146c23f9363cc97e90214ec80f62004b Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 23:02:27 -0400
 Subject: [PATCH 31/36] input: do not drain the output when repeating in place
 
-Draining is for an end that is one. A repeat carries straight on from
-here, and a drain plays the output empty and then stops it, so the next
-pass has to start it again - which is heard as a gap at every loop. The
-main loop still waits for the decoders to report empty, and that now means
-what it says: their output has been played. So the repeat is still paced
-by the sound finishing, without the output being emptied or stopped to
-find out.
+Draining is for an end that is one. A repeat carries straight on, and a
+drain plays the output empty and then stops it, so the next pass has to
+start it again - heard as a gap at every loop.
 
-If the repeat turns out not to happen after all, the end was real and the
-drain happens then.
-
-Captured from the sink's monitor, a four second sweep repeating for
-fourteen seconds: silence falls from 0.5-0.7% to nothing at all in four
-runs of ten, a single 25 ms gap in four more, and 0.4-0.5% in the other
-two, against three gaps in every run before. Playback rate is unchanged -
-three repeats per fifteen second run on each of mkv, mp3, m4a and ogg,
-the same as before; an earlier attempt at this that skipped the drain
-without fixing what "empty" means ran at six.
+The main loop still waits for the decoders to report empty, and that now
+means their output has been played, so the repeat is still paced by the
+sound finishing without emptying the output to find out. If the repeat
+turns out not to happen, the end was real and the drain happens then.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---

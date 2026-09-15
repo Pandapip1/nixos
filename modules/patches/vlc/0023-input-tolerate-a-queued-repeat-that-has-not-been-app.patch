@@ -1,27 +1,22 @@
-From 0838faca259358f8c1340368a0e57a3c44b419fe Mon Sep 17 00:00:00 2001
+From c29a657620caab7a3579ba19f520c9940949e8f9 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 00:57:39 -0400
 Subject: [PATCH 23/36] input: tolerate a queued repeat that has not been
  applied yet
 
 The guard added with repeat-in-place refused a second repeat if the first
-had not demuxed anything, to stop a repeat whose seek never takes from
-spinning the main loop. It was a single boolean, so one spurious pass was
-enough to trip it.
+had not demuxed anything, to keep a seek that never takes from spinning
+the main loop. It was a single boolean, so one spurious pass tripped it.
 
-The seek is queued with input_ControlPush() rather than performed inline,
-so the main loop can come back around and hit end of stream again before
-it has been applied. That is a race, not a failure, and on a very short
-input the loop is tight enough to lose it almost every time. A one second
-ogg file showed the result: every loop gave up and fell back to the
-playlist destroying and rebuilding the input, 15 inputs and 15 decoders
-for 14 loops, while a four second file of the same codec did 1 and 1.
+The seek is queued rather than performed inline, so the loop can hit end of
+stream again before it has been applied - a race, not a failure, and on a
+short input it is lost almost every time. A one second ogg gave up at every
+loop and fell back to the playlist rebuilding the input: 15 inputs for 14
+loops, where a four second file of the same codec did 1.
 
-Count the queued repeats instead of flagging them and give up after a few,
-which keeps the spin bounded while leaving room for the seek to land.
+Count the queued repeats rather than flagging them, and give up after a few.
 
-Found by a synthetic repeat test over a matrix of containers; the one
-second case was the only failure in fifteen.
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  src/input/input.c          | 27 +++++++++++++++++++--------
  src/input/input_internal.h |  4 ++--

@@ -1,22 +1,19 @@
-From 39a80faa3e393411aec9b761ccbab3b26dd4c68c Mon Sep 17 00:00:00 2001
+From 8b76ce53b33b84b2de42366f0e48a8bff6e3eb92 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:12:07 -0400
 Subject: [PATCH 06/36] demux: ty: clear the end of file flag when seeking
 
-Demux() returns early on p_sys->eof, and once the flag is raised at the
-end of the file nothing lowers it again: the two seek helpers only ever
-set it, on their own failure paths. So seeking after playback has ended
-repositions the stream and reports success, and then the next Demux()
-call short circuits and declares end of file again.
+Demux() returns early on p_sys->eof, and nothing lowers the flag once the
+end is reached - the two seek helpers only ever set it, on their own
+failure paths. So a seek after playback has ended repositions the stream
+and reports success, and the next Demux() declares end of file again.
 
 The input takes that as the stream having ended, so repeating a file does
 not work and dragging the seek bar after the end does nothing, with the
-demuxer reporting success the whole time.
+demuxer reporting success throughout. Clear it when a seek is asked for;
+the seek helpers raise it again if they cannot reposition.
 
-Clear it when a seek is asked for. The seek helpers raise it again if
-they cannot reposition the stream.
-
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  modules/demux/ty.c | 8 ++++++++
  1 file changed, 8 insertions(+)

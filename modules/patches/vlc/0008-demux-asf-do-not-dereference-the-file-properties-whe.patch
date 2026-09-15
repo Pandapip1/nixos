@@ -1,27 +1,23 @@
-From b778fbfc8b0e9cb2fc6888495c4498a5956bac63 Mon Sep 17 00:00:00 2001
+From 55ff135725eb480cb011d782cd69e30377810afd Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:34:14 -0400
 Subject: [PATCH 08/36] demux: asf: do not dereference the file properties when
  they are gone
 
 DemuxEnd() leaves p_sys->p_fp NULL, which happens when a chained header
-fails to re-initialise: Demux() spots what looks like a new ASF header at
-the end of the current stream, tears the old one down and cannot build
-the replacement. The demux object stays open and the input keeps polling
-it.
+fails to re-initialise: Demux() tears the old one down and cannot build the
+replacement. The demux object stays open and the input keeps polling it.
 
-DEMUX_GET_POSITION is reached in that state. Its two guards do not help -
-i_time is not reset by the teardown so it is not VLC_TICK_INVALID, and
-i_length is zero, which is exactly the branch that falls through to
-demux_vaControlHelper() and reads p_fp->i_min_data_packet_size.
+DEMUX_GET_POSITION is reached in that state, and its guards do not help -
+i_time is not reset by the teardown, and i_length is zero, which is the
+branch falling through to demux_vaControlHelper() and
+p_fp->i_min_data_packet_size. The default case below guards the same
+dereference with a ternary; guard this one the same way.
 
-The default case a few lines below makes the same call and guards the
-same dereference with a ternary, so treat this one the same way. It is a
-crash rather than a failed control: MainLoopStatistics() issues
-DEMUX_GET_POSITION every 250 ms and carries on doing so after the end of
-the stream.
+MainLoopStatistics() issues DEMUX_GET_POSITION every 250 ms, so it is a
+crash rather than a failed control.
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  modules/demux/asf/asf.c | 7 ++++++-
  1 file changed, 6 insertions(+), 1 deletion(-)

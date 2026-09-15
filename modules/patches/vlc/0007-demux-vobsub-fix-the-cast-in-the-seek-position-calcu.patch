@@ -1,4 +1,4 @@
-From da3ea61a20923c3ba340bb93ba52b1a5d99bf40c Mon Sep 17 00:00:00 2001
+From 68bb26e7f65e1c6543de7869313e1009eb463681 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:12:07 -0400
 Subject: [PATCH 07/36] demux: vobsub: fix the cast in the seek position

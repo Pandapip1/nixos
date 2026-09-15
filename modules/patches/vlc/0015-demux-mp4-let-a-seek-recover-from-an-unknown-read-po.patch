@@ -1,23 +1,20 @@
-From 89789c240681d4392cf9f355396dad74111562d5 Mon Sep 17 00:00:00 2001
+From e76bdc115715e48e76f5d2e7de0473fa08fb5f05 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:04:50 -0400
 Subject: [PATCH 15/36] demux: mp4: let a seek recover from an unknown read
  position
 
 b_error is raised when a seek fails and the seek back to where we were
-fails as well, leaving the read position unknown. DemuxFrag() checks it
-and reports end of stream from then on, and nothing ever lowers it, so
-the file is finished as far as the demuxer is concerned.
+fails too, leaving the read position unknown. DemuxFrag() then reports end
+of stream for good, since nothing lowers it again.
 
-It does not have to be. A seek establishes a position of its own: if it
-succeeds we know exactly where we are, and if it fails but the restore
-works we are back where we started. Only a failed restore leaves the
-question open, and that path raises the flag again.
+A seek establishes a position of its own: if it succeeds we know where we
+are, and if it fails but the restore works we are back where we started.
+Only a failed restore leaves the question open, and that path raises the
+flag again. Lower it when a seek is attempted, so dragging the seek bar
+recovers a stream that would otherwise stay dead until reopened.
 
-Lower it when a seek is attempted, so dragging the seek bar recovers a
-stream that would otherwise stay dead until the file is reopened.
-
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  modules/demux/mp4/mp4.c | 10 ++++++++++
  1 file changed, 10 insertions(+)

@@ -1,53 +1,25 @@
-From f28658b878fabea3b58087ccb54e09d8bb50440f Mon Sep 17 00:00:00 2001
+From b13dd80f3242e01fe84ce03fbb408ac60ecf6036 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:53:16 -0400
 Subject: [PATCH 34/36] aout: correct drift with a PI controller, bounded in
  cents
 
-The drift correction was a relay: outside the EBU tolerance it picked a
-direction, stepped the resampling rate by a fixed amount per buffer until
-the drift had halved, then reversed. It could never settle - the only way
-it could stop was to drive the rate back through zero - so it hunted
-around the set point instead of sitting on it. And it could not hold a
-standing rate offset, which is exactly what a device whose clock does not
-run at the nominal sample rate needs: every time the correction unwound,
-the drift began building again from the same cause.
+The correction was a relay: step the rate until the drift halved, then
+reverse. It could only stop by driving the rate back through zero, so it
+hunted around the set point and could never hold the standing offset a
+device off nominal rate needs. A PI controller's integral holds it.
 
-Feed the drift to a PI controller whose output is the offset itself rather
-than an increment of it. The proportional gain is set so that term alone
-asks for the whole bound at one AOUT_MAX_PTS_DELAY of drift; the integral
-converges on the device's own offset and holds it, so the steady state is
-zero drift at a non-zero offset - a state the relay had no way to express.
-No derivative term: the drift is quantised by however the output reports
-its delay, and differentiating that gives noise rather than a trend.
+Bound it in cents rather than permille of the rate: resampling corrects
+drift by changing pitch, so how far out of tune it may go is the question.
+Cents being logarithmic, the bound stays an interval throughout - clamping
+the rate offset would allow more detuning down than up.
 
-The bound is stated in cents. Resampling corrects drift by changing pitch,
-and how far out of tune that may go is the question a bound answers; a
-permille of the sample rate does not. It is kept as an interval rather
-than converted to a rate offset, because cents are logarithmic - a ratio
-of 1 + x is a smaller interval than 1 - x, so bounding the offset would
-allow more detuning downwards than up, by a different amount at every
-rate. The controller works in cents throughout for the same reason: its
-clamp on the integral has to mean what the clamp on its output means.
+aout_FiltersSetDetune() returns what it managed, the request having been
+rounded to whole Hz and possibly clamped, and the difference is fed back;
+integrating against the request would wind up at the bound.
 
-What reaches the resampler is not what was asked for - it is a whole
-number of Hz, and it may have been clamped - so aout_FiltersSetDetune()
-returns what it managed and the difference is fed back, over the time
-constant the gains imply. Integrating against the request instead would
-have the integral answer for a correction never made, winding up at the
-bound and accumulating the rounding away from it.
-
-The correction is kept for the life of playback rather than dropped at
-every flush, pause and discontinuity: it describes the device, which none
-of those move, and dropping it made each pass of a repeat converge all
-over again. aout_StopResampling() goes with the relay, and with it the
-"timing screwed" escape, which measured the drift against its value at the
-moment the relay engaged. Gross lateness is handled ahead of this by the
-jump.
-
-Gains are exposed as "aout-drift-gain" and "aout-drift-integral-gain", and
-the bound as "aout-max-resampling" in cents, defaulting to 9 - within a
-hair of the 5 permille it replaces.
+The correction now lasts the life of playback, so aout_StopResampling()
+goes: it describes the device, which a flush and a pause do not move.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---

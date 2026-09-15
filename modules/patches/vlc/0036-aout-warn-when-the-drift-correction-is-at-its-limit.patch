@@ -1,4 +1,4 @@
-From abd4ec5f034109c937553cf729e781f1b26ca52c Mon Sep 17 00:00:00 2001
+From aa3d8cdc2fca0d5639220184ddac190690d5ca5e Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 22:17:33 -0400
 Subject: [PATCH 36/36] aout: warn when the drift correction is at its limit

@@ -1,25 +1,22 @@
-From 6782e76a41bd493e1b32f41e3d573c9fdd9926a3 Mon Sep 17 00:00:00 2001
+From 83c7c0b4c946638417851a9c72b76c14cecda75f Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:30:44 -0400
 Subject: [PATCH 18/36] demux: adaptive: let a repositioned demuxer read again
 
-AbstractStream::resetForNewPosition() has two paths. The one that rebuilds
-the demuxer ends with the elementary stream output being told it is no
-longer at the end; the one that merely repositions only aborts the queued
-commands. Abort() does clear the queue own end of file flag, but the
-demuxer keeps one of its own, and that is only lowered when a demuxer is
-created. Demuxer::demux() returns Eof outright while it is raised.
+resetForNewPosition() has two paths. The one that rebuilds the demuxer
+tells the ES output it is no longer at the end; the one that merely
+repositions only aborts the queued commands. Abort() clears the queue's
+own end of file flag, but the demuxer keeps one too, lowered only when a
+demuxer is created - and Demuxer::demux() returns Eof while it is raised.
 
 SlaveDemuxer never restarts on seek, so it always takes the second path.
-It is what DASH uses for webvtt and ttml tracks, and it also raises the
-flag when a single DEMUX_SET_NEXT_DEMUX_TIME fails. Either way the track
-is finished for the rest of the session, with no way back: seeking moves
-everything else and the subtitles never return.
+DASH uses it for webvtt and ttml, and it also raises the flag when a single
+DEMUX_SET_NEXT_DEMUX_TIME fails. Either way the track is finished for the
+session: seeking moves everything else and the subtitles never return.
 
-Give the demuxer a way to forget it, and use it where the stream is being
-repositioned rather than rebuilt.
+Give the demuxer a way to forget it.
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  modules/demux/adaptive/Streams.cpp          | 11 ++++++++++-
  modules/demux/adaptive/plumbing/Demuxer.cpp |  9 +++++++++

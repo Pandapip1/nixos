@@ -1,26 +1,21 @@
-From 6ec1f0f45fa5ba73cd3d3c9e2f5eb1e1ad1a2c79 Mon Sep 17 00:00:00 2001
+From 8a9c0019f21e236f305d224b22169c116cee5e7c Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:01:24 -0400
 Subject: [PATCH 02/36] input: stop repeating an input that is not making
  progress
 
-MainLoopTryRepeat() repeats by seeking back to the start, and a seek that
-is refused leaves the end of stream exactly as it was. The next pass
-through the main loop then asks for the same repeat again, and nothing
-bounds that beyond the repeat count itself.
+MainLoopTryRepeat() repeats by seeking back to the start, and a refused
+seek leaves the end of stream exactly as it was, so the next pass asks for
+the same repeat again with nothing bounding it but the repeat count.
 
-With --input-repeat set high the input burns through the whole count as
-fast as it can, two log lines per attempt and no playback in between. A
-Vorbis file is enough to trigger it: the ogg demuxer tears its logical
-streams down at end of stream and refuses every seek afterwards, so with
---input-repeat=65535 the count is spent in one busy loop and around ten
-megabytes of errors.
+The ogg demuxer tears its logical streams down at end of stream and
+refuses every seek afterwards, so --input-repeat=65535 on a Vorbis file
+spends the whole count in one busy loop and about ten megabytes of errors.
 
 Track whether anything has been demuxed since the last repeat was asked
-for, and refuse to ask again if not. One warning, then the input ends as
-it would have anyway.
+for, and refuse to ask again if not.
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  src/input/input.c          | 18 ++++++++++++++++++
  src/input/input_internal.h |  2 ++

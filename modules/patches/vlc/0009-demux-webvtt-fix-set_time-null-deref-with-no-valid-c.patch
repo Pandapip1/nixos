@@ -1,4 +1,4 @@
-From 1bd6358f2867bd2448e5f2e88d98576782ab3cf7 Mon Sep 17 00:00:00 2001
+From a8e97c655245e43dc3037db85b8f604ecf1c15c0 Mon Sep 17 00:00:00 2001
 From: Francois Cartegnie <fcvlcdev@free.fr>
 Date: Wed, 19 Jun 2019 18:00:11 +0200
 Subject: [PATCH 09/36] demux: webvtt: fix set_time null deref with no valid

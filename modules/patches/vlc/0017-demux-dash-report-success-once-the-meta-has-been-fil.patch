@@ -1,4 +1,4 @@
-From 90298462578b111857343ab17b9ee72d645baef3 Mon Sep 17 00:00:00 2001
+From 8cd30b8f626e61faa797b7998603354258ce85d8 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:12:00 -0400
 Subject: [PATCH 17/36] demux: dash: report success once the meta has been

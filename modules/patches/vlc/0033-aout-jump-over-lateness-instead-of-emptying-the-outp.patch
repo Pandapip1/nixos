@@ -1,28 +1,18 @@
-From 6996699d0c14f8b17e663632261d7c907c5562fe Mon Sep 17 00:00:00 2001
+From 9fad82b1e2c3e2bd6ac4f2adff965ec9fd73c631 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:52:00 -0400
 Subject: [PATCH 33/36] aout: jump over lateness instead of emptying the output
 
-When the output falls behind, aout_DecSynchronize() flushed it. That
-throws away everything queued - a second or more of audio - which is heard
-as a hole, and leaves the output to start again from nothing: on a device
-with a real latency that means corking it and paying the start-up cost
-over again, all to correct an offset.
+Falling behind made aout_DecSynchronize() flush the output, throwing away
+a second or more of queued audio - heard as a hole - and leaving the output
+to start again from nothing. Let what is queued play out and drop as much
+from what follows instead: the material jumps, the sound does not stop.
+The comment here has long noted that seeking the output backwards would be
+tidier and is not portable; skipping forward in what has not been written
+yet asks nothing of the output.
 
-Let what is queued play out and drop as much from what follows instead.
-The material jumps by the same amount; the sound does not stop. The
-comment here has long noted that seeking the output backwards would be
-the tidier answer and is not portable - skipping forward in what has not
-been written yet asks nothing of the output at all.
-
-One jump at a time. It shortens what is still to come, not what the output
-already holds, so the drift goes on reading high until that has played
-out, and asking again on every buffer meanwhile skips the same lateness
-over and over: doing so cost a quarter of the audio and fired fifty times
-in fifteen seconds, against four when held to one.
-
-The offset a flush leaves behind is not drift either, so it is marked as a
-discontinuity rather than resampled away.
+One jump at a time: it shortens what is still to come, not what the output
+holds, so the drift reads high until that has played out.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---

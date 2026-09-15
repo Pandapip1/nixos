@@ -1,28 +1,21 @@
-From cc6bf830707b58065cfe979b9e325baf5f2b2eee Mon Sep 17 00:00:00 2001
+From b0cd5a3b823d92cba93bd1486a81e783341b5077 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 00:24:38 -0400
 Subject: [PATCH 22/36] demux: ogg: allow speex and theora to reuse their
  elementary stream
 
 Ogg_LogicalStreamResetEsFormat() decides whether a stream that has just
-been re-read - at a seek back to the start, for instance - can keep its
-decoder or has to reset it. It only knew how to compare Vorbis, Opus and
-FLAC, so every other codec in an Ogg container reset its decoder, and
-with it the whole audio filter chain, on every pass.
+been re-read - at a seek back to the start, say - can keep its decoder. It
+only knew how to compare Vorbis, Opus and FLAC, so every other codec in an
+Ogg container reset its decoder, and the audio filter chain with it, on
+every pass.
 
 Ogg_IsVorbisFormatCompatible() was never Vorbis-specific: it splits the
 extradata with xiph_SplitHeaders() and compares every header but the
-comment. Speex and Theora are appended with xiph_AppendHeaders() in
-exactly the same way (see b_xiph in Ogg_ReadPacket()), so the same
-comparison answers the question for them. Rename it accordingly and add
-the two codecs.
+comment. Speex and Theora are appended the same way (see b_xiph in
+Ogg_ReadPacket()), so it answers for them too. Rename it and add the two.
 
-Measured before this, with speex in ogg over a 17 s repeat run: 6 ES
-reuses but 6 "cannot reuse old stream, resetting the decoder", and one
-decoder kill per repeat.
-
-Daala and Kate are xiph-packed too and could be added on the same
-grounds, but neither was tested here, so they are left alone.
+Daala and Kate are xiph-packed as well, but untested here.
 
 (cherry picked from commit c4d5ce6fdba1c0c0b130f57a1054ce8568c0c835)
 ---

@@ -1,29 +1,20 @@
-From 9970e9660fe1f20b3754a7bcf734f8fe5ebadf27 Mon Sep 17 00:00:00 2001
+From 26907eaa87caf72fefaa5ad68f724cdfca402a28 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:47:22 -0400
 Subject: [PATCH 28/36] pulse: report no delay while audio is still held back
 
-Audio waiting for the clock to settle is not queued, so the stream knows
-nothing about it, and what the stream does report is the silence it is
-running on meanwhile. Answering with that describes neither.
-
-aout_DecSynchronize() runs before the buffer it is about to hand over is
-queued, so at the moment the clock settles it read a delay of 135 ms -
-the priming silence - against a pts a second out, concluded the audio was
-a second early, and padded a second of silence to meet it. The pad then
-made the same second late, and it was jumped over:
+Audio waiting for the clock to settle is not queued, so what the stream
+reports is the silence it is running on meanwhile - which describes
+neither. aout_DecSynchronize() runs before the buffer it is handing over is
+queued, so it read the 135 ms of priming silence against a pts a second
+out, called the audio a second early and padded a second of silence; the
+pad then made that same second late and it was jumped over:
 
   playback way too early (-1014190): playing silence
   playback way too late  (1013202): jumping ahead
 
-A second of silence, and a second of material dropped to pay for it, at
-roughly two starts in three.
-
-Say nothing until the audio is actually in. Captured from the sink's
-monitor over fourteen seconds, silence falls from 7-8% to 0.4-0.7%, and
-what is left is 25-50 ms at each repeat. Rate is unchanged: three repeats
-of a four second file per fifteen second run, 14.2-15.4 s of audio
-reaching the device.
+Say nothing until the audio is in. Silence over a fourteen second capture
+falls from 7-8% to 0.4-0.7%.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---

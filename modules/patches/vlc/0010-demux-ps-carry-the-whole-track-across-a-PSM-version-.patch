@@ -1,26 +1,22 @@
-From 08a63f860ff50da36bb815c906d17de49f293b64 Mon Sep 17 00:00:00 2001
+From 860e8b12babb0c2e45b13dd0f239623d94f17b8a Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:44:08 -0400
 Subject: [PATCH 10/36] demux: ps: carry the whole track across a PSM version
  change
 
-When a program stream map announces a new version, each configured track
-is rebuilt into a stack ps_track_t and assigned over the live one. Only
-fmt is initialised there, and ps_track_fill() fills in just i_skip, i_id
-and fmt, so b_seen, i_next_block_flags, i_first_pts and i_last_pts are
-indeterminate when the structure is copied.
+When a program stream map announces a new version, each track is rebuilt
+into a stack ps_track_t and assigned over the live one. Only fmt is
+initialised there, and ps_track_fill() sets just i_skip, i_id and fmt, so
+b_seen, i_next_block_flags, i_first_pts and i_last_pts are indeterminate
+when the structure is copied. es is replaced on the next line; those four
+are not.
 
-es is replaced on the line after the copy; those four are not.
-DEMUX_GET_TIME subtracts i_first_pts from the current timestamp and
+DEMUX_GET_TIME subtracts i_first_pts from the current timestamp, and
 DEMUX_SET_TIME uses it to build the ratio it forwards to
-DEMUX_SET_POSITION, so a seek lands anywhere and the reported time is
-meaningless. The SCR heuristic in Demux() can also latch on the result
-and disable its own timing path.
+DEMUX_SET_POSITION, so a seek lands anywhere. The track is the same
+elementary stream either way, so carry those fields over.
 
-The track is the same elementary stream either way - only its format
-changed - so carry those fields over.
-
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  modules/demux/mpeg/ps.h | 10 ++++++++++
  1 file changed, 10 insertions(+)

@@ -1,33 +1,20 @@
-From 5ac222f09fb6517b5b686b036819e23ae10ef0de Mon Sep 17 00:00:00 2001
+From 49a65247661550da4e6144e8d07b5881f3af8570 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 23:19:56 -0400
 Subject: [PATCH 32/36] input: let a repeat keep what the output is holding
 
-Two things still stopped the output at a loop, and both left the same
-25 ms of silence.
+The first PCR of a repeated pass reads late because the demuxer had to seek
+to produce it, and es_out answers a late PCR by rebuffering - which throws
+away the audio kept to cover the loop, as its own comment concedes. Take
+the jitter instead, until a PCR arrives on time again.
 
-The first PCR of a repeated pass reads late, because the demuxer had to
-seek to produce it - not because playback is behind. es_out answers a late
-PCR by forcing a rebufferization, which throws away everything already
-queued and stops the output; upstream's own comment on it says as much
-("It is not really good, as we throw away already buffered data"). That is
-the audio deliberately kept to cover the loop. Take the jitter and carry
-on, until a PCR arrives on time again.
+And the next pass was asked for only once the output had finished, which is
+too late: demuxing it takes time, and the output sits empty for exactly
+that long. Ask a little before the end; nothing is skipped, since what
+follows is queued behind what is left.
 
-The second is that "the output has finished" is the wrong moment to ask
-for the next pass. Demuxing and decoding it takes time, so waiting for the
-last sample to be played leaves the output empty for exactly as long as
-that takes - the underrun and restart showed up in the log a few
-milliseconds before each repeat. Report it a little before the end
-instead. Nothing is skipped by asking early: what follows is queued behind
-what is left, not in place of it.
-
-Captured from the sink's monitor, a four second sweep repeating for
-fourteen seconds: ten runs out of ten with no silence at all and no
-discontinuity, against 0.5-0.7% and three gaps in every run at the start
-of this. Rate is unaffected - more audio reaches the device than before,
-not less, because less of it is now discarded: mkv 14.9s -> 16.4s written
-per fifteen second run, and lateness events fall from four per run to one.
+Ten captures of a repeating sweep: no silence in any, against three gaps
+per run before.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---

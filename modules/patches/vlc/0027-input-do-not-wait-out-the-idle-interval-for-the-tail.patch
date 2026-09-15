@@ -1,25 +1,18 @@
-From 619de9fc2d741bdd0ac6ce6b3ed661ae84c8310c Mon Sep 17 00:00:00 2001
+From 3558fc8662380c3bbfa37eda7737a877854126dd Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:39:33 -0400
 Subject: [PATCH 27/36] input: do not wait out the idle interval for the tail
  to finish
 
-At the end of a pass the decoders are drained and the main loop waits for
-them to report empty before it will repeat the item. It waited at the
-idle rate, a tenth of a second, so the output had already played dry and
-sat silent for up to that long before the next pass was even asked for.
-Captured from the sink's monitor, that showed as 50-125 ms of silence at
-every loop.
+At the end of a pass the main loop waits for the decoders to report empty
+before repeating, and it waited at the idle rate - a tenth of a second -
+so the output had played dry and sat silent for up to that long before the
+next pass was even asked for. Poll at a twentieth of that.
 
-Poll at a twentieth of that instead. The wait itself has to stay - it is
-what holds playback to real time, since the drain does not finish until
-the audio has actually been heard - so only the slack goes.
-
-The gap at each repeat falls to 25 ms, which is the resolution of the
-measurement rather than a figure I can stand behind as exact. Playback
-rate is unchanged: three repeats of a four second file in a fifteen
-second run, and 14.9 s of audio reaching the device, both the same as
-before.
+The wait itself stays: it is what holds playback to real time, the drain
+not finishing until the audio has been heard. Only the slack goes, taking
+the gap at each repeat from 50-125 ms to 25 ms, which is the resolution of
+the measurement rather than an exact figure.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---

@@ -1,26 +1,20 @@
-From 4db0db9d537d8daeb47106a9b5e7a402dba7af7e Mon Sep 17 00:00:00 2001
+From 23ce3b25b70bde05f0073ef4274825c01939e46a Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:46:31 -0400
 Subject: [PATCH 19/36] demux: adaptive: give a stream another chance when
  seeking
 
-A stream whose demuxer fails to start is marked invalid to stop
-doBufferize() from trying again on every pass, which would spin. Nothing
-ever marks it valid again, so the flag outlives the condition that set
-it: PlaylistManager::setPosition() skips invalid streams and gives up
-when none are left, and HLS usually has a single stream per variant, so
-one transient failure to build a demuxer leaves the whole session
-unseekable while the demux object stays open. updateControlsPosition()
-skips them too, so the reported length and position stop moving as well.
+A stream whose demuxer fails to start is marked invalid so doBufferize()
+does not retry every pass, and nothing ever marks it valid again.
+setPosition() skips invalid streams and gives up when none are left, and
+HLS usually has one stream per variant, so a single transient failure
+leaves the session unseekable with the demux object still open.
 
 A seek is a new attempt rather than a continuation of the loop the guard
-was protecting, so clear it there, alongside the end of stream flag and
-the rest of the per-position state that resetForNewPosition() already
-resets. If starting still fails, both this path and doBufferize() mark
-the stream invalid again at once, so a genuinely dead stream costs one
-attempt per seek rather than spinning.
+protects, so clear it there. If starting still fails the stream is marked
+invalid again at once, costing one attempt per seek rather than a spin.
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  modules/demux/adaptive/Streams.cpp | 2 ++
  1 file changed, 2 insertions(+)
