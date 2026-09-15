@@ -1,7 +1,7 @@
 From 63cd238cb2c3d117df797d3f6357772dd7cef8ec Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:11:02 -0400
-Subject: [PATCH 40/44] qt: show the drift correction limit in the audio
+Subject: [PATCH 40/45] qt: show the drift correction limit in the audio
  preferences
 
 "aout-max-resampling" was declared advanced, so the knob that decides

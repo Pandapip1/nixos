@@ -1,7 +1,7 @@
 From c596083c64873007c30ee276e31f4ffd3a38f025 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 19:46:22 -0400
-Subject: [PATCH 34/44] Revert "src: bypass libsamplerate when the ratio is
+Subject: [PATCH 34/45] Revert "src: bypass libsamplerate when the ratio is
  exactly one"
 
 This reverts commit cc723354b7e1505eeed9cf78bd6a8b56a14f3e0a.

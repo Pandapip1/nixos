@@ -1,7 +1,7 @@
 From af498e28b99e128eab5f34d509d0d30bdf426eb2 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:12:21 -0400
-Subject: [PATCH 38/44] aout: correct drift with a PI controller instead of a
+Subject: [PATCH 38/45] aout: correct drift with a PI controller instead of a
  relay
 
 The drift correction was a relay: outside the EBU tolerance it picked a

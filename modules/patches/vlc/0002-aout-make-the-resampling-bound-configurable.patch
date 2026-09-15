@@ -1,7 +1,7 @@
 From d191b68463d23e8e9d3bb9cf4750200877af76c4 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 15:43:07 -0400
-Subject: [PATCH 02/44] aout: make the resampling bound configurable
+Subject: [PATCH 02/45] aout: make the resampling bound configurable
 
 The right bound is not the same for every use. A video player wants the
 drift made up quickly and will trade some detuning for it; a music

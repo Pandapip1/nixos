@@ -1,7 +1,7 @@
 From 07c7ee1286964893f7d088c2216f49c12fd07654 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 11:10:28 -0400
-Subject: [PATCH 30/44] pulse: measure the device latency before starting
+Subject: [PATCH 30/45] pulse: measure the device latency before starting
  playback
 
 The device latency cannot be read before the stream runs. Instrumented on
