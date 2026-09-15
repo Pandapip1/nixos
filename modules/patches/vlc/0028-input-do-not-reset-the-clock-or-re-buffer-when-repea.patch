@@ -1,0 +1,67 @@
+From 528ccf8fc8c7925b7737da788ca942903551ea77 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 15 Sep 2026 04:08:05 -0400
+Subject: [PATCH 28/40] input: do not reset the clock or re-buffer when
+ repeating an item
+
+The previous commit kept the decoded data across a repeat, but the repeat
+still went through the ordinary reposition, which resets the clock
+reference and re-enters buffering. A repeat carries the timeline straight
+on - the demuxer starts over, but the timestamps it emits continue from
+where the last pass ended - so the reference still describes them.
+Resetting it makes the new pass convert to system dates that have already
+gone by, and the output reports that as lateness and flushes, throwing
+away the very data the previous commit kept. Measured, the reported
+lateness grew pass over pass, from 200 ms to over a second.
+
+Buffering again would stall decoders that were deliberately left loaded,
+and there is nothing to buffer for.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/input/es_out.c | 27 ++++++++++++++++++---------
+ 1 file changed, 18 insertions(+), 9 deletions(-)
+
+diff --git a/src/input/es_out.c b/src/input/es_out.c
+index 2477c45b46..38da54b796 100644
+--- a/src/input/es_out.c
++++ b/src/input/es_out.c
+@@ -649,17 +649,26 @@ static void EsOutChangePosition( es_out_t *out, bool b_flush )
+             p_es->i_pts_level = VLC_TICK_INVALID;
+     }
+ 
+-    for( int i = 0; i < p_sys->i_pgrm; i++ ) {
+-        input_clock_Reset( p_sys->pgrm[i]->p_clock );
+-        p_sys->pgrm[i]->i_last_pcr = VLC_TICK_INVALID;
+-    }
++    /* A repeat carries the timeline straight on: the demuxer starts over but
++     * the timestamps it emits continue from where the last pass ended, so the
++     * reference still describes them. Resetting it, or buffering again for
++     * decoders that were deliberately left loaded, would make the new pass
++     * convert to dates that have already gone by. */
++    if( b_flush )
++    {
++        for( int i = 0; i < p_sys->i_pgrm; i++ )
++        {
++            input_clock_Reset( p_sys->pgrm[i]->p_clock );
++            p_sys->pgrm[i]->i_last_pcr = VLC_TICK_INVALID;
++        }
+ 
+-    p_sys->b_buffering = true;
+-    p_sys->i_buffering_extra_initial = 0;
+-    p_sys->i_buffering_extra_stream = 0;
+-    p_sys->i_buffering_extra_system = 0;
++        p_sys->b_buffering = true;
++        p_sys->i_buffering_extra_initial = 0;
++        p_sys->i_buffering_extra_stream = 0;
++        p_sys->i_buffering_extra_system = 0;
++        p_sys->i_prev_stream_level = -1;
++    }
+     p_sys->i_preroll_end = -1;
+-    p_sys->i_prev_stream_level = -1;
+ }
+ 
+ 
+-- 
+2.55.0
+

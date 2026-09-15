@@ -1,7 +1,7 @@
-From af498e28b99e128eab5f34d509d0d30bdf426eb2 Mon Sep 17 00:00:00 2001
+From 45a0a07ae4b2fd24de6989b490f23e6962ce85ec Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:12:21 -0400
-Subject: [PATCH 38/45] aout: correct drift with a PI controller instead of a
+Subject: [PATCH 33/40] aout: correct drift with a PI controller instead of a
  relay
 
 The drift correction was a relay: outside the EBU tolerance it picked a
@@ -62,11 +62,11 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  include/vlc_aout.h               |  15 +++-
  src/audio_output/aout_internal.h |  16 ++--
- src/audio_output/dec.c           | 128 +++++++++++++++++++------------
- src/audio_output/filters.c       |  62 ++++++++-------
+ src/audio_output/dec.c           | 122 ++++++++++++++++++-------------
+ src/audio_output/filters.c       |  62 ++++++++--------
  src/libvlc-module.c              |  24 ++++++
  src/libvlccore.sym               |   1 -
- 6 files changed, 156 insertions(+), 90 deletions(-)
+ 6 files changed, 150 insertions(+), 90 deletions(-)
 
 diff --git a/include/vlc_aout.h b/include/vlc_aout.h
 index e381258f38..605e4eb603 100644
@@ -143,10 +143,10 @@ index b154fd2061..5a3085b546 100644
  void aout_ChangeViewpoint(audio_output_t *aout,
                            const vlc_viewpoint_t *p_viewpoint);
 diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
-index 088aa1b263..27aecc3bd5 100644
+index 088aa1b263..c7c456f393 100644
 --- a/src/audio_output/dec.c
 +++ b/src/audio_output/dec.c
-@@ -108,10 +108,14 @@ error:
+@@ -108,10 +108,15 @@ error:
  
  
      owner->sync.end = VLC_TICK_INVALID;
@@ -156,13 +156,14 @@ index 088aa1b263..27aecc3bd5 100644
      owner->sync.skip_settles = 0;
 +    owner->sync.update = VLC_TICK_INVALID;
 +    owner->sync.drift_kp = var_InheritFloat (p_aout, "aout-drift-gain");
-+    owner->sync.drift_ki = var_InheritFloat (p_aout, "aout-drift-integral-gain");
++    owner->sync.drift_ki =
++        var_InheritFloat (p_aout, "aout-drift-integral-gain");
 +    owner->sync.drift_integral = 0.f;
 +    owner->sync.drift_bound = false;
      aout_OutputUnlock (p_aout);
  
      atomic_init (&owner->buffers_lost, 0);
-@@ -171,7 +175,9 @@ static int aout_CheckReady (audio_output_t *aout)
+@@ -171,7 +176,9 @@ static int aout_CheckReady (audio_output_t *aout)
  
          msg_Dbg (aout, "restarting filters...");
          owner->sync.end = VLC_TICK_INVALID;
@@ -173,22 +174,16 @@ index 088aa1b263..27aecc3bd5 100644
  
          if (owner->mixer_format.i_format)
          {
-@@ -336,65 +342,82 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+@@ -336,65 +343,75 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
          drift = 0;
      }
  
 -    if (!aout_FiltersCanResample(owner->filters))
-+    /* Resampling.
-+     *
-+     * The offset given to the resampler is the output of a PI controller fed
-+     * with the drift. The proportional term asks for the whole of the bound at
-+     * about one AOUT_MAX_PTS_DELAY, so anything outside the tolerance is
-+     * corrected as fast as the bound allows; the integral term settles on the
-+     * standing offset a device whose clock does not run at exactly the nominal
-+     * rate needs, which a relay could not hold - it hunted around the set point
-+     * instead. There is no derivative term: the drift is quantised by whatever
-+     * granularity the output reports its delay with, and differentiating that
-+     * yields noise rather than a trend. */
++    /* The detune is the output of a PI controller fed with the drift: the
++     * proportional term asks for the whole bound at about one
++     * AOUT_MAX_PTS_DELAY, and the integral settles on the standing offset a
++     * device off nominal rate needs. No derivative term - the drift is
++     * quantised by however the output reports its delay. */
 +    const float max = aout_FiltersGetMaxResampling (owner->filters);
 +
 +    if (max <= 0.f)
@@ -196,22 +191,21 @@ index 088aa1b263..27aecc3bd5 100644
 +
 +    if (owner->sync.discontinuity || owner->sync.skip > 0
 +     || now < owner->sync.skip_settles)
-+    {   /* A jump shortens what is still to come, not what the output already
-+         * holds, so the drift keeps reading the old timeline until that has
-+         * played out. Correcting - let alone integrating - it here would count
-+         * the same lateness twice. The offset either side of a discontinuity
-+         * is not drift either. */
++    {   /* A jump shortens what is still to come, not what the output holds, so
++         * the drift reads the old timeline until that has played out; acting
++         * on it would count the same lateness twice. Nor is the offset either
++         * side of a discontinuity drift. */
 +        owner->sync.update = now;
          return;
 +    }
++
++    float correction = owner->sync.drift_kp * (drift / (float)CLOCK_FREQ)
++                       + owner->sync.drift_integral;
++    bool bound = false;
  
 -    /* Resampling */
 -    if (drift > +AOUT_MAX_PTS_DELAY
 -     && owner->sync.resamp_type != AOUT_RESAMPLING_UP)
-+    float correction = owner->sync.drift_kp * (drift / (float)CLOCK_FREQ)
-+                       + owner->sync.drift_integral;
-+    bool bound = false;
-+
 +    if (correction > +max)
      {
 -        msg_Warn (aout, "playback too late (%"PRId64"): up-sampling",
@@ -303,7 +297,7 @@ index 088aa1b263..27aecc3bd5 100644
  }
  
  /*****************************************************************************
-@@ -498,6 +521,9 @@ void aout_DecChangePause (audio_output_t *aout, bool paused, vlc_tick_t date)
+@@ -498,6 +515,9 @@ void aout_DecChangePause (audio_output_t *aout, bool paused, vlc_tick_t date)
      {
          aout_OutputPause (aout, paused, date);
      }
@@ -313,7 +307,7 @@ index 088aa1b263..27aecc3bd5 100644
      aout_OutputUnlock (aout);
  }
  
-@@ -521,8 +547,10 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
+@@ -521,8 +541,10 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
      }
  
      /* The offset a flush leaves behind is not drift; do not resample to

@@ -1,7 +1,7 @@
-From 370a9377b05f881904133e4130bb0b2afa3ec3a9 Mon Sep 17 00:00:00 2001
+From fce16474b175e83b4d0f53b485ff98918746529d Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:47:22 -0400
-Subject: [PATCH 37/45] pulse: report no delay while audio is still held back
+Subject: [PATCH 32/40] pulse: report no delay while audio is still held back
 
 Audio waiting for the clock to settle is not queued, so the stream knows
 nothing about it, and what the stream does report is the silence it is
@@ -31,10 +31,10 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
  1 file changed, 6 insertions(+), 4 deletions(-)
 
 diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
-index 3a77d19775..9e11099f30 100644
+index 6b5b70454b..0f1e63db7a 100644
 --- a/modules/audio_output/pulse.c
 +++ b/modules/audio_output/pulse.c
-@@ -651,10 +651,12 @@ static int TimeGet(audio_output_t *aout, vlc_tick_t *restrict delay)
+@@ -635,10 +635,12 @@ static int TimeGet(audio_output_t *aout, vlc_tick_t *restrict delay)
      int ret = -1;
  
      pa_threaded_mainloop_lock(sys->mainloop);

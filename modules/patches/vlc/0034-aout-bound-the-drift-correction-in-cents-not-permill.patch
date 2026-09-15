@@ -1,7 +1,7 @@
-From edd64c80c815639959053e1c0f07fe977c121691 Mon Sep 17 00:00:00 2001
+From 4940ed5245a45dd6743f4eb9018ef1f66dd20608 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:04:12 -0400
-Subject: [PATCH 39/45] aout: bound the drift correction in cents, not permille
+Subject: [PATCH 34/40] aout: bound the drift correction in cents, not permille
 
 The bound on the drift correction was a permille of the sample rate, which
 says nothing about the thing it exists to limit. Resampling corrects drift
@@ -36,42 +36,42 @@ release, so nothing in the field is set in permille.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- include/vlc_aout.h               | 40 +++++++++++----------
+ include/vlc_aout.h               | 44 +++++++++++------------
  src/audio_output/aout_internal.h |  4 +--
- src/audio_output/dec.c           | 42 +++++++++++-----------
+ src/audio_output/dec.c           | 39 +++++++++------------
  src/audio_output/filters.c       | 60 +++++++++++++++++++-------------
  src/libvlc-module.c              | 20 +++++------
- 5 files changed, 89 insertions(+), 77 deletions(-)
+ 5 files changed, 85 insertions(+), 82 deletions(-)
 
 diff --git a/include/vlc_aout.h b/include/vlc_aout.h
-index 605e4eb603..0af79e0cf9 100644
+index 605e4eb603..4ba7306812 100644
 --- a/include/vlc_aout.h
 +++ b/include/vlc_aout.h
-@@ -55,33 +55,37 @@
+@@ -54,34 +54,32 @@
+  * above which upsampling will be performed */
  #define AOUT_MAX_PTS_DELAY              (3 * CLOCK_FREQ / 50)
  
- /* Default for "aout-max-resampling": the maximum drift correction applied by
+-/* Default for "aout-max-resampling": the maximum drift correction applied by
 - * the resampler, in 1/1000 of the nominal sample rate.
-+ * the resampler, in cents (hundredths of a semitone) of detune.
++/* Default for "aout-max-resampling": how far the drift correction may detune
++ * the stream, in cents (hundredths of a semitone).
   *
-  * Resampling changes pitch as well as speed, so this bound is what keeps a
+- * Resampling changes pitch as well as speed, so this bound is what keeps a
 - * drift correction from being heard as the stream playing out of tune; 5/1000
 - * is about 8.6 cents. It only has to cover genuine clock drift between the
 - * source and the audio device, which is a few tens of ppm for real hardware.
 - * Larger offsets - notably the 60-120 ms a high latency sink typically reports
 - * at start-up - are latency rather than drift, and are absorbed by the silence
 - * insertion and flush paths instead of by detuning the audio.
-+ * drift correction from being heard as the stream playing out of tune, which
-+ * is why it is an interval rather than a fraction of the sample rate. It only
-+ * has to cover genuine clock drift between the source and the audio device,
-+ * which is a few tens of ppm for real hardware. Larger offsets - notably the
-+ * 60-120 ms a high latency sink typically reports at start-up - are latency
-+ * rather than drift, and are absorbed by the silence insertion and flush paths
-+ * instead of by detuning the audio.
-  *
-  * Lowering this trades slower resynchronisation for less audible detuning;
-  * zero leaves drift correction by resampling disabled altogether. */
+- *
+- * Lowering this trades slower resynchronisation for less audible detuning;
+- * zero leaves drift correction by resampling disabled altogether. */
 -#define AOUT_MAX_RESAMPLING_PERMILLE    5
++ * Resampling changes pitch as well as speed, so the bound is an interval
++ * rather than a fraction of the sample rate. It only has to cover genuine
++ * clock drift between the source and the device, a few tens of ppm on real
++ * hardware; a larger offset is latency rather than drift, and is jumped over
++ * instead of detuned away. Zero disables correction by resampling. */
 +#define AOUT_MAX_RESAMPLING_CENTS       9
 +
 +/** Highest value accepted for "aout-max-resampling" (a whole tone) */
@@ -119,19 +119,19 @@ index 5a3085b546..3b56958c35 100644
  void aout_ChangeViewpoint(audio_output_t *aout,
                            const vlc_viewpoint_t *p_viewpoint);
 diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
-index 27aecc3bd5..74eff71ce8 100644
+index c7c456f393..1380a405fc 100644
 --- a/src/audio_output/dec.c
 +++ b/src/audio_output/dec.c
-@@ -353,7 +353,7 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
-      * instead. There is no derivative term: the drift is quantised by whatever
-      * granularity the output reports its delay with, and differentiating that
-      * yields noise rather than a trend. */
+@@ -348,7 +348,7 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+      * AOUT_MAX_PTS_DELAY, and the integral settles on the standing offset a
+      * device off nominal rate needs. No derivative term - the drift is
+      * quantised by however the output reports its delay. */
 -    const float max = aout_FiltersGetMaxResampling (owner->filters);
 +    const float max = aout_FiltersGetMaxDetune (owner->filters);
  
      if (max <= 0.f)
          return; /* correction by resampling is disabled */
-@@ -369,26 +369,12 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+@@ -363,26 +363,12 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
          return;
      }
  
@@ -163,7 +163,7 @@ index 27aecc3bd5..74eff71ce8 100644
      {
          vlc_tick_t dt = now - owner->sync.update;
  
-@@ -399,9 +385,22 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+@@ -393,9 +379,19 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
  
          if (dt > 0)
          {
@@ -173,21 +173,18 @@ index 27aecc3bd5..74eff71ce8 100644
 -                        * (dt / (float)CLOCK_FREQ);
 +                        * seconds;
 +
-+            /* What went to the resampler is not what was asked of it: it is a
-+             * whole number of Hz, and it was clamped to the bound. Integrating
-+             * against what was asked would have the integral answer for a
-+             * correction that was never made - winding up against the bound,
-+             * and quietly accumulating the rounding either side of it. Feed
-+             * the difference back instead, over the time constant the gains
-+             * already imply, so the integral tracks what the output is really
-+             * doing. */
++            /* What reached the resampler is a whole number of Hz and may have
++             * been clamped. Integrating against what was asked would have the
++             * integral answer for a correction never made - winding up at the
++             * bound, and accumulating the rounding away from it - so feed the
++             * difference back over the time constant the gains imply. */
 +            if (owner->sync.drift_kp > 0.f)
 +                i += (applied - commanded)
 +                     * (owner->sync.drift_ki / owner->sync.drift_kp) * seconds;
  
              /* The integral on its own may not ask for more than the bound. */
              owner->sync.drift_integral = (i > +max) ? +max
-@@ -417,7 +416,6 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+@@ -411,7 +407,6 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
                   bound ? "reached" : "left", drift);
      }
  
