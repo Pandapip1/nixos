@@ -1,18 +1,13 @@
 { lib, ... }:
 
 let
-  # Every .patch in this directory, in sorted order. attrNames sorts, and the
-  # files keep their git format-patch numbering, so the series applies in the
-  # order it was generated and cannot drift out of step with a hand-kept list.
-  patches = lib.pipe (builtins.readDir ./.) [
-    builtins.attrNames
-    (builtins.filter (lib.hasSuffix ".patch"))
-    (map (name: ./. + "/${name}"))
-  ];
-
-  # Upstream VLC master that the series was generated against, i.e. the
-  # merge-base of our `all-fixes` branch with videolan/master.
-  rev = "289a425a89e36f3af8dae040259bbe27dc801b15";
+  # The tip of all-fixes on the fork, the 4.0 counterpart of the branch ../vlc
+  # builds. The series used to be exported as a flat patch directory and
+  # applied to the upstream master commit it was branched from; building the
+  # branch directly means what is built is exactly what was measured there,
+  # with no fuzz and no chance of the two drifting apart.
+  rev = "6d0eab81943cc5ae6464a9bab5121fc40bb59476";
+  hash = "sha256-Okos4jpMJAK2/B9oydRjt2kfild5dtqVC6TflyN+AEo=";
 in
 {
   nixpkgs.overlays = [
@@ -37,19 +32,18 @@ in
         (prevAttrs: {
           version = "4.0.0-dev-unstable-2026-09-13";
 
-          src = final.fetchFromGitLab {
-            domain = "code.videolan.org";
-            owner = "videolan";
+          src = final.fetchFromGitHub {
+            owner = "Pandapip1";
             repo = "vlc";
-            inherit rev;
-            hash = "sha256-Y3WUdFkjBUd6thcHeuZKO7pxGnSqAxVkuANQNNvaVUU=";
+            inherit rev hash;
           };
 
-          # Replaced, not appended: both of nixpkgs' patches are 3.0-only. The
-          # live555 LIBADD patch is against 3.0's hand-rolled live555 detection
-          # (4.0 uses pkg-config), and deterministic-plugin-cache.diff is the
-          # 3.0 backport of a change 4.0 already carries.
-          patches = patches;
+          # None at all. Ours are in the source now, and nixpkgs' are dropped
+          # rather than kept: both are 3.0-only. The live555 LIBADD patch is
+          # against 3.0's hand-rolled live555 detection (4.0 uses pkg-config),
+          # and deterministic-plugin-cache.diff is the 3.0 backport of a change
+          # 4.0 already carries.
+          patches = [ ];
 
           # 4.0 removed the Dirac/schroedinger decoder.
           buildInputs =
