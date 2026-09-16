@@ -1,7 +1,7 @@
 From f95431421580de984d1be8adae8600fbe8437a52 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 16:35:32 -0400
-Subject: [PATCH 101/104] packetizer: a52: let a break cost one frame, not the
+Subject: [PATCH 101/105] packetizer: a52: let a break cost one frame, not the
  rest of the block
 
 The packetizer takes one frame per call and hands what is left of the block

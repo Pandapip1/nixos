@@ -1,7 +1,7 @@
 From 4c241d7e355df0eb5337f4951d963c85917c6aa2 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 16:29:25 -0400
-Subject: [PATCH 100/104] demux: ogg: hand the timeline on only to a group that
+Subject: [PATCH 100/105] demux: ogg: hand the timeline on only to a group that
  arrives
 
 A group of logical streams chained onto the end of another carries on the

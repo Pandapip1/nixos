@@ -1,7 +1,7 @@
 From 2c61b80dae19a2baccde7a3831e6cfd4e4a62b08 Mon Sep 17 00:00:00 2001
 From: Francois Cartegnie <fcvlcdev@free.fr>
 Date: Wed, 19 Jan 2022 19:15:14 +0100
-Subject: [PATCH 092/104] codec: vorbis: fallback on dts on missing pts
+Subject: [PATCH 092/105] codec: vorbis: fallback on dts on missing pts
 
 should always be pts == dts
 

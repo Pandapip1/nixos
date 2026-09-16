@@ -1,7 +1,7 @@
 From 88c10813367e347ff227072723ba43309ea711f5 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 02:43:30 -0400
-Subject: [PATCH 059/104] demux: voc: let the stream be rewound to its start
+Subject: [PATCH 059/105] demux: voc: let the stream be rewound to its start
 
 A VOC file is a chain of blocks, each with its own header saying what it
 holds, so an offset inside it means nothing until the headers before it

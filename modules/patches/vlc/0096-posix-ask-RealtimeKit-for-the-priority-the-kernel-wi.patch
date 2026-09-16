@@ -1,7 +1,7 @@
 From 903547f07cba66911ddd0492cc6058a9037fc340 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 16:01:36 -0400
-Subject: [PATCH 096/104] posix: ask RealtimeKit for the priority the kernel
+Subject: [PATCH 096/105] posix: ask RealtimeKit for the priority the kernel
  will not give
 
 On an ordinary desktop RLIMIT_RTPRIO is zero and CAP_SYS_NICE is not

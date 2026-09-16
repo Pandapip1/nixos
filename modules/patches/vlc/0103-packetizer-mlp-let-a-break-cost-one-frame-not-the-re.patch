@@ -1,7 +1,7 @@
 From b7c92819048569c061abf3526f951d569ea793ab Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 16:35:43 -0400
-Subject: [PATCH 103/104] packetizer: mlp: let a break cost one frame, not the
+Subject: [PATCH 103/105] packetizer: mlp: let a break cost one frame, not the
  rest of the block
 
 The same shape as the a/52 and dca packetizers, which it is a copy of: the

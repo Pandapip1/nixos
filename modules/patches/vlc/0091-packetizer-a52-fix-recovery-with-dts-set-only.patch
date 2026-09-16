@@ -1,7 +1,7 @@
 From 83b944af7ea3add6b25a09df5bf93c721b8e0db1 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fran=C3=A7ois=20Cartegnie?= <fcvlcdev@free.fr>
 Date: Wed, 20 Dec 2023 16:05:07 +0100
-Subject: [PATCH 091/104] packetizer: a52: fix recovery with dts set only
+Subject: [PATCH 091/105] packetizer: a52: fix recovery with dts set only
 
 (cherry picked from commit d3d6132ea5b0fd1e81e7fa0afa56d3947d6119ea)
 ---
