@@ -68,6 +68,11 @@ in
         # whose packets carry no granule, silencing a second at every loop.
         # mkv kept the chapter offset of an ordered edition on the timestamps
         # of whatever non ordered edition was selected after it.
+        #
+        # 0043 scaletempo. It gathers a stride before emitting one, but gave
+        # the block it emitted the timestamp of the input that completed it
+        # rather than of the audio in it. The output read the difference as
+        # drift and answered for it, audibly at a long stride.
         patches = (prevAttrs.patches or [ ]) ++ patches;
       });
     })
