@@ -9,8 +9,8 @@ let
   # offsets until the ogg rework, whose context had moved too far and which
   # failed outright. Building the branch directly removes the question: what
   # is built here is exactly what was measured there.
-  rev = "013baca44296eca8c4a8c05cf15e25f8992a0b9f";
-  hash = "sha256-ggr7W344A8KS/mKV8jhF3LVXmRhGq1Dzf4/zFyCLldI=";
+  rev = "7216f57ad198d957eb50c06d02d7717430f606fb";
+  hash = "sha256-jv3jiFLaEeh1QTt7+ul6XW2SRBU0rWuMXU1/VRF+Taw=";
 in
 {
   nixpkgs.overlays = [
