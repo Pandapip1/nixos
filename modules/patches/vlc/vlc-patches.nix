@@ -38,12 +38,12 @@ in
         # of existing upstream fixes (webvtt #22448, and the mkv chapter
         # segfault, which master had already fixed by reverting).
         #
-        # 0023-0034 seamless repeat. A repeat tore down and rebuilt the audio
+        # 0023-0033 seamless repeat. A repeat tore down and rebuilt the audio
         # output between plays, leaving an audible gap of up to half a second.
         # The output now keeps what it is holding across a repeat, and lateness
         # is skipped rather than flushed.
         #
-        # 0035-0037 device latency. The core handed the output its first sample
+        # 0034-0037 device latency. The core handed the output its first sample
         # ten milliseconds before it was due, whatever the device needed, so on
         # a sink holding two tenths of a second that sample was born late and
         # the output skipped over the difference - heard as a splice at every
