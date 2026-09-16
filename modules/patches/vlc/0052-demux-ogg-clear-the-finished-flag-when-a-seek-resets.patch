@@ -1,0 +1,54 @@
+From 783719f0137f6808555099a97ff61bf36d6ca747 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 01:08:15 -0400
+Subject: [PATCH 52/52] demux: ogg: clear the finished flag when a seek resets
+ the streams
+
+Demux() counts the active logical streams at the top, before it reads
+anything, and treats a count of zero with streams still present as the end
+of a chained group: the stream is parked in p_old_stream, the list is torn
+down and the pcr offset is moved on. The flag that count reads is only
+cleared once a page after the eos page has been paged in, which happens
+much later in the same function.
+
+So a seek taken in the gap between the eos page being read and the streams
+being torn down - that gap is one pass of the input main loop, but a seek
+queued while Demux() is reading the eos page lands squarely in it - reaches
+the next Demux() with the flag still set. There is no chained stream there;
+the handover just discards the state the seek has finished rebuilding, and
+the demuxer restarts from wherever Ogg_FindLogicalStreams can pick a group
+up, or gives up and reports the end of the file.
+
+Ogg_ResetStreamsHelper() is on every seek path and already clears the rest
+of what the seek invalidates, so clear the flag there too. The skeleton
+keeps its flag, exactly as it does where pages after eos clear the others:
+there the flag is what says preparsing is done, and clearing it would stop
+the demuxer emitting a pcr until an eos page it will never see again.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/ogg.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/modules/demux/ogg.c b/modules/demux/ogg.c
+index 8c0fbed084..b53a69044d 100644
+--- a/modules/demux/ogg.c
++++ b/modules/demux/ogg.c
+@@ -727,7 +727,17 @@ static void Ogg_ResetStream( logical_stream_t *p_stream )
+ static void Ogg_ResetStreamsHelper( demux_sys_t *p_sys )
+ {
+     for( int i = 0; i < p_sys->i_streams; i++ )
++    {
++        /* A seek taken once the eos page has been read, but before the streams
++         * have been torn down, must not leave the stream flagged finished:
++         * Demux() counts the active ones before it reads anything, and would
++         * take the chained stream handover for what is only a seek. The
++         * skeleton keeps its flag, as it does when pages follow eos: there it
++         * is what says preparsing is done. */
++        if( p_sys->pp_stream[i] != p_sys->p_skelstream )
++            p_sys->pp_stream[i]->b_finished = false;
+         Ogg_ResetStream( p_sys->pp_stream[i] );
++    }
+ 
+     ogg_sync_reset( &p_sys->oy );
+     p_sys->i_pcr = VLC_TS_UNKNOWN;

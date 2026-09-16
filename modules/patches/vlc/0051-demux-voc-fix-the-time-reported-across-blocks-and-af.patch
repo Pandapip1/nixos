@@ -1,0 +1,164 @@
+From 21bc908cbf1fb15b460a78e173f8a060dd295bbc Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 00:57:03 -0400
+Subject: [PATCH 51/52] demux: voc: fix the time reported across blocks and
+ after a seek
+
+Control() is a bare demux_vaControlHelper() call passing the bounds of the
+current VOC block, so DEMUX_GET_TIME is the offset within that block only.
+It restarts from zero at every block header and does not move at all across
+an emulated silence, which takes no room in the stream, while the pts
+accumulator the demuxer emits from is absolute over the whole file. On a
+multi block file the two already disagree by everything played so far,
+without any seek being involved.
+
+The seek queries then make it worse. The helper implements both of them as
+a plain vlc_stream_Seek(), leaving the accumulator counting from where it
+was, and DEMUX_SET_TIME is not bounded by i_end at all, so it seeks right
+out of the block: the next Demux() reads audio data as a block header and
+halts on "corrupted file". A time seek requested while a silence is being
+emitted does that every time, as the helper moves over bytes the silence
+does not have.
+
+This matters beyond the displayed time: SlaveDemux() and SlaveSeek() pace
+the external ES with the master DEMUX_GET_TIME and expect the stream
+absolute one, so external subtitles come out shifted by the error, or are
+dropped for being too early or too late.
+
+Report the timeline that is really emitted for DEMUX_GET_TIME, anchor the
+byte offset to time conversion on the date the current block started at,
+and keep DEMUX_SET_TIME within that block. Seeking any further is not
+something a VOC stream can answer: the size of a block is unknown until its
+header has been read, a silence occupies no byte, and a repeat block plays
+the same bytes at a different time. Clamping keeps the two answers
+consistent - the seek stops at the block boundary and DEMUX_GET_TIME tells
+where it landed - and playback survives it. A seek is refused outright
+while a silence is being emitted, as there is no byte to move over and
+re-anchoring would rewind the date to the start of the silence and replay
+it.
+
+DEMUX_GET_LENGTH and the position queries still describe the current block
+and are left to the helper. For the single block files that virtually every
+.voc is, that block is the whole file and all of them are exact.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/voc.c | 80 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 80 insertions(+)
+
+diff --git a/modules/demux/voc.c b/modules/demux/voc.c
+index 3673449768..0db100e349 100644
+--- a/modules/demux/voc.c
++++ b/modules/demux/voc.c
+@@ -62,6 +62,7 @@ struct demux_sys_t
+ 
+     int64_t         i_block_start;
+     int64_t         i_block_end;
++    vlc_tick_t      i_block_date;
+ 
+     int64_t         i_loop_offset;
+     unsigned        i_loop_count;
+@@ -122,6 +123,7 @@ static int Open( vlc_object_t * p_this )
+ 
+     date_Init( &p_sys->pts, 1, 1 );
+     date_Set( &p_sys->pts, 1 );
++    p_sys->i_block_date = date_Get( &p_sys->pts );
+ 
+     es_format_Init( &p_sys->fmt, AUDIO_ES, 0 );
+ 
+@@ -435,6 +437,9 @@ static int ReadBlockHeader( demux_t *p_demux )
+ 
+     p_sys->i_block_start = vlc_stream_Tell( p_demux->s );
+     p_sys->i_block_end = p_sys->i_block_start + i_block_size;
++    /* Anchor of the byte offset to time conversion: the date is absolute
++     * over the whole stream, a byte offset only makes sense within a block. */
++    p_sys->i_block_date = date_Get( &p_sys->pts );
+ 
+     if( i_block_size || p_sys->i_silence_countdown )
+     {
+@@ -544,10 +549,85 @@ static void Close ( vlc_object_t * p_this )
+ /*****************************************************************************
+  * Control:
+  *****************************************************************************/
++/* Puts the pts accumulator back in sync with the offset the stream is at,
++ * using the same byte to time conversion as demux_vaControlHelper(). */
++static void ResyncDate( demux_t *p_demux )
++{
++    demux_sys_t *p_sys = p_demux->p_sys;
++    int64_t i_ofs = vlc_stream_Tell( p_demux->s ) - p_sys->i_block_start;
++
++    if( unlikely(i_ofs < 0 || p_sys->fmt.i_bitrate <= 0) )
++        return;
++
++    date_Set( &p_sys->pts, p_sys->i_block_date
++              + INT64_C(8000000) * i_ofs / p_sys->fmt.i_bitrate );
++}
++
+ static int Control( demux_t *p_demux, int i_query, va_list args )
+ {
+     demux_sys_t *p_sys  = p_demux->p_sys;
+ 
++    switch( i_query )
++    {
++        case DEMUX_GET_TIME:
++            /* The helper derives the time from the offset within the current
++             * block, so it restarts from zero at every block header and does
++             * not move at all across an emulated silence, which takes no room
++             * in the stream. Report the timeline that is really emitted:
++             * SlaveDemux() and SlaveSeek() pace the external ES with this
++             * value and expect the stream absolute one. */
++            *va_arg( args, int64_t * ) = date_Get( &p_sys->pts );
++            return VLC_SUCCESS;
++
++        case DEMUX_SET_TIME:
++        {
++            int64_t i_time = va_arg( args, int64_t );
++            int64_t i_ofs;
++
++            /* Only the current block maps back to a byte offset: the size of
++             * a block is unknown until its header has been read. Clamp to it
++             * rather than let the helper seek past i_block_end, where the
++             * next Demux() would read audio data as a block header. The two
++             * answers stay consistent, as DEMUX_GET_TIME then tells where the
++             * seek really landed. */
++            if( p_sys->fmt.i_bitrate <= 0
++             || p_sys->fmt.audio.i_blockalign <= 0 )
++                return VLC_EGENERIC;
++
++            /* An emulated silence has no byte to seek to, and rewinding the
++             * date to where it started would replay it. */
++            if( p_sys->i_silence_countdown )
++                return VLC_EGENERIC;
++
++            i_ofs = ( i_time - p_sys->i_block_date )
++                  * p_sys->fmt.i_bitrate / INT64_C(8000000);
++            if( i_ofs > p_sys->i_block_end - p_sys->i_block_start )
++                i_ofs = p_sys->i_block_end - p_sys->i_block_start;
++            if( i_ofs < 0 )
++                i_ofs = 0;
++            i_ofs -= i_ofs % p_sys->fmt.audio.i_blockalign;
++
++            if( vlc_stream_Seek( p_demux->s, p_sys->i_block_start + i_ofs ) )
++                return VLC_EGENERIC;
++
++            ResyncDate( p_demux );
++            return VLC_SUCCESS;
++        }
++
++        case DEMUX_SET_POSITION:
++            /* The helper stays within the bounds it is given, so the offset
++             * it leaves the stream at is always inside the current block. */
++            if( demux_vaControlHelper( p_demux->s, p_sys->i_block_start,
++                                       p_sys->i_block_end,
++                                       p_sys->fmt.i_bitrate,
++                                       p_sys->fmt.audio.i_blockalign,
++                                       i_query, args ) )
++                return VLC_EGENERIC;
++
++            ResyncDate( p_demux );
++            return VLC_SUCCESS;
++    }
++
+     return demux_vaControlHelper( p_demux->s, p_sys->i_block_start,
+                                    p_sys->i_block_end,
+                                    p_sys->fmt.i_bitrate,
