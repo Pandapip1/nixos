@@ -1,0 +1,270 @@
+From 6eb1e051bf50a0dfa5a41eee6a0bca987bc27288 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 14:57:14 -0400
+Subject: [PATCH 78/78] test: cover where a repeated pass resumes
+
+The rule for placing a repeated pass is arithmetic over three numbers a
+demuxer reports, and getting it wrong is not heard as a click at the seam: it
+leaves a little of the item unplayed at every loop, and only after several of
+them has enough drift gathered for the output's correction to saturate and
+detune. That is a long way from the change that caused it, so pin it.
+
+Move the decision into es_out_RepeatResume() and check it against the shapes
+the demuxers actually report at the end of a 4 s item: matroska ending 48 ms
+past a pcr it steps 23 ms at a time, ts and mpeg-ps whose ends sit inside a
+step, wav whose end lands exactly on one, and the two edges - no end to take,
+and an end behind the pcr.
+
+The matroska case is the one that bites. With the end bounded by the cadence,
+as it was until the previous commit, the test reports
+
+    matroska: resumed at 3986001, expected 4011001
+
+which is the 25 ms of its own content that every loop dropped.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/Makefile.am                |  1 +
+ src/input/es_out.c             | 30 +++----------
+ src/input/es_out_repeat.h      | 65 ++++++++++++++++++++++++++++
+ test/Makefile.am               |  2 +
+ test/src/input/es_out_repeat.c | 78 ++++++++++++++++++++++++++++++++++
+ 5 files changed, 151 insertions(+), 25 deletions(-)
+ create mode 100644 src/input/es_out_repeat.h
+ create mode 100644 test/src/input/es_out_repeat.c
+
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 869a5ebd2f..85c691cfe4 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -243,6 +243,7 @@ libvlccore_la_SOURCES = \
+ 	input/decoder.h \
+ 	input/demux.h \
+ 	input/es_out.h \
++	input/es_out_repeat.h \
+ 	input/es_out_timeshift.h \
+ 	input/event.h \
+ 	input/item.h \
+diff --git a/src/input/es_out.c b/src/input/es_out.c
+index b7336f5bd9..ba4bc5e952 100644
+--- a/src/input/es_out.c
++++ b/src/input/es_out.c
+@@ -44,6 +44,7 @@
+ #include "clock.h"
+ #include "decoder.h"
+ #include "es_out.h"
++#include "es_out_repeat.h"
+ #include "event.h"
+ #include "info.h"
+ #include "item.h"
+@@ -728,31 +729,10 @@ static void EsOutRepeatShift( es_out_t *out, es_out_pgrm_t *p_pgrm,
+     if( i_timeline >= p_pgrm->i_last_pcr )
+         return; /* the demuxer carried the timeline across the seek */
+ 
+-    /* Resume where the last pass stopped. A cadence step past the last pcr is
+-     * a guess at that, and a good one only when the cadence happens to divide
+-     * the item: mp4 reads a pcr every 250 ms and avi every 25 ms, and each of
+-     * those was a hole of exactly its own cadence at every loop, with the
+-     * output playing silence across the difference.
+-     *
+-     * The data the demuxer has already handed over says where the pass really
+-     * ended, so take that, and the cadence only when there is none to take.
+-     * Never nearer than the pcr itself, which is ground already covered.
+-     *
+-     * It is not bounded above by the cadence. A container that carries its
+-     * timestamps in cluster or packet headers emits the pcr before the blocks
+-     * it covers have all been handed over, so an end further out than one
+-     * cadence step past it is ordinary rather than the mark of a demuxer
+-     * running ahead: matroska ends 48 ms past a pcr it steps 23 ms at a time,
+-     * and the bound cost it 25 ms of its own content at every loop. A demuxer
+-     * whose pcr genuinely outruns its data is held back where that belongs,
+-     * in the demuxer. */
+-    const vlc_tick_t i_cadence = p_pgrm->i_last_pcr + p_pgrm->i_pcr_step;
+-    vlc_tick_t i_resume = p_pgrm->i_last_end;
+-
+-    if( i_resume <= VLC_TICK_INVALID )
+-        i_resume = i_cadence;
+-    if( i_resume < p_pgrm->i_last_pcr )
+-        i_resume = p_pgrm->i_last_pcr;
++    /* Where the last pass stopped: see es_out_RepeatResume(). */
++    const vlc_tick_t i_resume = es_out_RepeatResume( p_pgrm->i_last_end,
++                                                     p_pgrm->i_last_pcr,
++                                                     p_pgrm->i_pcr_step );
+ 
+     p_sys->i_repeat_offset += i_resume - i_timeline;
+ 
+diff --git a/src/input/es_out_repeat.h b/src/input/es_out_repeat.h
+new file mode 100644
+index 0000000000..e642d6bfb3
+--- /dev/null
++++ b/src/input/es_out_repeat.h
+@@ -0,0 +1,65 @@
++/*****************************************************************************
++ * es_out_repeat.h: where a repeated pass resumes on the timeline
++ *****************************************************************************
++ * Copyright (C) 2026 VLC authors and VideoLAN
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU Lesser General Public License as published by
++ * the Free Software Foundation; either version 2.1 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public License
++ * along with this program; if not, write to the Free Software Foundation,
++ * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
++ *****************************************************************************/
++
++#ifndef LIBVLC_INPUT_ES_OUT_REPEAT_H
++#define LIBVLC_INPUT_ES_OUT_REPEAT_H 1
++
++#include <vlc_common.h>
++
++/**
++ * Where a repeated pass should carry on from.
++ *
++ * Repeating an item in place seeks the demuxer back to the start and keeps the
++ * clock, so the new pass has to be placed where the last one stopped. How far
++ * the data already handed over reaches says where that is.
++ *
++ * A cadence step past the last pcr only stands in for it when there is no such
++ * end to take: it is where the pass ended only when the cadence happens to
++ * divide the item, and mp4 reading a pcr every 250 ms was a hole of exactly
++ * that at every loop.
++ *
++ * The end is not bounded above by the cadence. A container carrying its
++ * timestamps in cluster or packet headers emits the pcr before the blocks it
++ * covers have all been handed over, so an end further out than a step past it
++ * is ordinary rather than the mark of a demuxer running ahead - matroska ends
++ * 48 ms past a pcr it steps 23 ms at a time. A demuxer whose pcr genuinely
++ * outruns its data is held back in the demuxer.
++ *
++ * It is bounded below by the pcr, which is ground already covered.
++ *
++ * \param i_last_end how far the data handed over reaches, or VLC_TICK_INVALID
++ * \param i_last_pcr the last pcr of the pass that is ending
++ * \param i_pcr_step the interval this demuxer reads pcrs at
++ */
++static inline vlc_tick_t es_out_RepeatResume( vlc_tick_t i_last_end,
++                                              vlc_tick_t i_last_pcr,
++                                              vlc_tick_t i_pcr_step )
++{
++    vlc_tick_t i_resume = i_last_end;
++
++    if( i_resume <= VLC_TICK_INVALID )
++        i_resume = i_last_pcr + i_pcr_step;
++    if( i_resume < i_last_pcr )
++        i_resume = i_last_pcr;
++
++    return i_resume;
++}
++
++#endif
+diff --git a/test/Makefile.am b/test/Makefile.am
+index 3894ed0c8b..8a66e52491 100644
+--- a/test/Makefile.am
++++ b/test/Makefile.am
+@@ -24,6 +24,7 @@ check_PROGRAMS = \
+ 	test_libvlc_slaves \
+ 	test_src_config_chain \
+ 	test_src_misc_variables \
++	test_src_input_es_out_repeat \
+ 	test_src_input_stream \
+ 	test_src_input_stream_fifo \
+ 	test_src_interface_dialog \
+@@ -112,6 +113,7 @@ test_src_config_chain_SOURCES = src/config/chain.c
+ test_src_config_chain_LDADD = $(LIBVLCCORE)
+ test_src_crypto_update_SOURCES = src/crypto/update.c
+ test_src_crypto_update_LDADD = $(LIBVLCCORE) $(GCRYPT_LIBS)
++test_src_input_es_out_repeat_SOURCES = src/input/es_out_repeat.c
+ test_src_input_stream_SOURCES = src/input/stream.c
+ test_src_input_stream_LDADD = $(LIBVLCCORE) $(LIBVLC)
+ test_src_input_stream_net_SOURCES = src/input/stream.c
+diff --git a/test/src/input/es_out_repeat.c b/test/src/input/es_out_repeat.c
+new file mode 100644
+index 0000000000..9ec31e7ea3
+--- /dev/null
++++ b/test/src/input/es_out_repeat.c
+@@ -0,0 +1,78 @@
++/*****************************************************************************
++ * es_out_repeat.c: test where a repeated pass resumes
++ *****************************************************************************
++ * Copyright (C) 2026 VLC authors and VideoLAN
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU Lesser General Public License as published by
++ * the Free Software Foundation; either version 2.1 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public License
++ * along with this program; if not, write to the Free Software Foundation,
++ * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
++ *****************************************************************************/
++
++#ifdef HAVE_CONFIG_H
++# include "config.h"
++#endif
++
++#include <vlc_common.h>
++
++#include "../../../src/input/es_out_repeat.h"
++
++#include <stdio.h>
++
++static int fail;
++
++static void expect( const char *psz_what, vlc_tick_t i_last_end,
++                    vlc_tick_t i_last_pcr, vlc_tick_t i_pcr_step,
++                    vlc_tick_t i_expected )
++{
++    vlc_tick_t i_got = es_out_RepeatResume( i_last_end, i_last_pcr,
++                                            i_pcr_step );
++    if( i_got != i_expected )
++    {
++        fprintf( stderr, "%s: resumed at %"PRId64", expected %"PRId64"\n",
++                 psz_what, i_got, i_expected );
++        fail = 1;
++    }
++}
++
++int main( void )
++{
++    /* The shapes below are what these demuxers actually report at the end of
++     * a 4 s item, so that a change in the rule is seen here rather than as
++     * detuning after several loops. */
++
++    /* Matroska ends 48 ms past its last pcr and steps 23 ms at a time. The
++     * end is what counts: bounding it by the cadence used to leave 25 ms of
++     * the item unplayed at every loop, and the drift that left accumulated
++     * until the output's correction saturated. */
++    expect( "matroska", 4011001, 3963001, 23000, 4011001 );
++
++    /* ts and mpeg-ps keep their pcr inside the data, so the end is already
++     * within a cadence step and nothing is clamped either way. */
++    expect( "ts", 9712779, 9689559, 23220, 9712779 );
++    expect( "mpeg-ps", 79569606656, 79569583436, 23220, 79569606656 );
++
++    /* wav dates a block without saying how long it is, so the end lands
++     * exactly one step past the pcr. */
++    expect( "wav", 4000002, 3950002, 50000, 4000002 );
++
++    /* No end to take: the cadence stands in for it. */
++    expect( "no end", VLC_TICK_INVALID, 3950002, 50000, 4000002 );
++
++    /* An end behind the pcr is ground already covered; the pcr holds. */
++    expect( "end behind pcr", 3900000, 3950002, 50000, 3950002 );
++
++    /* An end exactly on the pcr is not moved. */
++    expect( "end on pcr", 3950002, 3950002, 50000, 3950002 );
++
++    return fail;
++}

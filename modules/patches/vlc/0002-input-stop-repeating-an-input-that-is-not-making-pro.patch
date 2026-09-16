@@ -1,7 +1,7 @@
 From 61f207ad7c1c8e971872fdbd8c71b6f4ddb21e39 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:01:24 -0400
-Subject: [PATCH 02/77] input: stop repeating an input that is not making
+Subject: [PATCH 02/78] input: stop repeating an input that is not making
  progress
 
 MainLoopTryRepeat() repeats by seeking back to the start, and a refused

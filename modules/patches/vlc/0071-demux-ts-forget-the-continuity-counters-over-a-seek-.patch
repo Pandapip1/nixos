@@ -1,7 +1,7 @@
 From 02d63ab365167cb43a0b46f83f97dea0629dd55a Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:50:35 -0400
-Subject: [PATCH 71/77] demux: ts: forget the continuity counters over a seek
+Subject: [PATCH 71/78] demux: ts: forget the continuity counters over a seek
  of its own
 
 A seek lands on a packet that has nothing to do with the one read before it,

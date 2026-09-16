@@ -1,7 +1,7 @@
 From 4af286b84207447068c122e2e433a049486d145b Mon Sep 17 00:00:00 2001
 From: Steve Lhomme <robux4@ycbcr.xyz>
 Date: Tue, 2 Jul 2024 14:12:49 +0200
-Subject: [PATCH 16/77] Revert "demux: mkv: fix seek segfault with invalid
+Subject: [PATCH 16/78] Revert "demux: mkv: fix seek segfault with invalid
  chapters"
 
 This reverts commit 4ba01f2831193b2a59513c897b159c14c0a9f086.
