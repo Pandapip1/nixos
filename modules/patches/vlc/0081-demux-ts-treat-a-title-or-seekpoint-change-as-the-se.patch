@@ -1,7 +1,7 @@
 From 0dab9830aee0dfb0c993c6eada14478dc97b6d7f Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 15:51:37 -0400
-Subject: [PATCH 81/85] demux: ts: treat a title or seekpoint change as the
+Subject: [PATCH 81/93] demux: ts: treat a title or seekpoint change as the
  seek it is
 
 DEMUX_SET_TITLE and DEMUX_SET_SEEKPOINT handed the query straight to the

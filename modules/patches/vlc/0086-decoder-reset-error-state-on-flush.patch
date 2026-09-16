@@ -1,0 +1,53 @@
+From 819401a3a43234f4375ae15100088637dceb8f4e Mon Sep 17 00:00:00 2001
+From: Thomas Guillem <thomas@gllm.fr>
+Date: Fri, 7 Nov 2025 18:13:07 +0100
+Subject: [PATCH 86/93] decoder: reset error state on flush
+
+Errors come most likely from modules returning VLCDEC_ECRITICAL. In case
+of memory or parsing issue.
+
+A flush could reset this error state, allowing playback to continue
+after a seek.
+
+We could debate whether we should distinguish ENOMEM from
+VLCDEC_ECRITICAL when reseting the error. But it is also possible to
+reset a memory error state after a flush.
+
+Adapted for 3.0, where the flush is not split into a thread-side helper:
+the upstream change lands in DecoderThread_Flush, which on 3.0 is the
+head of DecoderProcessFlush, and that function goes on to flush the CC
+sub-decoders, the sout input and the aout/vout as well. The early return
+therefore skipped the output flush too, so a seek on an errored track
+left stale pictures or samples queued in addition to never recovering.
+Dropping it and clearing the flag after the packetizer and decoder
+flushes gives 3.0 the same behaviour with the whole flush restored.
+
+(cherry picked from commit df2439ec19fc1415b006475d24452c16e9a47aa4)
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/input/decoder.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/src/input/decoder.c b/src/input/decoder.c
+index 7ef1a20a6e..481ba403f6 100644
+--- a/src/input/decoder.c
++++ b/src/input/decoder.c
+@@ -1566,15 +1566,14 @@ static void DecoderProcessFlush( decoder_t *p_dec )
+     decoder_owner_sys_t *p_owner = p_dec->p_owner;
+     decoder_t *p_packetizer = p_owner->p_packetizer;
+ 
+-    if( p_owner->error )
+-        return;
+-
+     if( p_packetizer != NULL && p_packetizer->pf_flush != NULL )
+         p_packetizer->pf_flush( p_packetizer );
+ 
+     if ( p_dec->pf_flush != NULL )
+         p_dec->pf_flush( p_dec );
+ 
++    p_owner->error = false;
++
+     /* flush CC sub decoders */
+     if( p_owner->cc.b_supported )
+     {

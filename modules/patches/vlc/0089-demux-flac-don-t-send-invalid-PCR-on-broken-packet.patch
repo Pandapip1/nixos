@@ -1,0 +1,24 @@
+From 58f196e7e68e78de58f1e52adfbf9c1ffb0ac314 Mon Sep 17 00:00:00 2001
+From: Francois Cartegnie <fcvlcdev@free.fr>
+Date: Mon, 27 Apr 2020 19:25:09 +0200
+Subject: [PATCH 89/93] demux: flac: don't send invalid PCR on broken packet
+
+(cherry picked from commit 122f2ceb911515059f8eb4431414a5349e3ee0d8)
+---
+ modules/demux/flac.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/modules/demux/flac.c b/modules/demux/flac.c
+index 8f006999a7..f107287508 100644
+--- a/modules/demux/flac.c
++++ b/modules/demux/flac.c
+@@ -399,7 +399,8 @@ static int Demux( demux_t *p_demux )
+             if( unlikely(p_sys->i_pts == VLC_TICK_INVALID) )
+                 es_out_SetPCR( p_demux->out, __MAX(p_block_out->i_dts - 1, VLC_TICK_0) );
+ 
+-            p_sys->i_pts = p_block_out->i_dts;
++            if(p_block_out->i_dts != VLC_TICK_INVALID)
++                p_sys->i_pts = p_block_out->i_dts;
+ 
+             es_out_Send( p_demux->out, p_sys->p_es, p_block_out );
+ 

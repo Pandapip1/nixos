@@ -1,7 +1,7 @@
 From 4fdc54cff7febb61fe605c03385e0b3501ca9416 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 15:10:04 -0400
-Subject: [PATCH 79/85] adummy: answer as a device would, so the clock can be
+Subject: [PATCH 79/93] adummy: answer as a device would, so the clock can be
  tested without one
 
 The dummy output reports no timing at all, so the parts of the audio output

@@ -1,0 +1,57 @@
+From 9b0c3a583bab1675dfdd4c9d60da7b0431583e28 Mon Sep 17 00:00:00 2001
+From: Alexandre Janniaux <ajanni@videolabs.io>
+Date: Wed, 8 Mar 2023 17:50:47 +0100
+Subject: [PATCH 93/93] input: es_out: reset buffering on PCR discontinuity
+
+When PCR discontinuities happens, the whole pipeline is reset and it
+safely (though after a glitch) reset back to playback on what's visible
+after the PCR discontinuities, and restart buffering.
+
+However, this PCR discontinuity currently happens only when **not** in
+buffering. When it happens during buffering, the computed stream buffer
+duration goes negative and the buffering either stops far too early or
+never converges, counting the time the stream would need to catch up
+with a reference that is already in the future.
+
+Instead, if PCR is going back to the past, flush the pipeline and reset
+the buffering back to zero to avoid waiting for the stream to catch-up
+with the old reference, and avoid buffering more than what we requested,
+which would shift the playback more from the live.
+
+Adapted for 3.0, whose EsOutChangePosition takes only the flush flag -
+there is no per-ES argument to pass, so the call becomes the two-argument
+form. The 3.0 function does what the 4.0 one does here: it flushes the
+decoders, resets each program's clock and puts the es_out back into
+buffering. Both callers of this function already test b_buffering, and
+the repeat path reaches EsOutChangePosition with the flag clear, so
+nothing that carries a timeline across a repeat is reached from here.
+
+(cherry picked from commit 07d8bc705da7fbb84344340d91504840b3300674)
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/input/es_out.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/src/input/es_out.c b/src/input/es_out.c
+index 61cae4b217..745001b1e5 100644
+--- a/src/input/es_out.c
++++ b/src/input/es_out.c
+@@ -792,6 +792,17 @@ static void EsOutDecodersStopBuffering( es_out_t *out, bool b_forced )
+                                   &i_stream_duration, &i_system_duration ))
+         return;
+ 
++    /* If demux signals PCR going back in time while we were buffering,
++     * we want to reset the pipeline, and reset buffering back to zero
++     * so that we don't compare a reference from the future against
++     * values from the past, which could artifically and arbitrarily
++     * increase the buffering duration. */
++    if (i_stream_duration < 0)
++    {
++        EsOutChangePosition(out, true);
++        return;
++    }
++
+     vlc_tick_t i_preroll_duration = 0;
+     if( p_sys->i_preroll_end >= 0 )
+         i_preroll_duration = __MAX( p_sys->i_preroll_end - i_stream_start, 0 );

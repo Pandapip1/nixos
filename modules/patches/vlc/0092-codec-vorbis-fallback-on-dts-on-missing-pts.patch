@@ -1,0 +1,42 @@
+From 2c61b80dae19a2baccde7a3831e6cfd4e4a62b08 Mon Sep 17 00:00:00 2001
+From: Francois Cartegnie <fcvlcdev@free.fr>
+Date: Wed, 19 Jan 2022 19:15:14 +0100
+Subject: [PATCH 92/93] codec: vorbis: fallback on dts on missing pts
+
+should always be pts == dts
+
+Adapted for 3.0, which guards the same assignment with
+i_pts > VLC_TICK_INVALID rather than != VLC_TICK_INVALID: the fallback
+is written with the 3.0 comparison so a negative timestamp is still
+rejected rather than taken as a date. Without it a block carrying only a
+dts leaves end_date unset, and the "we've just started the stream, wait
+for the first PTS" branch below drops every block for as long as that
+lasts.
+
+(cherry picked from commit 93a05605e1f40df745702ac7eb3a31c758d5f71c)
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/codec/vorbis.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/modules/codec/vorbis.c b/modules/codec/vorbis.c
+index 818e9dae1c..4f1ea14146 100644
+--- a/modules/codec/vorbis.c
++++ b/modules/codec/vorbis.c
+@@ -484,10 +484,12 @@ static block_t *ProcessPacket( decoder_t *p_dec, ogg_packet *p_oggpacket,
+     }
+ 
+     /* Date management */
+-    if( p_block->i_pts > VLC_TICK_INVALID &&
+-        p_block->i_pts != date_Get( &p_sys->end_date ) )
++    vlc_tick_t pts = p_block->i_pts > VLC_TICK_INVALID ? p_block->i_pts
++                                                       : p_block->i_dts;
++    if( pts > VLC_TICK_INVALID &&
++        pts != date_Get( &p_sys->end_date ) )
+     {
+-        date_Set( &p_sys->end_date, p_block->i_pts );
++        date_Set( &p_sys->end_date, pts );
+     }
+ 
+     if( !date_Get( &p_sys->end_date ) )
