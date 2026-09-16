@@ -1,0 +1,68 @@
+From 44c1a37dcee729c1b1517ca1667f11711d31826f Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 15 Sep 2026 22:29:35 -0400
+Subject: [PATCH 49/50] demux: rawvid: fix wrong pcr after a seek
+
+Control() is a bare demux_vaControlHelper() call, and the helper implements
+DEMUX_SET_POSITION and DEMUX_SET_TIME as a plain vlc_stream_Seek(): the
+stream moves, but the pcr date is left untouched and keeps counting from
+where it was before the seek.
+
+DEMUX_GET_TIME goes through the same helper and is derived from the byte
+offset, so it stays correct, and the timestamps the demuxer emits no longer
+agree with the time it reports. Playback of the track itself survives
+because the input resets the PCR on every seek, but slave ES do not:
+SlaveDemux() paces external subtitles from the master DEMUX_GET_TIME, so
+after a seek they are shifted by the accumulated error, or dropped for
+being too late or too early.
+
+The helper seeks frame aligned, so the new offset gives back the frame
+number: set the date from it, which is exact and matches what Demux() would
+have accumulated. Note that this does not make seeking in a YUV4MPEG2
+stream any more precise, as the per frame headers are not accounted for in
+the frame size the helper aligns on.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/rawvid.c | 26 ++++++++++++++++++++++++--
+ 1 file changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/modules/demux/rawvid.c b/modules/demux/rawvid.c
+index f16e07eea5..ba38152776 100644
+--- a/modules/demux/rawvid.c
++++ b/modules/demux/rawvid.c
+@@ -443,7 +443,29 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
+                                                     p_sys->pcr.i_divider_den;
+ 
+     /* XXX: DEMUX_SET_TIME is precise here */
+-    return demux_vaControlHelper( p_demux->s, 0, -1, i_bps,
+-                                   p_sys->frame_size, i_query, args );
++    int i_ret = demux_vaControlHelper( p_demux->s, 0, -1, i_bps,
++                                       p_sys->frame_size, i_query, args );
++    if( i_ret != VLC_SUCCESS )
++        return i_ret;
++
++    switch( i_query )
++    {
++        case DEMUX_SET_POSITION:
++        case DEMUX_SET_TIME:
++            /* The helper only moved the stream: resync the pcr accumulator,
++             * else it would keep counting from before the seek and drift
++             * away from the byte derived DEMUX_GET_TIME. The helper seeks
++             * frame aligned, so the offset gives back the frame number. */
++            date_Set( &p_sys->pcr,
++                      (int64_t)( vlc_stream_Tell( p_demux->s )
++                                 / p_sys->frame_size )
++                      * CLOCK_FREQ * p_sys->pcr.i_divider_den
++                      / p_sys->pcr.i_divider_num );
++            break;
++        default:
++            break;
++    }
++
++    return VLC_SUCCESS;
+ }
+ 
+-- 
+2.55.0
+

@@ -14,7 +14,7 @@ in
   nixpkgs.overlays = [
     (_: prev: {
       vlc = prev.vlc.overrideAttrs (prevAttrs: {
-        # Sent upstream against 3.0.x. Seven groups:
+        # Sent upstream against 3.0.x. Eight groups:
         #
         # 0001-0003 aout. Drift correction in the audio core is applied by
         # resampling, which shifts pitch as well as speed. The accumulated
@@ -73,6 +73,17 @@ in
         # the block it emitted the timestamp of the input that completed it
         # rather than of the audio in it. The output read the difference as
         # drift and answered for it, audibly at a long stride.
+        #
+        # 0044-0050 seek stale date accumulators. A demuxer whose Control() is
+        # only demux_vaControlHelper() has its stream seeked under it without
+        # its own date accumulator being re-derived, so it keeps emitting
+        # timestamps from before the seek while GET_TIME reports the new
+        # position - upstream fixed exactly this for wav in 4.0 as 7bad2a867f.
+        # Repeating an item in place relied on that staleness: the input keeps
+        # the clock reference across the loop, which only works while the dates
+        # carry on. The input now measures how far short of the timeline the
+        # demuxer falls on the first date of a new pass and carries the
+        # difference, so a demuxer is free either way.
         patches = (prevAttrs.patches or [ ]) ++ patches;
       });
     })

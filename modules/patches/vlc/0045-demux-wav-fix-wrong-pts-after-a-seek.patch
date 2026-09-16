@@ -1,0 +1,80 @@
+From 0127819cbbc601bd396bea50e5a3e22146d621e8 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 15 Sep 2026 22:29:20 -0400
+Subject: [PATCH 45/50] demux: wav: fix wrong pts after a seek
+
+Control() is a bare demux_vaControlHelper() call, and the helper implements
+DEMUX_SET_POSITION and DEMUX_SET_TIME as a plain vlc_stream_Seek(): the
+stream moves, but the pts accumulator is left untouched and keeps counting
+from where it was before the seek.
+
+DEMUX_GET_TIME goes through the same helper and is derived from the byte
+offset, so it stays correct, and the timestamps the demuxer emits no longer
+agree with the time it reports. Playback of the track itself survives
+because the input resets the PCR on every seek, but slave ES do not:
+SlaveDemux() paces external subtitles from the master DEMUX_GET_TIME, so
+after a seek they are shifted by the accumulated error, or dropped for
+being too late or too early.
+
+Resync the date with the new offset, using the same byte to time conversion
+as the helper.
+
+Adapted from 7bad2a867f01786ace2e8ff074e5dcc19fb96063: here the date holds
+a pts relative to VLC_TICK_0, not an absolute one, and the origin the date
+is initialized with has to be kept so that an offset of 0 still yields the
+very same pts as before.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/wav.c | 35 +++++++++++++++++++++++++++++++----
+ 1 file changed, 31 insertions(+), 4 deletions(-)
+
+diff --git a/modules/demux/wav.c b/modules/demux/wav.c
+index 76197342ae..b2ed38ec16 100644
+--- a/modules/demux/wav.c
++++ b/modules/demux/wav.c
+@@ -515,10 +515,37 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
+     if( p_sys->i_data_size > 0 )
+         i_end = p_sys->i_data_pos + p_sys->i_data_size;
+ 
+-    return demux_vaControlHelper( p_demux->s, p_sys->i_data_pos, i_end,
+-                                   p_sys->fmt.i_bitrate,
+-                                   p_sys->fmt.audio.i_blockalign,
+-                                   i_query, args );
++    int i_ret = demux_vaControlHelper( p_demux->s, p_sys->i_data_pos, i_end,
++                                       p_sys->fmt.i_bitrate,
++                                       p_sys->fmt.audio.i_blockalign,
++                                       i_query, args );
++    if( i_ret != VLC_SUCCESS )
++        return i_ret;
++
++    switch( i_query )
++    {
++        case DEMUX_SET_POSITION:
++        case DEMUX_SET_TIME:
++        {
++            /* The helper only moved the stream: resync the pts accumulator,
++             * else it would keep counting from before the seek and drift
++             * away from the byte derived DEMUX_GET_TIME. */
++            uint64_t i_ofs = vlc_stream_Tell( p_demux->s );
++            if( unlikely(i_ofs < (uint64_t)p_sys->i_data_pos) )
++                break;
++            i_ofs -= p_sys->i_data_pos;
++
++            /* Same byte to time conversion as demux_vaControlHelper(), kept
++             * relative to the origin the date was initialized with. */
++            date_Set( &p_sys->pts,
++                      1 + INT64_C(8000000) * i_ofs / p_sys->fmt.i_bitrate );
++            break;
++        }
++        default:
++            break;
++    }
++
++    return VLC_SUCCESS;
+ }
+ 
+ /*****************************************************************************
+-- 
+2.55.0
+

@@ -1,0 +1,70 @@
+From 8cc7581c8f5bf7e05956cafcb555be708661e8cb Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 15 Sep 2026 22:29:20 -0400
+Subject: [PATCH 47/50] demux: xa: fix wrong pts after a seek
+
+Control() is a bare demux_vaControlHelper() call, and the helper implements
+DEMUX_SET_POSITION and DEMUX_SET_TIME as a plain vlc_stream_Seek(): the
+stream moves, but the pts accumulator is left untouched and keeps counting
+from where it was before the seek.
+
+DEMUX_GET_TIME goes through the same helper and is derived from the byte
+offset, so it stays correct, and the timestamps the demuxer emits no longer
+agree with the time it reports. Playback of the track itself survives
+because the input resets the PCR on every seek, but slave ES do not:
+SlaveDemux() paces external subtitles from the master DEMUX_GET_TIME, so
+after a seek they are shifted by the accumulated error, or dropped for
+being too late or too early.
+
+Resync the date with the new offset, using the same byte to time conversion
+as the helper. Unlike the other raw audio demuxers this date holds an
+absolute pts, so it is set relative to VLC_TICK_0.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/xa.c | 28 +++++++++++++++++++++++++++-
+ 1 file changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/modules/demux/xa.c b/modules/demux/xa.c
+index 6400895fd9..a74adffc5f 100644
+--- a/modules/demux/xa.c
++++ b/modules/demux/xa.c
+@@ -212,8 +212,34 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
+ {
+     demux_sys_t *p_sys  = p_demux->p_sys;
+ 
+-    return demux_vaControlHelper( p_demux->s, HEADER_LENGTH,
++    int i_ret = demux_vaControlHelper( p_demux->s, HEADER_LENGTH,
+         p_sys->i_data_size ? (int64_t)HEADER_LENGTH + p_sys->i_data_size : -1,
+                                   p_sys->i_bitrate, p_sys->i_frame_size,
+                                   i_query, args );
++    if( i_ret != VLC_SUCCESS )
++        return i_ret;
++
++    switch( i_query )
++    {
++        case DEMUX_SET_POSITION:
++        case DEMUX_SET_TIME:
++        {
++            /* The helper only moved the stream: resync the pts accumulator,
++             * else it would keep counting from before the seek and drift
++             * away from the byte derived DEMUX_GET_TIME. */
++            uint64_t i_ofs = vlc_stream_Tell( p_demux->s );
++            if( unlikely(i_ofs < HEADER_LENGTH) )
++                break;
++
++            /* Same byte to time conversion as demux_vaControlHelper(); the
++             * date holds an absolute pts here. */
++            date_Set( &p_sys->pts, VLC_TICK_0 + INT64_C(8000000)
++                      * (i_ofs - HEADER_LENGTH) / p_sys->i_bitrate );
++            break;
++        }
++        default:
++            break;
++    }
++
++    return VLC_SUCCESS;
+ }
+-- 
+2.55.0
+
