@@ -1,7 +1,7 @@
 From df530efcaffdc83c317fe61f5a98793be546cda0 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 23:19:56 -0400
-Subject: [PATCH 32/69] input: let a repeat keep what the output is holding
+Subject: [PATCH 32/70] input: let a repeat keep what the output is holding
 
 The first PCR of a repeated pass reads late because the demuxer had to seek
 to produce it, and es_out answers a late PCR by rebuffering - which throws
