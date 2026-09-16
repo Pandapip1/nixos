@@ -14,7 +14,7 @@ in
   nixpkgs.overlays = [
     (_: prev: {
       vlc = prev.vlc.overrideAttrs (prevAttrs: {
-        # Sent upstream against 3.0.x. Six groups:
+        # Sent upstream against 3.0.x. Seven groups:
         #
         # 0001-0003 aout. Drift correction in the audio core is applied by
         # resampling, which shifts pitch as well as speed. The accumulated
@@ -57,6 +57,12 @@ in
         # 440 Hz tone 7.5 cents sharp with 17% of the signal level off-tone for
         # as long as it lasted. It now drives scaletempo instead, which varies
         # speed without touching pitch.
+        #
+        # 0042-0043 scaletempo. Its overlap buffer holds the tail of the last
+        # stride to blend into the next; before anything has gone out it holds
+        # zeros, so the first stride faded in from silence over six ms. That
+        # only showed once drift correction started bringing the filter in and
+        # out mid-stream rather than for deliberate speed changes alone.
         patches = (prevAttrs.patches or [ ]) ++ patches;
       });
     })
