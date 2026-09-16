@@ -58,11 +58,13 @@ in
         # as long as it lasted. It now drives scaletempo instead, which varies
         # speed without touching pitch.
         #
-        # 0042-0043 scaletempo. Its overlap buffer holds the tail of the last
+        # 0042-0044 scaletempo. Its overlap buffer holds the tail of the last
         # stride to blend into the next; before anything has gone out it holds
         # zeros, so the first stride faded in from silence over six ms. That
         # only showed once drift correction started bringing the filter in and
         # out mid-stream rather than for deliberate speed changes alone.
+        # It also registered no flush callback, so up to fifty milliseconds of
+        # pre-seek audio went out after a seek.
         patches = (prevAttrs.patches or [ ]) ++ patches;
       });
     })
