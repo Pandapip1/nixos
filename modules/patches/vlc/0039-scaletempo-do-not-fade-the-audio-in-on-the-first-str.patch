@@ -1,7 +1,7 @@
 From 5f08d684e3308b188716b9f7b4119ccadfdfd404 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 20:05:32 -0400
-Subject: [PATCH 39/50] scaletempo: do not fade the audio in on the first
+Subject: [PATCH 39/53] scaletempo: do not fade the audio in on the first
  stride
 
 The overlap buffer holds the tail of the previous stride, to be blended
@@ -54,6 +54,3 @@ index d881b2e5ad..6bd768f877 100644
      p_sys->bytes_queued   = 0;
      p_sys->bytes_to_slide = 0;
      p_sys->frames_stride_error = 0;
--- 
-2.55.0
-

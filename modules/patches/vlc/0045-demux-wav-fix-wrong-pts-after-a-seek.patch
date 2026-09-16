@@ -1,7 +1,7 @@
 From 0127819cbbc601bd396bea50e5a3e22146d621e8 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 22:29:20 -0400
-Subject: [PATCH 45/50] demux: wav: fix wrong pts after a seek
+Subject: [PATCH 45/53] demux: wav: fix wrong pts after a seek
 
 Control() is a bare demux_vaControlHelper() call, and the helper implements
 DEMUX_SET_POSITION and DEMUX_SET_TIME as a plain vlc_stream_Seek(): the
@@ -75,6 +75,3 @@ index 76197342ae..b2ed38ec16 100644
  }
  
  /*****************************************************************************
--- 
-2.55.0
-

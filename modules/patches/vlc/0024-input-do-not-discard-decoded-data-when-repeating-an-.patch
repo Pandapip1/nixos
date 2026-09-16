@@ -1,7 +1,7 @@
 From 460b8d833f062bbbbf812bfd1b3534c73c1f6423 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 01:18:13 -0400
-Subject: [PATCH 24/50] input: do not discard decoded data when repeating an
+Subject: [PATCH 24/53] input: do not discard decoded data when repeating an
  item
 
 A repeat is a seek back to the start, so it went through the ordinary seek
@@ -203,6 +203,3 @@ index 7496552c82..977c26fd49 100644
      unsigned    i_repeat_pending; /* repeats asked for that have not demuxed
                                       anything yet */
  
--- 
-2.55.0
-

@@ -1,7 +1,7 @@
 From 7f4ffdc4344a7d49159483c22d30c086401d676f Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:51:19 -0400
-Subject: [PATCH 13/50] demux: ty: keep the record count in step with the
+Subject: [PATCH 13/53] demux: ty: keep the record count in step with the
  record headers
 
 get_chunk_header() commits the record count to p_sys straight after reading
@@ -64,6 +64,3 @@ index 8a9e7ed349..db8777b6e1 100644
      p_sys->i_stuff_cnt = CHUNK_SIZE - 4 -
          (p_sys->i_num_recs * REC_SIZE) - i_payload_size;
      if (p_sys->i_stuff_cnt > 0)
--- 
-2.55.0
-

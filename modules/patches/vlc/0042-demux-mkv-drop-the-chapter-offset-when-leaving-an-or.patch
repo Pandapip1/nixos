@@ -1,7 +1,7 @@
 From ff410cf817353be51276e917c615180b4aaa2e35 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 22:20:09 -0400
-Subject: [PATCH 42/50] demux: mkv: drop the chapter offset when leaving an
+Subject: [PATCH 42/53] demux: mkv: drop the chapter offset when leaving an
  ordered edition
 
 Only an ordered edition splices its chapters onto a timeline of its own,
@@ -32,6 +32,3 @@ index 336edb91ef..ba073b5e6a 100644
          if ( p_vchapter->p_chapter && p_vchapter->i_seekpoint_num > 0 )
          {
              demuxer.info.i_update |= INPUT_UPDATE_TITLE | INPUT_UPDATE_SEEKPOINT;
--- 
-2.55.0
-

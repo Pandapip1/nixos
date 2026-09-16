@@ -1,7 +1,7 @@
 From 737c535528f53e01546662713ee1c341ee195afd Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:34:39 -0400
-Subject: [PATCH 34/50] pulse: tell a zero device latency apart from an unknown
+Subject: [PATCH 34/53] pulse: tell a zero device latency apart from an unknown
  one
 
 Zero doubles as "not measured yet", so an output that really adds no
@@ -91,6 +91,3 @@ index aa41dac205..ac0fe4f73f 100644
  
      aout->sys = sys;
      aout->start = Start;
--- 
-2.55.0
-

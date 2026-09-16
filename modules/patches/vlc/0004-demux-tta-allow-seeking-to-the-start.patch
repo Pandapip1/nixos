@@ -1,7 +1,7 @@
 From 5d7fa3299fdcfb09f7d395b5f0881387c595c226 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:10:29 -0400
-Subject: [PATCH 04/50] demux: tta: allow seeking to the start
+Subject: [PATCH 04/53] demux: tta: allow seeking to the start
 
 DEMUX_SET_POSITION computes a byte target from the requested position and
 then acts on it only when it is strictly positive, so position 0 - which
@@ -33,6 +33,3 @@ index bf1ea54438..a79a7f528e 100644
              {
                  int64_t tmp = 0;
                  uint32_t i;
--- 
-2.55.0
-

@@ -1,7 +1,7 @@
 From 2ead709e1f848b7038ce678e633b639fe66fa09f Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:35:47 -0400
-Subject: [PATCH 37/50] input: give the output the lead its device needs
+Subject: [PATCH 37/53] input: give the output the lead its device needs
 
 The clock was rebased so the first sample fell due ten milliseconds out,
 whatever the output was playing to. A device holding two tenths of a
@@ -49,6 +49,3 @@ index ffaac46e3d..02468256ff 100644
      const vlc_tick_t i_current_date = p_sys->b_paused ? p_sys->i_pause_date : mdate();
  
      input_clock_ChangeSystemOrigin( p_sys->p_pgrm->p_clock, true,
--- 
-2.55.0
-

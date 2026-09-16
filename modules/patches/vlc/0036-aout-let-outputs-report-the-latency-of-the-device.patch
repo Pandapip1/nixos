@@ -1,7 +1,7 @@
 From e46973da97316de678c4f5f181daafb535df3860 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:35:41 -0400
-Subject: [PATCH 36/50] aout: let outputs report the latency of the device
+Subject: [PATCH 36/53] aout: let outputs report the latency of the device
 
 Outputs can estimate how much is queued, but not what the device itself
 adds before any of it is heard. Add an optional latency_get callback for
@@ -132,6 +132,3 @@ index bb8e4c3c9e..e6832cb2a7 100644
  /**
   * Plays a decoded audio buffer.
   * \note This can only be called after a successful aout_OutputNew().
--- 
-2.55.0
-

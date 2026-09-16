@@ -1,7 +1,7 @@
 From 75808e7c5f010031e92ab58a718504d052e556a8 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 23:02:17 -0400
-Subject: [PATCH 30/50] input: a decoder is empty once its output has been
+Subject: [PATCH 30/53] input: a decoder is empty once its output has been
  played
 
 input_DecoderIsEmpty() said empty for audio as soon as the decoder's fifo
@@ -82,6 +82,3 @@ index 69488a681c..dbf06c0fb6 100644
      else
          b_empty = true; /* TODO subtitles support */
      vlc_mutex_unlock( &p_owner->lock );
--- 
-2.55.0
-

@@ -1,7 +1,7 @@
 From b183fb8bae7802b7ccb61ccae5131b6356eba645 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:44:08 -0400
-Subject: [PATCH 10/50] demux: ps: carry the whole track across a PSM version
+Subject: [PATCH 10/53] demux: ps: carry the whole track across a PSM version
  change
 
 When a program stream map announces a new version, each track is rebuilt
@@ -42,6 +42,3 @@ index 623fdb90da..655604d7e4 100644
          tk[i] = tk_tmp;
          tk[i].es = es_out_Add( out, &tk[i].fmt );
      }
--- 
-2.55.0
-

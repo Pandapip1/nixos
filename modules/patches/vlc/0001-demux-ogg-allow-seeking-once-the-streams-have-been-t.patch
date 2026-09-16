@@ -1,7 +1,7 @@
 From 688750e3c6fa0c462ab21009c4f0775f7a53b994 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 17:55:52 -0400
-Subject: [PATCH 01/50] demux: ogg: allow seeking once the streams have been
+Subject: [PATCH 01/53] demux: ogg: allow seeking once the streams have been
  torn down
 
 At the end of a stream Demux() tears the logical streams down, parking the
@@ -56,6 +56,3 @@ index 7eca0de2fd..b791f81be9 100644
      if (drift > (owner->sync.discontinuity ? 0
                    : +3 * input_rate * AOUT_MAX_PTS_DELAY / INPUT_RATE_DEFAULT))
      {
--- 
-2.55.0
-
