@@ -1,7 +1,7 @@
 From 3879122f3bee70ac3e6b7044108c5e49eb0c8414 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:12:10 -0400
-Subject: [PATCH 15/23] demux: dash: report success once the meta has been
+Subject: [PATCH 15/25] demux: dash: report success once the meta has been
  filled in
 
 DEMUX_GET_META builds the metadata, merges it into the caller vlc_meta_t

@@ -1,7 +1,7 @@
 From 9c424274e38e637739d0101936f4cd724a651658 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:13:22 -0400
-Subject: [PATCH 06/23] demux: ty: clear the end of file flag when seeking
+Subject: [PATCH 06/25] demux: ty: clear the end of file flag when seeking
 
 Demux() returns early on p_sys->eof, and once the flag is raised at the
 end of the file nothing lowers it again: the two seek helpers only ever

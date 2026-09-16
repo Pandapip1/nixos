@@ -1,7 +1,7 @@
 From a66be7673cb80e78d5f04a7d446e5f8cecca397c Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:46:35 -0400
-Subject: [PATCH 11/23] demux: webvtt: clamp a seek past the last cue to the
+Subject: [PATCH 11/25] demux: webvtt: clamp a seek past the last cue to the
  end
 
 getIndexByTime() returns 0 when no entry starts at or after the requested

@@ -1,7 +1,7 @@
 From 59f0f603cfdd9ed052ec0be41041aabf63c0beda Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:31:45 -0400
-Subject: [PATCH 16/23] demux: adaptive: let a repositioned demuxer read again
+Subject: [PATCH 16/25] demux: adaptive: let a repositioned demuxer read again
 
 AbstractStream::resetForNewPosition() has two paths. The one that rebuilds
 the demuxer ends with the elementary stream output being told it is no
