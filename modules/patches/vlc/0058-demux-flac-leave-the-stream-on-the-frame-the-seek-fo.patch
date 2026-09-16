@@ -1,0 +1,44 @@
+From bb1c103f69b1b03f8042108abcc89d85e9e71ac2 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 02:43:14 -0400
+Subject: [PATCH 58/64] demux: flac: leave the stream on the frame the seek
+ found
+
+RefineSeek finds the wanted frame by feeding the stream to the
+packetizer until a frame comes out, and the packetizer only closes a
+frame once it has seen the head of the one after it, so by the time the
+search is happy the stream sits one or two frames beyond the target. The
+next Demux() then hands out that later frame and everything in between
+is simply never played. At 4096 samples a frame and 44.1 kHz that is
+186 ms lost from every seek, and from the head of every pass when the
+input repeats an item by seeking back to the start.
+
+Put the stream back where the iteration that matched began reading. The
+frame is parsed again, which costs nothing next to what it buys, and the
+preroll the caller set with ES_OUT_SET_NEXT_DISPLAY_TIME is what drops
+whatever precedes the wanted time.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/flac.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/modules/demux/flac.c b/modules/demux/flac.c
+index 81129cb5fb..8f006999a7 100644
+--- a/modules/demux/flac.c
++++ b/modules/demux/flac.c
+@@ -349,6 +349,14 @@ static int RefineSeek( demux_t *p_demux, vlc_tick_t i_time, double i_bytemicrora
+         }
+     }
+ 
++    /* The search consumed the frame it was after, and the packetizer needed
++     * the head of the one behind it to close it, so the stream is left a frame
++     * or two past the target. Put it back where the iteration that matched
++     * started reading: the next Demux() then delivers the frame the seek asked
++     * for instead of one the caller never gets to hear. */
++    if( b_found && vlc_stream_Seek( p_demux->s, i_start_pos ) != VLC_SUCCESS )
++        return VLC_EGENERIC;
++
+     return b_found ? VLC_SUCCESS : VLC_EGENERIC;
+ }
+ 

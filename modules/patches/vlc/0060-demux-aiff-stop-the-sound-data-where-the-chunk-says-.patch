@@ -1,0 +1,56 @@
+From 5044dd45eeb939e0f3b670c54b329cffd70a1bff Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 02:58:03 -0400
+Subject: [PATCH 60/64] demux: aiff: stop the sound data where the chunk says
+ it does
+
+The SSND chunk's size covers the offset and block size fields that come
+before the sound data, and the offset then skips further bytes still,
+but the demuxer takes the whole of it as sound and puts the end of the
+data eight bytes - plus whatever the offset asks for - past where the
+samples stop.
+
+Demux() sets the PCR from the position it is about to read, so the extra
+bytes buy one more call that announces a block, finds nothing to read
+and gives up. The stream is left claiming a hundred milliseconds of
+audio that was never sent, which is how much silence the output then has
+to invent when an item repeats in place and the next pass is fitted onto
+the end of that claim. The reported length and position are out by the
+same amount.
+
+Measure what is left after both fields, and treat a chunk too small to
+hold them as one of unknown size, which is what the code below already
+does for a size it cannot use.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/aiff.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/modules/demux/aiff.c b/modules/demux/aiff.c
+index 067f6cb275..70ed809102 100644
+--- a/modules/demux/aiff.c
++++ b/modules/demux/aiff.c
+@@ -182,8 +182,12 @@ static int Open( vlc_object_t *p_this )
+         }
+     }
+ 
++    /* The chunk carries the offset and block size fields before the sound
++     * data, and the offset skips further bytes still, so what is left to play
++     * is the chunk less both. */
+     p_sys->i_ssnd_start = p_sys->i_ssnd_pos + 16 + p_sys->i_ssnd_offset;
+-    p_sys->i_ssnd_end   = p_sys->i_ssnd_start + p_sys->i_ssnd_size;
++    p_sys->i_ssnd_end   = p_sys->i_ssnd_start
++                        + p_sys->i_ssnd_size - 8 - p_sys->i_ssnd_offset;
+ 
+     p_sys->i_ssnd_fsize = p_sys->fmt.audio.i_channels *
+                           ((p_sys->fmt.audio.i_bitspersample + 7) / 8);
+@@ -194,7 +198,7 @@ static int Open( vlc_object_t *p_this )
+         goto error;
+     }
+ 
+-    if( p_sys->i_ssnd_size <= 0 )
++    if( p_sys->i_ssnd_end <= p_sys->i_ssnd_start )
+     {
+         /* unknown */
+         p_sys->i_ssnd_end = 0;

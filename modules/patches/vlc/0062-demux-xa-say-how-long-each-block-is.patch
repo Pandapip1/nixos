@@ -1,0 +1,44 @@
+From 6d6aa3345c9e2af191658a4120298098975e276d Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 03:29:23 -0400
+Subject: [PATCH 62/64] demux: xa: say how long each block is
+
+The demuxer reads a fixed number of frames at a time and advances its
+date by however many it got, so the last read - short of a full block
+whenever the data does not divide by it - is dated correctly but says
+nothing about how far it reaches. A reader left to guess that from the
+block before it puts the end of the stream up to a block too late, which
+on a repeat in place is silence the output has to invent at every loop.
+
+Set the length from the increment the date accumulator has just been
+given, which is the same number the samples were counted with.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/xa.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/modules/demux/xa.c b/modules/demux/xa.c
+index a74adffc5f..3893e60a13 100644
+--- a/modules/demux/xa.c
++++ b/modules/demux/xa.c
+@@ -187,11 +187,17 @@ static int Demux( demux_t *p_demux )
+ 
+     i_frames = p_block->i_buffer / p_sys->i_frame_size;
+     p_block->i_dts = p_block->i_pts = date_Get( &p_sys->pts );
++    p_block->i_nb_samples = i_frames * FRAME_LENGTH;
++
++    /* The last read is short of a full block whenever the data does not
++     * divide by it, so say how far this one reaches rather than leave it to
++     * be guessed from the one before. */
++    p_block->i_length = date_Increment( &p_sys->pts, p_block->i_nb_samples )
++                      - p_block->i_dts;
++
+     es_out_SetPCR( p_demux->out, p_block->i_pts );
+     es_out_Send( p_demux->out, p_sys->p_es, p_block );
+ 
+-    date_Increment( &p_sys->pts, i_frames * FRAME_LENGTH );
+-
+     return 1;
+ }
+ 

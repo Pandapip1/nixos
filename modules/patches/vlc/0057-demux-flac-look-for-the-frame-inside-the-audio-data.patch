@@ -1,0 +1,36 @@
+From ca4f0fab0c8c7f6188930121b30cd4a6011a6ae4 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 02:42:54 -0400
+Subject: [PATCH 57/64] demux: flac: look for the frame inside the audio data
+
+ControlSetTime converts the wanted time into a byte offset with a rate
+taken over the audio data alone - the length divided by the file size
+less the metadata - and then seeks to that offset as if it were counted
+from the start of the file. Everything the metadata occupies is
+therefore skipped twice over, and a seek to the very beginning lands on
+byte zero, where the packetizer has to walk the whole header before it
+finds a frame at all.
+
+Count the offset from where the audio starts, which is what the rate was
+derived from.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/flac.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/modules/demux/flac.c b/modules/demux/flac.c
+index 1b7c2c6b1a..81129cb5fb 100644
+--- a/modules/demux/flac.c
++++ b/modules/demux/flac.c
+@@ -485,7 +485,9 @@ static int ControlSetTime( demux_t *p_demux, int64_t i_time )
+     }
+     else
+     {
+-        i_start_pos = i_time / i_bytemicrorate;
++        /* The rate above is over the audio data alone, so what it converts
++         * the time into is an offset within that data, not within the file. */
++        i_start_pos = p_sys->i_data_pos + i_time / i_bytemicrorate;
+     }
+ 
+     if( VLC_SUCCESS != vlc_stream_Seek( p_demux->s, i_start_pos ) )

@@ -1,0 +1,60 @@
+From 8e8561f53660e71d01fe48ded9e23f8fb135fd52 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 03:33:17 -0400
+Subject: [PATCH 63/64] demux: wav: count the samples the last read really
+ brought back
+
+The read is clamped to the end of the data chunk, so the last one is
+short of a whole frame whenever the chunk does not divide by it, and the
+date accumulator is nonetheless advanced by a whole frame. The stream
+then claims up to fifty milliseconds of audio that was never sent, and
+nothing on the block says otherwise.
+
+That claim is what a repeat in place carries the next pass on from, so
+it becomes a hole at every loop for the output to fill with silence.
+Count what came back instead and set the block's length from it, which
+is also the answer DEMUX_GET_TIME should give once the end is reached.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/wav.c | 19 ++++++++++++++++---
+ 1 file changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/modules/demux/wav.c b/modules/demux/wav.c
+index b2ed38ec16..b47abec697 100644
+--- a/modules/demux/wav.c
++++ b/modules/demux/wav.c
+@@ -473,8 +473,23 @@ static int Demux( demux_t *p_demux )
+         return 0;
+     }
+ 
++    /* The read is clamped to the end of the data chunk, so the last one is
++     * short whenever the chunk does not divide by the frame. Count what came
++     * back rather than a whole frame, and say how far it reaches: a reader
++     * left to work that out from the frame before it puts the end of the
++     * stream up to a frame late. */
++    unsigned i_samples = p_sys->i_frame_samples;
++
++    if( p_block->i_buffer < p_sys->i_frame_size )
++        i_samples = p_block->i_buffer * p_sys->i_frame_samples
++                  / p_sys->i_frame_size;
++
++    const vlc_tick_t i_date = date_Get( &p_sys->pts );
++
+     p_block->i_dts =
+-    p_block->i_pts = VLC_TICK_0 + date_Get( &p_sys->pts );
++    p_block->i_pts = VLC_TICK_0 + i_date;
++    p_block->i_nb_samples = i_samples;
++    p_block->i_length = date_Increment( &p_sys->pts, i_samples ) - i_date;
+ 
+     /* set PCR */
+     es_out_SetPCR( p_demux->out, p_block->i_pts );
+@@ -487,8 +502,6 @@ static int Demux( demux_t *p_demux )
+ 
+     es_out_Send( p_demux->out, p_sys->p_es, p_block );
+ 
+-    date_Increment( &p_sys->pts, p_sys->i_frame_samples );
+-
+     return 1;
+ }
+ 

@@ -1,7 +1,7 @@
 From 193faaa4759c1ac8f2bcdc1f9e799f477d2acd00 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 02:54:29 -0400
-Subject: [PATCH 55/56] input: say what sizes the repeat cushion
+Subject: [PATCH 55/64] input: say what sizes the repeat cushion
 
 A quarter of a second sitting next to a repeat invites two questions - why
 not ask the demuxer, and is it enough - and the answers are measurable, so

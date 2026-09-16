@@ -1,0 +1,67 @@
+From 3d58b4706c61d56946499cb826985b3ad37569cd Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 03:29:23 -0400
+Subject: [PATCH 61/64] demux: tta: say how long each frame is
+
+Every frame is dated a whole frame after the one before it, and nothing
+says that the last one holds less than that. The declared sample count
+in the header rarely divides by the frame length, so the stream looks a
+fraction of a second longer than it is - a whole 1.045 s at worst, since
+that is what a frame covers.
+
+Nothing downstream can work that out on its own. Repeating an item in
+place carries the new pass on from where the data the demuxer handed
+over reaches, and with no length to go by that is taken as one frame
+past the last one dated, which is past the end of the audio; the output
+covers the difference by playing silence, heard as a hole at every loop.
+On a four second file it was 180 ms of it.
+
+Give each frame the length it really has, which for the last one is
+whatever is left of the declared count.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/tta.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/modules/demux/tta.c b/modules/demux/tta.c
+index a79a7f528e..f5ef99dec4 100644
+--- a/modules/demux/tta.c
++++ b/modules/demux/tta.c
+@@ -71,6 +71,7 @@ struct demux_sys_t
+     uint32_t *pi_seektable;
+     uint32_t i_datalength;
+     int      i_framelength;
++    unsigned i_rate;
+ 
+     /* */
+     vlc_meta_t     *p_meta;
+@@ -130,6 +131,7 @@ static int Open( vlc_object_t * p_this )
+     }
+ 
+     p_sys->i_datalength = GetDWLE( &p_header[14] );
++    p_sys->i_rate = fmt.audio.i_rate;
+     p_sys->i_framelength = TTA_FRAMETIME * fmt.audio.i_rate;
+ 
+     p_sys->i_totalframes = p_sys->i_datalength / p_sys->i_framelength +
+@@ -212,6 +214,20 @@ static int Demux( demux_t *p_demux )
+     if( p_data == NULL ) return 0;
+     p_data->i_dts = p_data->i_pts = VLC_TICK_0 + (int64_t)(INT64_C(1000000) * p_sys->i_currentframe) * TTA_FRAMETIME;
+ 
++    /* The last frame holds whatever is left of the declared sample count,
++     * which is less than a whole frame unless the two divide. Say so: the
++     * length is how far the data reaches, and a caller that has to know where
++     * the stream really ends - repeating it in place, for one - has nothing
++     * else to go on. */
++    uint64_t i_played = (uint64_t)p_sys->i_currentframe * p_sys->i_framelength;
++    unsigned i_samples = p_sys->i_framelength;
++
++    if( i_played + i_samples > p_sys->i_datalength )
++        i_samples = p_sys->i_datalength - i_played;
++
++    p_data->i_nb_samples = i_samples;
++    p_data->i_length = CLOCK_FREQ * i_samples / p_sys->i_rate;
++
+     p_sys->i_currentframe++;
+ 
+     es_out_SetPCR( p_demux->out, p_data->i_dts );
