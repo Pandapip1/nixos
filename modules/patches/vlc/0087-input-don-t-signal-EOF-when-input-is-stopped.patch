@@ -1,7 +1,7 @@
 From be51401d54dccf25e13177f856efc32096e0b65a Mon Sep 17 00:00:00 2001
 From: Alexandre Janniaux <ajanni@videolabs.io>
 Date: Tue, 29 Aug 2023 13:50:11 +0200
-Subject: [PATCH 87/97] input: don't signal EOF when input is stopped
+Subject: [PATCH 087/100] input: don't signal EOF when input is stopped
 
 When stopping an input, the player is signalled with vlc_player_Stop(),
 which set the input for destruction in the player destructor thread.

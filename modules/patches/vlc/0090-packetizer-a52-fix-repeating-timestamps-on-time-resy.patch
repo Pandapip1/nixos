@@ -1,7 +1,7 @@
 From 3c8a848b7e38a4a76aa7fe9231276f0e35584b68 Mon Sep 17 00:00:00 2001
 From: Francois Cartegnie <fcvlcdev@free.fr>
 Date: Mon, 30 Nov 2020 11:20:01 +0100
-Subject: [PATCH 90/97] packetizer: a52: fix repeating timestamps on time
+Subject: [PATCH 090/100] packetizer: a52: fix repeating timestamps on time
  resync
 
 (cherry picked from commit 36e2465e462d65232be14a6aaac4a85dc7ce6b41)

@@ -1,7 +1,7 @@
 From 4b5f7111abb7d5d9591fdb25884ccc27cbb0b372 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 15:55:32 -0400
-Subject: [PATCH 95/97] posix: let a refused real-time priority leave the
+Subject: [PATCH 095/100] posix: let a refused real-time priority leave the
  thread alone
 
 Asking for a real-time priority was part of creating the thread, so when

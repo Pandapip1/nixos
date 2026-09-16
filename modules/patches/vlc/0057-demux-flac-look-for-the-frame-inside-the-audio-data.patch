@@ -1,7 +1,7 @@
 From ca4f0fab0c8c7f6188930121b30cd4a6011a6ae4 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 02:42:54 -0400
-Subject: [PATCH 57/97] demux: flac: look for the frame inside the audio data
+Subject: [PATCH 057/100] demux: flac: look for the frame inside the audio data
 
 ControlSetTime converts the wanted time into a byte offset with a rate
 taken over the audio data alone - the length divided by the file size

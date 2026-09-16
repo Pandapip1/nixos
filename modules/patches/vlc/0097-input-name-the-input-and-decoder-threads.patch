@@ -1,7 +1,7 @@
 From 391523093c39e23ee7c5bf145059d10447e4f9b9 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 16:05:29 -0400
-Subject: [PATCH 97/97] input: name the input and decoder threads
+Subject: [PATCH 097/100] input: name the input and decoder threads
 
 Which thread is missing its deadline is a question /proc answers per
 thread - schedstat gives the time each spent waiting on a run queue -

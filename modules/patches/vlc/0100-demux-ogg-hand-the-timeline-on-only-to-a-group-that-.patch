@@ -1,0 +1,101 @@
+From 4c241d7e355df0eb5337f4951d963c85917c6aa2 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 16:29:25 -0400
+Subject: [PATCH 100/100] demux: ogg: hand the timeline on only to a group that
+ arrives
+
+A group of logical streams chained onto the end of another carries on the
+timeline of the one before it, and i_nzpcr_offset holds where it begins. That
+offset was committed as soon as a group ended, before looking for the group
+meant to take it over. At the end of the file there is no such group, so the
+offset was left behind pointing at the end of what had just been played - and a
+seek back to the start, which is how an item repeats in place, then read the
+very same group again with a whole pass added to every timestamp. The repeated
+pass of tone.opus began 926500 us in, and each further pass added as much again.
+
+Commit it once Ogg_BeginningOfStream() has found a group to give it to. A file
+that really is chained is unaffected, the group being found in the same call:
+three copies of the tone concatenated still run 1 us .. 2779501 us in one pass.
+
+The same row also handed over four blocks more the second time round. Reusing an
+elementary stream cleared i_pre_skip, which describes not the stream being taken
+over but the granule numbering the file was written with: opus counts granules
+from before the encoder delay, so clearing it read every granule a pre-skip late
+and handed over the packets holding that delay, which the pass that opened the
+file had left out. What must not happen twice is the preroll, and that is
+i_skip_frames, so clear that instead.
+
+test_src_input_demux_repeat's opus row went from "the repeated pass begins at
+926501 us where the first began at 1 us ... (51 blocks against 47)" to
+"1 us .. 926501 us, twice over", and the three chained copies hand over the same
+47 blocks for each of their groups.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/ogg.c | 29 +++++++++++++++++++++--------
+ 1 file changed, 21 insertions(+), 8 deletions(-)
+
+diff --git a/modules/demux/ogg.c b/modules/demux/ogg.c
+index b53a69044d..26565687c6 100644
+--- a/modules/demux/ogg.c
++++ b/modules/demux/ogg.c
+@@ -297,11 +297,12 @@ static int Demux( demux_t * p_demux )
+ 
+     if ( i_active_streams == 0 )
+     {
++        vlc_tick_t i_lastpcr = VLC_TICK_INVALID;
++
+         if ( p_sys->i_streams ) /* All finished */
+         {
+             msg_Dbg( p_demux, "end of a group of %d logical streams", p_sys->i_streams );
+ 
+-            vlc_tick_t i_lastpcr = VLC_TICK_INVALID;
+             for( i_stream = 0; i_stream < p_sys->i_streams; i_stream++ )
+             {
+                 logical_stream_t *p_stream = p_sys->pp_stream[i_stream];
+@@ -322,18 +323,23 @@ static int Demux( demux_t * p_demux )
+             Ogg_EndOfStream( p_demux );
+             p_sys->b_chained_boundary = true;
+ 
+-            if( i_lastpcr > VLC_TICK_INVALID )
+-            {
+-                p_sys->i_nzpcr_offset = i_lastpcr - VLC_TICK_0;
+-                if( likely( !p_sys->b_slave ) )
+-                    es_out_SetPCR( p_demux->out, i_lastpcr );
+-            }
++            if( i_lastpcr > VLC_TICK_INVALID && likely( !p_sys->b_slave ) )
++                es_out_SetPCR( p_demux->out, i_lastpcr );
+             p_sys->i_pcr = VLC_TICK_INVALID;
+         }
+ 
+         if( Ogg_BeginningOfStream( p_demux ) != VLC_SUCCESS )
+             return VLC_DEMUXER_EOF;
+ 
++        /* Only a group that a following one takes over from hands its
++         * timeline on. Committing the offset before knowing there is such a
++         * group leaves it behind at the end of the file, where the group that
++         * ended is the same group a seek back to the start reads again: the
++         * repeated pass would then come out a whole pass late and the item
++         * would never be heard from its beginning again. */
++        if( i_lastpcr > VLC_TICK_INVALID )
++            p_sys->i_nzpcr_offset = i_lastpcr - VLC_TICK_0;
++
+         msg_Dbg( p_demux, "beginning of a group of logical streams" );
+ 
+         if ( !p_sys->b_chained_boundary )
+@@ -2229,7 +2235,14 @@ static void Ogg_CreateES( demux_t *p_demux )
+                 p_stream->b_finished = false;
+                 p_stream->b_reinit = false;
+                 p_stream->b_initializing = false;
+-                p_stream->i_pre_skip = 0;
++                /* i_pre_skip belongs to the granule numbering the stream was
++                 * written with, not to the elementary stream being taken
++                 * over: opus counts its granules from before the encoder
++                 * delay, so clearing it reads every granule a pre-skip late
++                 * and hands over the packets that hold the delay, which the
++                 * pass that opened the stream left out. What must not happen
++                 * twice is the preroll, and that is i_skip_frames. */
++                p_stream->i_skip_frames = 0;
+                 es_format_Clean( &p_stream->fmt_old );
+                 es_format_Copy( &p_stream->fmt_old, &p_old_stream->fmt );
+                 bool b_resetdecoder = Ogg_LogicalStreamResetEsFormat( p_demux, p_stream );

@@ -1,8 +1,8 @@
 From 114299bc52908781660ca87a01080fb1de016591 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 02:53:52 -0400
-Subject: [PATCH 54/97] input: drain the output when the end pauses instead of
- repeating
+Subject: [PATCH 054/100] input: drain the output when the end pauses instead
+ of repeating
 
 Pausing at the end takes priority over repeating it, so an item asked for
 with both --play-and-pause and a repeat pauses at every end and never

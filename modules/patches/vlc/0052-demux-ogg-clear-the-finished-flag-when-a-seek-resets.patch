@@ -1,8 +1,8 @@
 From 783719f0137f6808555099a97ff61bf36d6ca747 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 01:08:15 -0400
-Subject: [PATCH 52/97] demux: ogg: clear the finished flag when a seek resets
- the streams
+Subject: [PATCH 052/100] demux: ogg: clear the finished flag when a seek
+ resets the streams
 
 Demux() counts the active logical streams at the top, before it reads
 anything, and treats a count of zero with streams still present as the end

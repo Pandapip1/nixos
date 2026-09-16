@@ -1,8 +1,8 @@
 From 3576553226a71a46baafe6f3532e6a2d6d65748c Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 15:31:57 -0400
-Subject: [PATCH 94/97] test: check that every demuxer hands the same span over
- twice
+Subject: [PATCH 094/100] test: check that every demuxer hands the same span
+ over twice
 
 An item that repeats in place is seeked back to its start with the clock left
 running, so a demuxer that gives up a little of its content at that seek makes

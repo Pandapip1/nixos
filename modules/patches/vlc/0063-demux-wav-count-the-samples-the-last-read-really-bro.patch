@@ -1,7 +1,7 @@
 From 8e8561f53660e71d01fe48ded9e23f8fb135fd52 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 03:33:17 -0400
-Subject: [PATCH 63/97] demux: wav: count the samples the last read really
+Subject: [PATCH 063/100] demux: wav: count the samples the last read really
  brought back
 
 The read is clamped to the end of the data chunk, so the last one is

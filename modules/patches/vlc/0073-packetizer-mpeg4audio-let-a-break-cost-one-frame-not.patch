@@ -1,8 +1,8 @@
 From 7a03f91449db70f970d5bfde4b9a708074b5d802 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:50:54 -0400
-Subject: [PATCH 73/97] packetizer: mpeg4audio: let a break cost one frame, not
- the rest of the block
+Subject: [PATCH 073/100] packetizer: mpeg4audio: let a break cost one frame,
+ not the rest of the block
 
 Same as the mpeg audio packetizer: what is left of a block once a frame has
 been taken out of it goes back to the caller and comes straight back here,

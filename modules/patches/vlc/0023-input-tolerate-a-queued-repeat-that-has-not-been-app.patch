@@ -1,7 +1,7 @@
 From 5f667b918db8b0471088010e99e6cb19407ad50d Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 00:57:39 -0400
-Subject: [PATCH 23/97] input: tolerate a queued repeat that has not been
+Subject: [PATCH 023/100] input: tolerate a queued repeat that has not been
  applied yet
 
 The guard added with repeat-in-place refused a second repeat if the first

@@ -1,8 +1,8 @@
 From 595e45d6adbac0c7c44f9035ec3c9b9aea09d7de Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 03:58:00 -0400
-Subject: [PATCH 65/97] input: count a repeat as progress only when data comes
- out
+Subject: [PATCH 065/100] input: count a repeat as progress only when data
+ comes out
 
 The count that stops a repeat spinning is cleared whenever Demux() returns
 success, but success only says the demuxer wants to be called again - it

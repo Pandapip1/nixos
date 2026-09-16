@@ -1,7 +1,7 @@
 From 819401a3a43234f4375ae15100088637dceb8f4e Mon Sep 17 00:00:00 2001
 From: Thomas Guillem <thomas@gllm.fr>
 Date: Fri, 7 Nov 2025 18:13:07 +0100
-Subject: [PATCH 86/97] decoder: reset error state on flush
+Subject: [PATCH 086/100] decoder: reset error state on flush
 
 Errors come most likely from modules returning VLCDEC_ECRITICAL. In case
 of memory or parsing issue.

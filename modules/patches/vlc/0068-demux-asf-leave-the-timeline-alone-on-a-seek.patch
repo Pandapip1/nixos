@@ -1,7 +1,7 @@
 From 3e2a4372acdb02dace97d8724cb97fe73177a48a Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:08:10 -0400
-Subject: [PATCH 68/97] demux: asf: leave the timeline alone on a seek
+Subject: [PATCH 068/100] demux: asf: leave the timeline alone on a seek
 
 SeekPrepare() told the output to reset its pcr on every seek. The input
 has already reset whatever the seek needs reset by the time it calls the
