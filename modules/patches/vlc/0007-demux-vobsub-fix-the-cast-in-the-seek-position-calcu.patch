@@ -1,7 +1,7 @@
 From e9cda8b9841e666451fdb3ce70db133d4fa6e07d Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:12:07 -0400
-Subject: [PATCH 07/64] demux: vobsub: fix the cast in the seek position
+Subject: [PATCH 07/67] demux: vobsub: fix the cast in the seek position
  calculation
 
     i64 = (int64_t) f * p_sys->i_length;

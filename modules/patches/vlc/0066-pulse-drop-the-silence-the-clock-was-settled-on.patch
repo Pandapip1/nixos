@@ -1,0 +1,69 @@
+From 02187788eb79bc32c4cf90fdfea36e173ffc8411 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 04:02:38 -0400
+Subject: [PATCH 66/67] pulse: drop the silence the clock was settled on
+
+The stream is primed with silence and run until PulseAudio will report the
+device latency, then corked so the start can be timed from it. What it was
+running on stays queued: the server is asked to pause, not to forget. The
+first real block is written at the write index, so it goes behind all of it
+and is heard a whole buffer after the moment the start was timed for.
+
+On a null sink that is the target fill plus one fragment - a hundred and
+twenty to a hundred and sixty milliseconds, measured at 117 to 140 - and
+the drift correction meets it as drift. It cannot answer an error that size
+within its bound of nine cents, so it sits at the bound for the rest of the
+run, detuning everything by very nearly the whole of what the bound exists
+to prevent, and on a container whose own start-up costs a little more the
+total crosses the lateness threshold and a fifth of a second is spliced out
+of the first pass.
+
+Throw the priming away once it has served its purpose. The audio is then at
+the head of the queue where the start was timed for it: startup drift goes
+to within the twenty milliseconds the delay reading is noisy to, and the
+correction stays where it belongs, a cent or so off nominal.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/audio_output/pulse.c | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
+index d789d4f23c..7828309c12 100644
+--- a/modules/audio_output/pulse.c
++++ b/modules/audio_output/pulse.c
+@@ -370,6 +370,23 @@ static void stream_stop(pa_stream *s, audio_output_t *aout)
+         pa_operation_unref(op);
+ }
+ 
++/**
++ * Throws away whatever the server still holds.
++ *
++ * The silence the clock is settled on stays queued when the stream is corked,
++ * and audio written next goes behind it: the start would be timed to the
++ * microsecond and still be heard a buffer late.
++ */
++static void stream_discard(pa_stream *s, audio_output_t *aout)
++{
++    pa_operation *op = pa_stream_flush(s, NULL, NULL);
++
++    if (likely(op != NULL))
++        pa_operation_unref(op);
++    else
++        vlc_pa_error(aout, "cannot flush", aout->sys->context);
++}
++
+ static void stream_trigger_cb(pa_mainloop_api *api, pa_time_event *e,
+                               const struct timeval *tv, void *userdata)
+ {
+@@ -1281,7 +1298,10 @@ static int Start(audio_output_t *aout, audio_sample_format_t *restrict fmt)
+         if (sys->device_latency == VLC_TICK_INVALID)
+             msg_Dbg(aout, "clock did not settle; measuring as it plays");
+         else
++        {
+             stream_stop(s, aout); /* start it again when the audio is due */
++            stream_discard(s, aout);
++        }
+     }
+ 
+     if (encoding == PA_ENCODING_PCM)

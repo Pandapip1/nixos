@@ -1,7 +1,7 @@
 From 8cc7581c8f5bf7e05956cafcb555be708661e8cb Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 22:29:20 -0400
-Subject: [PATCH 47/64] demux: xa: fix wrong pts after a seek
+Subject: [PATCH 47/67] demux: xa: fix wrong pts after a seek
 
 Control() is a bare demux_vaControlHelper() call, and the helper implements
 DEMUX_SET_POSITION and DEMUX_SET_TIME as a plain vlc_stream_Seek(): the

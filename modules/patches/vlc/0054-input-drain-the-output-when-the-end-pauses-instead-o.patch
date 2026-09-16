@@ -1,7 +1,7 @@
 From 114299bc52908781660ca87a01080fb1de016591 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 02:53:52 -0400
-Subject: [PATCH 54/64] input: drain the output when the end pauses instead of
+Subject: [PATCH 54/67] input: drain the output when the end pauses instead of
  repeating
 
 Pausing at the end takes priority over repeating it, so an item asked for

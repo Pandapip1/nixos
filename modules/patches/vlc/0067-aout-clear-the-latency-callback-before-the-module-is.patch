@@ -1,0 +1,35 @@
+From a9201f604120401e47c8f99ec69f37b335126d21 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 04:09:56 -0400
+Subject: [PATCH 67/67] aout: clear the latency callback before the module is
+ asked for
+
+The callbacks an output module may leave alone are set to NULL before
+module_need(), because a module only assigns the ones it implements and the
+core has no other way to know which those are. latency_get was added to the
+struct without being added to that list, so it was whatever the allocation
+happened to hold for any module that does not set it - every module written
+before it existed, in the tree or out of it.
+
+Nothing was seen to go wrong: the object is allocated zeroed, so the value
+is NULL in practice and aout_OutputLatencyGet() rejects it as it should.
+That is luck rather than design, and the neighbouring assignments already
+say what the design is.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/audio_output/output.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/audio_output/output.c b/src/audio_output/output.c
+index e6832cb2a7..a1b340efd2 100644
+--- a/src/audio_output/output.c
++++ b/src/audio_output/output.c
+@@ -238,6 +238,7 @@ audio_output_t *aout_New (vlc_object_t *parent)
+     /* Audio output module initialization */
+     aout->start = NULL;
+     aout->stop = NULL;
++    aout->latency_get = NULL;
+     aout->volume_set = NULL;
+     aout->mute_set = NULL;
+     aout->device_select = NULL;
