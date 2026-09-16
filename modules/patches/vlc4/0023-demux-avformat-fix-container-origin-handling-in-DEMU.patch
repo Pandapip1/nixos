@@ -1,7 +1,7 @@
 From 5c88c1d6eaca7d28b32e2d8d796a397a9f41a3db Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 21:55:48 -0400
-Subject: [PATCH 23/25] demux: avformat: fix container origin handling in
+Subject: [PATCH 23/28] demux: avformat: fix container origin handling in
  DEMUX_SET_TIME
 
 DEMUX_SET_TIME passed the seek target to av_seek_frame() as

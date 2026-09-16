@@ -1,7 +1,7 @@
 From c56b57df8af074e8a3eff2477db9418e8032e32c Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 15:28:20 -0400
-Subject: [PATCH 01/25] aout: bound and reset the drift-correction resampling
+Subject: [PATCH 01/28] aout: bound and reset the drift-correction resampling
 
 The audio core corrects drift between the stream and the audio device by
 accumulating an offset, two Hertz per block, onto the resampler's input

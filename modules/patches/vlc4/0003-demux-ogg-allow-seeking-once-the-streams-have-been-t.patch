@@ -1,7 +1,7 @@
 From 13ac22846cc712acf983fba77ae70589e6f8ddda Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 17:55:22 -0400
-Subject: [PATCH 03/25] demux: ogg: allow seeking once the streams have been
+Subject: [PATCH 03/28] demux: ogg: allow seeking once the streams have been
  torn down
 
 At the end of a stream Demux() tears the logical streams down, and in the

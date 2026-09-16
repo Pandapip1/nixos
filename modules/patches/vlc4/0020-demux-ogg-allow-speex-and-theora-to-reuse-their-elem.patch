@@ -1,7 +1,7 @@
 From c4d5ce6fdba1c0c0b130f57a1054ce8568c0c835 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 00:24:38 -0400
-Subject: [PATCH 20/25] demux: ogg: allow speex and theora to reuse their
+Subject: [PATCH 20/28] demux: ogg: allow speex and theora to reuse their
  elementary stream
 
 Ogg_LogicalStreamResetEsFormat() decides whether a stream that has just

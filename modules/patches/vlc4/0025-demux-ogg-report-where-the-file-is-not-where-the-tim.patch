@@ -1,7 +1,7 @@
 From 2df9622351eb965ce2ff17a8f628159d32d22328 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 23:58:05 -0400
-Subject: [PATCH 25/25] demux: ogg: report where the file is, not where the
+Subject: [PATCH 25/28] demux: ogg: report where the file is, not where the
  timeline is
 
 A stream chained onto the end of another carries on the timeline of the one

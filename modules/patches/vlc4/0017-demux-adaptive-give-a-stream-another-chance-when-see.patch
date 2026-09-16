@@ -1,7 +1,7 @@
 From 957853c19e671e51925b2b1f5041fd66f4e9451a Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:46:41 -0400
-Subject: [PATCH 17/25] demux: adaptive: give a stream another chance when
+Subject: [PATCH 17/28] demux: adaptive: give a stream another chance when
  seeking
 
 A stream whose demuxer fails to start is marked invalid to stop

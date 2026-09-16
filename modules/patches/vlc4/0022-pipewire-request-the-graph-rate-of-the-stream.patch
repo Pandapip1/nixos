@@ -1,7 +1,7 @@
 From 4cf21a39a9aa3d8d14fc32c4e5d65d9744b4b9c0 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 02:06:35 -0400
-Subject: [PATCH 22/25] pipewire: request the graph rate of the stream
+Subject: [PATCH 22/28] pipewire: request the graph rate of the stream
 
 The PipeWire output never set node.rate, so the server kept whatever rate
 the graph was already running at and resampled the stream into it. For a
