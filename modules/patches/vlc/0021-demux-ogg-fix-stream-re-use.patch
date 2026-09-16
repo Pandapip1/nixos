@@ -1,7 +1,7 @@
 From b85bd20f8253b908c299686c5b98d06f11245076 Mon Sep 17 00:00:00 2001
 From: Marvin Scholz <epirat07@gmail.com>
 Date: Thu, 8 Oct 2020 15:26:55 +0200
-Subject: [PATCH 21/79] demux/ogg: fix stream re-use
+Subject: [PATCH 21/85] demux/ogg: fix stream re-use
 
 Stream re-use could never happen, as p_stream->p_es is always NULL
 here, as implied by the earlier check:

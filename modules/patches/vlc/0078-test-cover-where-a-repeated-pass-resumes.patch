@@ -1,7 +1,7 @@
 From 6eb1e051bf50a0dfa5a41eee6a0bca987bc27288 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 14:57:14 -0400
-Subject: [PATCH 78/79] test: cover where a repeated pass resumes
+Subject: [PATCH 78/85] test: cover where a repeated pass resumes
 
 The rule for placing a repeated pass is arithmetic over three numbers a
 demuxer reports, and getting it wrong is not heard as a click at the seam: it

@@ -1,7 +1,7 @@
 From 02187788eb79bc32c4cf90fdfea36e173ffc8411 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:02:38 -0400
-Subject: [PATCH 66/79] pulse: drop the silence the clock was settled on
+Subject: [PATCH 66/85] pulse: drop the silence the clock was settled on
 
 The stream is primed with silence and run until PulseAudio will report the
 device latency, then corked so the start can be timed from it. What it was

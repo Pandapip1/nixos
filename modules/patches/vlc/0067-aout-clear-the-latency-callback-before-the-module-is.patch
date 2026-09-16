@@ -1,7 +1,7 @@
 From a9201f604120401e47c8f99ec69f37b335126d21 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:09:56 -0400
-Subject: [PATCH 67/79] aout: clear the latency callback before the module is
+Subject: [PATCH 67/85] aout: clear the latency callback before the module is
  asked for
 
 The callbacks an output module may leave alone are set to NULL before

@@ -1,7 +1,7 @@
 From c71b1a8e0d9b8bfccdf081d7356422adb70860af Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:35:53 -0400
-Subject: [PATCH 70/79] pulse: tell an empty queue apart from one that cannot
+Subject: [PATCH 70/85] pulse: tell an empty queue apart from one that cannot
  be read
 
 stream_start() waits for AOUT_MIN_PREPARE_TIME to be queued before it

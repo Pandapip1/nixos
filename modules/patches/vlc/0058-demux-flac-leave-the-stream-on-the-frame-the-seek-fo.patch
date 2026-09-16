@@ -1,7 +1,7 @@
 From bb1c103f69b1b03f8042108abcc89d85e9e71ac2 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 02:43:14 -0400
-Subject: [PATCH 58/79] demux: flac: leave the stream on the frame the seek
+Subject: [PATCH 58/85] demux: flac: leave the stream on the frame the seek
  found
 
 RefineSeek finds the wanted frame by feeding the stream to the

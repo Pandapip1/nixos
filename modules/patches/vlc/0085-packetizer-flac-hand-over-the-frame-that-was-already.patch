@@ -1,0 +1,223 @@
+From a4a967eef7593966ce768b0af4758bb1297ad8cb Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 15:41:01 -0400
+Subject: [PATCH 85/85] packetizer: flac: hand over the frame that was already
+ whole before a break
+
+An item repeating in place seeks the demuxer back to the start and keeps the
+clock, the decoders and the audio output running, so every pass has to hand
+over the whole item or the timeline drifts away from the sound. Measured on a
+four second 44100 Hz file with 1024 sample blocks, each pass lost 272 samples
+and the second boundary stepped 46439 us where one frame is 23220, which is
+two frames of silence where there should be none; the pass itself advanced the
+timeline 4017052 us instead of the 4000000 us its STREAMINFO says it lasts, so
+each loop gained 17 ms that the audio output has to correct away until it
+cannot any more.
+
+Both come out of the same place. A flac frame does not carry its own size, so
+this packetizer only closes a frame once it has found the sync of the frame
+behind it, which means a complete frame is always sitting in the bytestream
+waiting to be sized. The first block of the new pass arrives flagged as a
+discontinuity, the flush throws that frame away, and the tail of every pass
+goes with it. The frame was read in full before the break and the break says
+nothing about it, so drain before flushing and only the remainder, which no
+valid frame can be made of anyway, is dropped.
+
+The timestamp went the same way. It was taken from whatever block was at the
+head of the bytestream when the frame was sent, but by then the frame's own
+bytes have been consumed and the head is the block carrying the sync that
+closed it - one frame further on. That only showed after a flush, because
+otherwise the running date is already past the value and refuses it, and it
+put every frame of a new pass one frame late. Take it where the frame starts
+instead, while the block it was read from is still the one at the head.
+
+The last of it is the duration. The demuxer stops stamping its reads once it
+has started, so after a seek the packetizer has no date to interpolate from
+and said the frames lasted nothing at all, which left es_out to guess the
+length of the final short frame from the step of the full one before it - the
+17 ms. How long a frame lasts is in its own header whether or not anything
+dated it, so say so.
+
+With all three, five passes of the file hand over 882000 samples for 882000
+encoded, each pass advances the timeline by exactly 4000000 us, and the step
+from the short frame that ends a pass to the first frame of the next is the
+6168 us that short frame lasts. Ordinary playback and --start-time seeks
+deliver the same frames and the same sample counts as before.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/packetizer/flac.c | 102 ++++++++++++++++++++++++++++++++------
+ 1 file changed, 87 insertions(+), 15 deletions(-)
+
+diff --git a/modules/packetizer/flac.c b/modules/packetizer/flac.c
+index 6874beb5d0..df70f687cd 100644
+--- a/modules/packetizer/flac.c
++++ b/modules/packetizer/flac.c
+@@ -74,6 +74,10 @@ struct decoder_sys_t
+      * Common properties
+      */
+     date_t pts;
++    /* Timestamp of the block the frame being read started in: the frame is
++     * only closed once the next sync has been found, by which time the head
++     * of the bytestream is a later block than the one the frame came from. */
++    vlc_tick_t i_frame_pts;
+     struct flac_header_info headerinfo;
+ 
+     size_t i_last_frame_size;
+@@ -277,6 +281,7 @@ static void Flush(decoder_t *p_dec)
+ 
+     p_sys->i_state = STATE_NOSYNC;
+     p_sys->i_offset = 0;
++    p_sys->i_frame_pts = VLC_TICK_INVALID;
+     date_Set( &p_sys->pts, VLC_TICK_INVALID );
+     block_BytestreamEmpty(&p_sys->bytestream);
+ }
+@@ -303,7 +308,7 @@ static bool FLACStartcodeMatcher(uint8_t i, size_t i_pos, const uint8_t *p_start
+ }
+ 
+ /* */
+-static block_t *Packetize(decoder_t *p_dec, block_t **pp_block)
++static block_t *PacketizeBlock(decoder_t *p_dec, block_t **pp_block)
+ {
+     decoder_sys_t *p_sys = p_dec->p_sys;
+     uint8_t p_header[FLAC_HEADER_SIZE_MAX];
+@@ -313,14 +318,6 @@ static block_t *Packetize(decoder_t *p_dec, block_t **pp_block)
+     {
+         in = *pp_block;
+         *pp_block = NULL;
+-        if (in->i_flags&(BLOCK_FLAG_DISCONTINUITY|BLOCK_FLAG_CORRUPTED)) {
+-            Flush(p_dec);
+-            p_sys->i_next_block_flags |= BLOCK_FLAG_DISCONTINUITY;
+-            if (in->i_flags&BLOCK_FLAG_CORRUPTED) {
+-                block_Release(in);
+-                return NULL;
+-            }
+-        }
+     }
+ 
+     if (!p_sys->b_stream_info)
+@@ -384,6 +381,13 @@ static block_t *Packetize(decoder_t *p_dec, block_t **pp_block)
+             break;
+         }
+ 
++        /* The frame starts at the head of the bytestream, so the block there
++         * now is the one it was read from. Take its timestamp while it is
++         * still the right one: by the time the frame is closed the head has
++         * moved on to the block holding the sync that closed it. */
++        if( p_sys->bytestream.p_block )
++            p_sys->i_frame_pts = p_sys->bytestream.p_block->i_pts;
++
+         p_sys->headerinfo = headerinfo;
+         p_sys->i_state = STATE_NEXT_SYNC;
+         p_sys->i_offset = FLAC_FRAME_SIZE_MIN;
+@@ -535,14 +539,13 @@ static block_t *Packetize(decoder_t *p_dec, block_t **pp_block)
+         p_dec->fmt_out.audio.i_channels = p_sys->headerinfo.i_channels;
+         p_dec->fmt_out.audio.i_physical_channels = pi_channels_maps[p_sys->stream_info.channels];
+ 
+-        if( p_sys->bytestream.p_block &&
+-            p_sys->bytestream.p_block->i_pts > date_Get( &p_sys->pts ) &&
+-            p_sys->bytestream.p_block->i_pts != VLC_TICK_INVALID )
++        if( p_sys->i_frame_pts > date_Get( &p_sys->pts ) &&
++            p_sys->i_frame_pts != VLC_TICK_INVALID )
+         {
+             date_Init( &p_sys->pts, p_sys->headerinfo.i_rate, 1 );
+-            date_Set( &p_sys->pts, p_sys->bytestream.p_block->i_pts );
+-            p_sys->bytestream.p_block->i_pts = VLC_TICK_INVALID;
++            date_Set( &p_sys->pts, p_sys->i_frame_pts );
+         }
++        p_sys->i_frame_pts = VLC_TICK_INVALID;
+ 
+         out = block_heap_Alloc( p_sys->p_buf, p_sys->i_buf );
+         if( out )
+@@ -558,7 +561,20 @@ static block_t *Packetize(decoder_t *p_dec, block_t **pp_block)
+ 
+ 
+         if( out )
+-            out->i_length = date_Get( &p_sys->pts ) - out->i_pts;
++        {
++            /* How long the frame lasts is in its own header, and a frame that
++             * arrived with no timestamp on it - which is what a demuxer hands
++             * over after a seek - lasts just as long as any other. Saying
++             * nothing leaves whoever has to place the next one guessing. */
++            if( out->i_pts != VLC_TICK_INVALID )
++                out->i_length = date_Get( &p_sys->pts ) - out->i_pts;
++            else if( p_sys->headerinfo.i_rate )
++                out->i_length = ( CLOCK_FREQ * p_sys->headerinfo.i_frame_length
++                                  + p_sys->headerinfo.i_rate / 2 )
++                              / p_sys->headerinfo.i_rate;
++            else
++                out->i_length = 0;
++        }
+         else
+             free( p_sys->p_buf );
+ 
+@@ -578,6 +594,61 @@ static block_t *Packetize(decoder_t *p_dec, block_t **pp_block)
+     return NULL;
+ }
+ 
++/*****************************************************************************
++ * Packetize: hand over what is whole before honouring a break
++ *****************************************************************************
++ * A flac frame does not say how long it is, so it is only closed once the
++ * sync of the frame behind it has been found; there is always a whole frame
++ * sitting in the bytestream waiting for its successor to size it. Dropping
++ * everything held on a discontinuity therefore costs a frame of sound that
++ * was read, in full, before the break - which a seek does not care about but
++ * an item repeating in place does, every single pass.
++ *
++ * So drain first and flush after. What the bytestream already holds was read
++ * before the break and the break says nothing about it; only its remainder,
++ * which the drain leaves behind because no valid frame can be made of it, is
++ * the thing the break invalidates. Corrupted data is different: nothing in it
++ * can be trusted, so that still goes as a whole.
++ *****************************************************************************/
++static block_t *Packetize(decoder_t *p_dec, block_t **pp_block)
++{
++    decoder_sys_t *p_sys = p_dec->p_sys;
++    block_t *p_drained = NULL;
++    block_t **pp_last = &p_drained;
++
++    if( pp_block && *pp_block &&
++        ((*pp_block)->i_flags & (BLOCK_FLAG_DISCONTINUITY|BLOCK_FLAG_CORRUPTED)) )
++    {
++        block_t *in = *pp_block;
++        const bool b_corrupted = !!(in->i_flags & BLOCK_FLAG_CORRUPTED);
++
++        if( !b_corrupted )
++        {
++            block_t *p_out;
++            while( (p_out = PacketizeBlock( p_dec, NULL )) )
++            {
++                *pp_last = p_out;
++                while( *pp_last )
++                    pp_last = &(*pp_last)->p_next;
++            }
++        }
++
++        Flush( p_dec );
++        p_sys->i_next_block_flags |= BLOCK_FLAG_DISCONTINUITY;
++
++        if( b_corrupted )
++        {
++            block_Release( in );
++            *pp_block = NULL;
++            return NULL;
++        }
++    }
++
++    *pp_last = PacketizeBlock( p_dec, pp_block );
++
++    return p_drained;
++}
++
+ static int Open(vlc_object_t *p_this)
+ {
+     decoder_t *p_dec = (decoder_t*)p_this;
+@@ -604,6 +675,7 @@ static int Open(vlc_object_t *p_this)
+     p_sys->i_buf         = 0;
+     p_sys->p_buf         = NULL;
+     p_sys->i_next_block_flags = 0;
++    p_sys->i_frame_pts   = VLC_TICK_INVALID;
+     block_BytestreamInit(&p_sys->bytestream);
+     date_Init( &p_sys->pts, 1, 1 );
+     date_Set( &p_sys->pts, VLC_TICK_INVALID );

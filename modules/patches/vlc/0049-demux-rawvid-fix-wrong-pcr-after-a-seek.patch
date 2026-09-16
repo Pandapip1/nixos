@@ -1,7 +1,7 @@
 From 44c1a37dcee729c1b1517ca1667f11711d31826f Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 22:29:35 -0400
-Subject: [PATCH 49/79] demux: rawvid: fix wrong pcr after a seek
+Subject: [PATCH 49/85] demux: rawvid: fix wrong pcr after a seek
 
 Control() is a bare demux_vaControlHelper() call, and the helper implements
 DEMUX_SET_POSITION and DEMUX_SET_TIME as a plain vlc_stream_Seek(): the
