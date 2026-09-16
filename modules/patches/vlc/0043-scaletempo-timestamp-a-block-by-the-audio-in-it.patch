@@ -1,7 +1,7 @@
 From de8f7dd40e6a0ef3f5ed25173952f38d8e50286b Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 23:17:03 -0400
-Subject: [PATCH 43/67] scaletempo: timestamp a block by the audio in it
+Subject: [PATCH 43/69] scaletempo: timestamp a block by the audio in it
 
 The filter gathers a stride before it emits one, so what goes out is the
 head of a queue that can be hundreds of milliseconds deep, while the

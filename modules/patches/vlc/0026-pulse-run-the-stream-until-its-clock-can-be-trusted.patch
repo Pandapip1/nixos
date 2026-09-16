@@ -1,7 +1,7 @@
 From 909bea952460b59817341b88dc450457470974aa Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:10:47 -0400
-Subject: [PATCH 26/67] pulse: run the stream until its clock can be trusted
+Subject: [PATCH 26/69] pulse: run the stream until its clock can be trusted
 
 The device latency cannot be read before the stream runs: calc_time()
 folds it in only while running and then clamps the playback position at

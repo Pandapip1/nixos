@@ -1,7 +1,7 @@
 From c8cc67d5835893a5e112c1c7ab3ba147a3b481bd Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 03:05:43 -0400
-Subject: [PATCH 56/67] input: resume a repeat where the last pass ended, not a
+Subject: [PATCH 56/69] input: resume a repeat where the last pass ended, not a
  pcr step past it
 
 A repeat in place seeks the demuxer back to the start, and es_out carries the
