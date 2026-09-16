@@ -1,7 +1,7 @@
 From 9ce37da94c248f086a18ac41fd71d0618c0264c1 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:11:29 -0400
-Subject: [PATCH 029/100] pulse: do not stop the stream after a drain
+Subject: [PATCH 029/104] pulse: do not stop the stream after a drain
 
 A drain plays the queue out; it does not finish with the device. What
 follows one is usually the next pass of the same item, and stopping the

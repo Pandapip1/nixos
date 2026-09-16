@@ -1,7 +1,7 @@
 From 8e1e2b3ecdb8a534d7aae46b11aa58158f7ba03b Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 22:29:35 -0400
-Subject: [PATCH 048/100] demux: rawaud: fix wrong pts after a seek
+Subject: [PATCH 048/104] demux: rawaud: fix wrong pts after a seek
 
 Control() is a bare demux_vaControlHelper() call, and the helper implements
 DEMUX_SET_POSITION and DEMUX_SET_TIME as a plain vlc_stream_Seek(): the

@@ -1,0 +1,56 @@
+From 9f709ff3eea183f64ea89df1af544f0b29326c34 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 16:35:56 -0400
+Subject: [PATCH 104/104] packetizer: helper: let a break cost one access unit,
+ not the rest of the block
+
+The shared body of the h264, hevc, mpeg video, mpeg4 video and vc1 packetizers
+hands the remainder of a block back through block_BytestreamPop(), which does
+not touch i_flags - upstream's "So p_block doesn't get re-added several times"
+is saying that the block comes back - so a block that arrived on a
+discontinuity resets the parser once for every access unit taken out of it,
+and pf_reset() here also arms each of those packetizers' outbound flag, so
+every extra reset stamps another picture that the decoder then acts on.
+
+On real content it does not fire today. A reset only costs anything if an
+access unit ends inside the flagged block, and no demuxer that stamps the flag
+hands over more than one access unit at a time: ts, ps, mp4, matroska and avi
+all deliver a picture per block, so the flagged block is consumed before
+anything is popped. Four second mpeg-2 and h264 items in a transport stream,
+looped three times with --input-repeat, measure one reset and one stamped
+picture per seam before and after.
+
+What does hand over blocks that straddle access units is the raw elementary
+stream side - h26x reads 2048 bytes at a time and runs the packetizer itself -
+and those demuxers stamp nothing, which is the only reason this is latent. So
+it was measured by injecting the flag on every seventh block h26x reads, on a
+four second 50 fps h264 stream of about ten frames to a block: eleven breaks
+cost 19 parser resets and delivered 528 pictures, and with the flag cleared
+17 resets and 626, three runs each, identical every time. Ninety-eight
+pictures - two seconds of the four - for eleven breaks that should have cost
+eleven frames.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/packetizer/packetizer_helper.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/modules/packetizer/packetizer_helper.h b/modules/packetizer/packetizer_helper.h
+index 42b881bcd0..0c2a67e49c 100644
+--- a/modules/packetizer/packetizer_helper.h
++++ b/modules/packetizer/packetizer_helper.h
+@@ -130,6 +130,14 @@ static block_t *packetizer_PacketizeBlock( packetizer_t *p_pack, block_t **pp_bl
+             block_Release( p_block );
+             return NULL;
+         }
++
++        /* What is left of this block once an access unit has been taken out
++         * of it comes straight back here, and the break belongs to the seam
++         * the block arrived on, not to the rest of the block: leaving the
++         * flag set resets the parser again for every following access unit,
++         * and each reset arms the outbound flag again, stamping another
++         * picture the decoder then acts on. */
++        p_block->i_flags &= ~BLOCK_FLAG_DISCONTINUITY;
+     }
+ 
+     if( p_block )

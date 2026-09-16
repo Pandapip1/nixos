@@ -1,7 +1,7 @@
 From b8940fa0dc529e8b69346ef242c742f6835abb32 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:52:00 -0400
-Subject: [PATCH 033/100] aout: jump over lateness instead of emptying the
+Subject: [PATCH 033/104] aout: jump over lateness instead of emptying the
  output
 
 Falling behind made aout_DecSynchronize() flush the output, throwing away

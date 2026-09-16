@@ -1,7 +1,7 @@
 From 00fb42becbfbdd0aee4e6af9940e72655cec8108 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 15:54:47 -0400
-Subject: [PATCH 083/100] demux: write down what a seek leaves behind and what
+Subject: [PATCH 083/104] demux: write down what a seek leaves behind and what
  the return values mean
 
 Both were undefined, and where a contract is undefined each demuxer guesses:

@@ -1,7 +1,7 @@
 From a4a967eef7593966ce768b0af4758bb1297ad8cb Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 15:41:01 -0400
-Subject: [PATCH 085/100] packetizer: flac: hand over the frame that was
+Subject: [PATCH 085/104] packetizer: flac: hand over the frame that was
  already whole before a break
 
 An item repeating in place seeks the demuxer back to the start and keeps the

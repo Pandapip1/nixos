@@ -1,7 +1,7 @@
 From a073f325b855bd03f0a711e14d2fe71a6276a30e Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 00:21:20 -0400
-Subject: [PATCH 044/100] input: carry the timeline across a repeat ourselves
+Subject: [PATCH 044/104] input: carry the timeline across a repeat ourselves
 
 Repeating an item in place seeks the demuxer back to the start and keeps
 the clock reference, the decoders and the audio output, so the dates of

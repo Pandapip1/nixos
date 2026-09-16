@@ -1,7 +1,7 @@
 From 2ead709e1f848b7038ce678e633b639fe66fa09f Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:35:47 -0400
-Subject: [PATCH 037/100] input: give the output the lead its device needs
+Subject: [PATCH 037/104] input: give the output the lead its device needs
 
 The clock was rebased so the first sample fell due ten milliseconds out,
 whatever the output was playing to. A device holding two tenths of a

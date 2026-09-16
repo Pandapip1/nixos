@@ -1,7 +1,7 @@
 From 51a3a8715be5df2493109fa67bf51f5eaaff4c48 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 16:29:06 -0400
-Subject: [PATCH 098/100] demux: es: date the first frame after a seek from
+Subject: [PATCH 098/104] demux: es: date the first frame after a seek from
  where the seek landed
 
 The mpeg audio elementary stream demuxer never tells its packetizer that the
