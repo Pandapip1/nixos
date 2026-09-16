@@ -1,7 +1,7 @@
 From 28223339f71d8dffc3eaab3e9e3e64f1cfd2bab8 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:50:54 -0400
-Subject: [PATCH 72/78] packetizer: mpegaudio: let a break cost one frame, not
+Subject: [PATCH 72/79] packetizer: mpegaudio: let a break cost one frame, not
  the rest of the block
 
 The packetizer takes one frame per call and hands what is left of the block

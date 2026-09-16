@@ -1,7 +1,7 @@
 From b8940fa0dc529e8b69346ef242c742f6835abb32 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:52:00 -0400
-Subject: [PATCH 33/78] aout: jump over lateness instead of emptying the output
+Subject: [PATCH 33/79] aout: jump over lateness instead of emptying the output
 
 Falling behind made aout_DecSynchronize() flush the output, throwing away
 a second or more of queued audio - heard as a hole - and leaving the output

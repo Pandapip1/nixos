@@ -1,7 +1,7 @@
 From 87d4a664e232dba194d5f760a9af7ddb5132aae1 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 01:16:39 -0400
-Subject: [PATCH 53/78] input: give the repeat a proper cushion
+Subject: [PATCH 53/79] input: give the repeat a proper cushion
 
 The next pass is asked for once the decoders report empty, and whatever the
 output is still holding at that moment is the whole cushion the demuxer

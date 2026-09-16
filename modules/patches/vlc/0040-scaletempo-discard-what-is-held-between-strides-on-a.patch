@@ -1,7 +1,7 @@
 From 1cc1f633c431a643a98d2d646cbf76a0d554b257 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 20:27:38 -0400
-Subject: [PATCH 40/78] scaletempo: discard what is held between strides on a
+Subject: [PATCH 40/79] scaletempo: discard what is held between strides on a
  flush
 
 The filter keeps up to a queue of audio - fifty milliseconds at the

@@ -1,7 +1,7 @@
 From e46973da97316de678c4f5f181daafb535df3860 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:35:41 -0400
-Subject: [PATCH 36/78] aout: let outputs report the latency of the device
+Subject: [PATCH 36/79] aout: let outputs report the latency of the device
 
 Outputs can estimate how much is queued, but not what the device itself
 adds before any of it is heard. Add an optional latency_get callback for

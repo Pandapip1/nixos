@@ -1,7 +1,7 @@
 From f88e47b33b0d0df0201d1f8a0fcbc614ad2f22ce Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:51:14 -0400
-Subject: [PATCH 74/78] codec: mad: only throw frames away after a break that
+Subject: [PATCH 74/79] codec: mad: only throw frames away after a break that
  could have spoiled them
 
 Three frames are dropped after every discontinuity, whatever the stream. That

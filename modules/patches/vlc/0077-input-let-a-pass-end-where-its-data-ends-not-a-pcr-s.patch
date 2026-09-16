@@ -1,7 +1,7 @@
 From 138fe3739cbba14f71b89e1b9f3776b339f0fc6d Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 14:54:00 -0400
-Subject: [PATCH 77/78] input: let a pass end where its data ends, not a pcr
+Subject: [PATCH 77/79] input: let a pass end where its data ends, not a pcr
  step past the last pcr
 
 The resume point for a repeat is taken from how far the data the demuxer has

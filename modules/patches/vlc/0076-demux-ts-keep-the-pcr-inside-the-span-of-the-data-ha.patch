@@ -1,7 +1,7 @@
 From d838246ca29de126fbfa318c0798592a8fc3894c Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:51:29 -0400
-Subject: [PATCH 76/78] demux: ts: keep the pcr inside the span of the data
+Subject: [PATCH 76/79] demux: ts: keep the pcr inside the span of the data
  handed over
 
 A pcr says when the data reaches the decoder, not when it is heard, and a mux
