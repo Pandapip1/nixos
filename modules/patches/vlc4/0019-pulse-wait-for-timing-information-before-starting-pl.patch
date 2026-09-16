@@ -1,7 +1,7 @@
 From 23ce04593b9df90075028f68c03cfc169e54b1b0 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 22:33:15 -0400
-Subject: [PATCH 19/20] pulse: wait for timing information before starting
+Subject: [PATCH 19/23] pulse: wait for timing information before starting
  playback
 
 The interpolated stream latency is how much sooner than start_date the
@@ -142,3 +142,6 @@ index 6d93631c83..f58f4d47be 100644
      sys->start_date = VLC_TICK_INVALID;
      sys->total_silence_bytes = 0;
      sys->timing_system_ts = VLC_TICK_INVALID;
+-- 
+2.55.0
+

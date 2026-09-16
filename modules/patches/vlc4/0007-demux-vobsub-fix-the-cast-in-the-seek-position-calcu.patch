@@ -1,7 +1,7 @@
 From 0b48facf3acef8f0943aeaf563e8e33ee2a526cb Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:13:22 -0400
-Subject: [PATCH 07/20] demux: vobsub: fix the cast in the seek position
+Subject: [PATCH 07/23] demux: vobsub: fix the cast in the seek position
  calculation
 
     i64 = (vlc_tick_t) f * p_sys->i_length;
@@ -33,3 +33,6 @@ index e05d2e0aad..bf23f37183 100644
              return demux_Control(p_demux, DEMUX_SET_TIME, i64, false);
  
          case DEMUX_SET_NEXT_DEMUX_TIME:
+-- 
+2.55.0
+

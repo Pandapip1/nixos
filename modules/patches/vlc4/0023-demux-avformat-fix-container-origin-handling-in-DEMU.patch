@@ -1,0 +1,62 @@
+From 5c88c1d6eaca7d28b32e2d8d796a397a9f41a3db Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 15 Sep 2026 21:55:48 -0400
+Subject: [PATCH 23/23] demux: avformat: fix container origin handling in
+ DEMUX_SET_TIME
+
+DEMUX_SET_TIME passed the seek target to av_seek_frame() as
+"i64 + i_start_time", leaving i64 itself zero based, but then still
+handed "i64 - i_start_time" to ResetTime(). The subtraction has no
+matching addition, so the value given to ResetTime() is short by the
+container origin. Its two siblings, DEMUX_SET_POSITION and
+DEMUX_SET_SEEKPOINT, are correct precisely because their i64 does
+carry the origin.
+
+The origin used to be folded into i64 up front, so the subtraction was
+right; 0c8fe7c6b5 dropped that assignment and moved the origin into the
+av_seek_frame() argument without touching the ResetTime() call, and
+929f09bfc0 then moved TO_AV_TS() onto the va_arg.
+
+ResetTime() must be given a zero based timestamp: Demux() rebases every
+frame by start_time, so that is the timeline the demuxer emits.
+
+This only shows up where avformat reports a non-zero start_time, which
+is routine for MPEG-TS/PS and some MXF and RTP captures, and is why it
+went unnoticed on MP4 and MKV. Seeking past the origin sets
+ES_OUT_SET_NEXT_DISPLAY_TIME start_time too early, so a precise seek
+quietly degrades to the preceding keyframe and DEMUX_GET_TIME reads low
+until the first PCR corrects it. Seeking below the origin makes the
+argument negative, ResetTime() takes its i_time < 0 path and issues no
+ES_OUT_SET_NEXT_DISPLAY_TIME at all, losing precise seeking entirely -
+for a stream starting at 10s, that is every seek into the first 10s.
+
+Add the origin into i64 up front instead, so all three cases read
+identically and the debug message reports the timestamp actually sought.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/avformat/demux.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/modules/demux/avformat/demux.c b/modules/demux/avformat/demux.c
+index 0a4cfbdca3..1de47aeeca 100644
+--- a/modules/demux/avformat/demux.c
++++ b/modules/demux/avformat/demux.c
+@@ -1170,12 +1170,12 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
+ 
+         case DEMUX_SET_TIME:
+         {
+-            i64 = TO_AV_TS(va_arg( args, vlc_tick_t ));
++            i64 = TO_AV_TS(va_arg( args, vlc_tick_t )) + i_start_time;
+             bool precise = va_arg( args, int );
+ 
+             msg_Warn( p_demux, "DEMUX_SET_TIME: %"PRId64, i64 );
+ 
+-            if( av_seek_frame( p_sys->ic, -1, i64 + i_start_time, AVSEEK_FLAG_BACKWARD ) < 0 )
++            if( av_seek_frame( p_sys->ic, -1, i64, AVSEEK_FLAG_BACKWARD ) < 0 )
+             {
+                 return VLC_EGENERIC;
+             }
+-- 
+2.55.0
+
