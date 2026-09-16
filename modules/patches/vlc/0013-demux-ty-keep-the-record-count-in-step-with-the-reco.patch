@@ -1,7 +1,7 @@
 From 7f4ffdc4344a7d49159483c22d30c086401d676f Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:51:19 -0400
-Subject: [PATCH 13/53] demux: ty: keep the record count in step with the
+Subject: [PATCH 13/55] demux: ty: keep the record count in step with the
  record headers
 
 get_chunk_header() commits the record count to p_sys straight after reading

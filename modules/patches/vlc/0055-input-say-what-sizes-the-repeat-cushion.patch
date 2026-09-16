@@ -1,0 +1,52 @@
+From 193faaa4759c1ac8f2bcdc1f9e799f477d2acd00 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 02:54:29 -0400
+Subject: [PATCH 55/55] input: say what sizes the repeat cushion
+
+A quarter of a second sitting next to a repeat invites two questions - why
+not ask the demuxer, and is it enough - and the answers are measurable, so
+write them down beside it rather than leaving the figure to be argued over
+again.
+
+Stalling the process at the instant the repeat is issued shows the tail to
+be a budget for the stall: forty milliseconds of it carried an eighty
+millisecond stall and dropped audio at a hundred, a quarter of a second
+carried three hundred and dropped at three hundred and fifty, half a second
+carried five hundred. The demuxer restart the cushion is nominally for is
+the small term, so a demuxer hint would parameterise the wrong thing, and
+measuring the last pass would take the size from the passes that came back
+promptly rather than from the one that did not.
+
+The other half is what the figure costs and what caps it. It costs the
+position report, which runs ahead of the sound by whatever is left unplayed,
+and it is capped by the read-ahead, so on a caching smaller than the lead
+the repeat already fires at the end of the file and takes the tail as it
+finds it.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/input/input.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/src/input/input.c b/src/input/input.c
+index d7e3fc619c..0af3384639 100644
+--- a/src/input/input.c
++++ b/src/input/input.c
+@@ -710,7 +710,16 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
+ }
+ 
+ /* How much of the tail the output may still be holding when the next pass is
+- * asked for. */
++ * asked for.
++ *
++ * It is a budget for the stall rather than an estimate of the restart: the
++ * restart is the small term - ogg is reading again in about a millisecond - so
++ * there is nothing a demuxer could advertise that would size this, and taking
++ * it from what the last pass cost would size it from the passes that did not
++ * need it. The read-ahead bounds it from above, so a lead beyond the caching
++ * just takes whatever the tail turns out to be at the end of the file. What it
++ * costs is the position report, which runs ahead of the sound by whatever is
++ * left unplayed. */
+ #define INPUT_REPEAT_LEAD (CLOCK_FREQ / 4)
+ 
+ /**
