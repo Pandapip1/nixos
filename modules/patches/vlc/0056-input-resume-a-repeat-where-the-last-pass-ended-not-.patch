@@ -1,0 +1,159 @@
+From c8cc67d5835893a5e112c1c7ab3ba147a3b481bd Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 03:05:43 -0400
+Subject: [PATCH 56/56] input: resume a repeat where the last pass ended, not a
+ pcr step past it
+
+A repeat in place seeks the demuxer back to the start, and es_out carries the
+new pass on from where the last one stopped. It took that point to be one pcr
+cadence step past the last pcr - which is only where the pass ended when the
+cadence happens to divide the item.
+
+It does not, for the container demuxers. mp4 reads a pcr every 250 ms and its
+last one lands on the end of the item, so the next pass was placed 250 ms
+after it; a program stream, 470 ms; avi, 25 ms. Each of those is a hole of
+exactly that length at every loop, which the output covers by playing silence.
+Measured on a 4 s sweep looped with --repeat on a null sink, gap analysis of
+the capture, two runs each:
+
+    mp4 (alac)     0.575-0.600 s of silence per 15 s run   ->  0.000 s
+    mov (pcm)      0.625 s                                 ->  0.025-0.050 s
+    avi (pcm)      0.075-0.100 s                           ->  0.025 s
+    mkv, webm      already 0.000 s                         ->  0.000 s
+
+Take instead how far the data the demuxer has actually handed over reaches.
+Plenty of demuxers date a block without saying how long it is - wav is one -
+so where the length is missing, the step from the block before it stands in;
+without that the wav path resumes 50 ms early, overlaps what is queued and
+the output answers by jumping, which costs more than the hole did.
+
+The cadence remains the upper bound and the last pcr the lower one, so a
+demuxer whose dates run ahead of its pcr - ts and mpeg-ps both do - is left
+exactly where it was rather than pushed further out.
+
+Restart cost itself was never the problem: the interval from the repeat being
+issued to the first block of the new pass reaching es_out is 0.02-2.5 ms for
+every one of mkv, mp4, mov, avi, ts, ps, flv, webm and asf, against the 250 ms
+the input leaves for it.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/input/es_out.c | 55 +++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 50 insertions(+), 5 deletions(-)
+
+diff --git a/src/input/es_out.c b/src/input/es_out.c
+index ef16b87ea7..deeb8aff01 100644
+--- a/src/input/es_out.c
++++ b/src/input/es_out.c
+@@ -74,6 +74,7 @@ typedef struct
+ 
+     vlc_tick_t i_last_pcr;
+     vlc_tick_t i_pcr_step;
++    vlc_tick_t i_last_end; /* how far along the timeline data has been sent */
+ 
+     vlc_meta_t *p_meta;
+ } es_out_pgrm_t;
+@@ -97,6 +98,7 @@ struct es_out_id_t
+     decoder_t   *p_dec_record;
+ 
+     vlc_tick_t  i_pts_level;
++    vlc_tick_t  i_prev_date; /* date of the block before this one */
+ 
+     /* Fields for Video with CC */
+     struct
+@@ -657,7 +659,10 @@ static void EsOutChangePosition( es_out_t *out, bool b_flush )
+             }
+         }
+         if( b_flush )
++        {
+             p_es->i_pts_level = VLC_TICK_INVALID;
++            p_es->i_prev_date = VLC_TICK_INVALID;
++        }
+     }
+ 
+     /* A repeat carries the timeline straight on: the timestamps the demuxer
+@@ -671,6 +676,7 @@ static void EsOutChangePosition( es_out_t *out, bool b_flush )
+             input_clock_Reset( p_sys->pgrm[i]->p_clock );
+             p_sys->pgrm[i]->i_last_pcr = VLC_TICK_INVALID;
+             p_sys->pgrm[i]->i_pcr_step = 0;
++            p_sys->pgrm[i]->i_last_end = VLC_TICK_INVALID;
+         }
+ 
+         /* A new reference is taken from whatever the demuxer emits next, so
+@@ -722,11 +728,26 @@ static void EsOutRepeatShift( es_out_t *out, es_out_pgrm_t *p_pgrm,
+     if( i_timeline >= p_pgrm->i_last_pcr )
+         return; /* the demuxer carried the timeline across the seek */
+ 
+-    /* Resume one cadence step past the date the last pass stopped at: that
+-     * step is what an accumulator left counting would have added, so the new
+-     * pass takes over exactly where the audio already queued for it ends. */
+-    p_sys->i_repeat_offset += p_pgrm->i_last_pcr + p_pgrm->i_pcr_step
+-                            - i_timeline;
++    /* Resume where the last pass stopped. A cadence step past the last pcr is
++     * a guess at that, and a good one only when the cadence happens to divide
++     * the item: mp4 reads a pcr every 250 ms and avi every 25 ms, and each of
++     * those was a hole of exactly its own cadence at every loop, with the
++     * output playing silence across the difference.
++     *
++     * The data the demuxer has already handed over says where the pass really
++     * ended, so take that when it is nearer. Never take it further out than
++     * the cadence: a demuxer whose dates run ahead of its pcr would otherwise
++     * push the next pass past a hole rather than close one, and never nearer
++     * than the pcr itself, which is ground already covered. */
++    const vlc_tick_t i_cadence = p_pgrm->i_last_pcr + p_pgrm->i_pcr_step;
++    vlc_tick_t i_resume = p_pgrm->i_last_end;
++
++    if( i_resume <= VLC_TICK_INVALID || i_resume > i_cadence )
++        i_resume = i_cadence;
++    if( i_resume < p_pgrm->i_last_pcr )
++        i_resume = p_pgrm->i_last_pcr;
++
++    p_sys->i_repeat_offset += i_resume - i_timeline;
+ 
+     msg_Dbg( p_sys->p_input, "repeat: the demuxer restarted its timeline, "
+              "carrying it on %"PRId64" ms further",
+@@ -1174,6 +1195,7 @@ static es_out_pgrm_t *EsOutProgramAdd( es_out_t *out, int i_group )
+     p_pgrm->b_scrambled = false;
+     p_pgrm->i_last_pcr = VLC_TICK_INVALID;
+     p_pgrm->i_pcr_step = 0;
++    p_pgrm->i_last_end = VLC_TICK_INVALID;
+     p_pgrm->p_meta = NULL;
+     p_pgrm->p_clock = input_clock_New( p_sys->i_rate );
+     if( !p_pgrm->p_clock )
+@@ -1719,6 +1741,7 @@ static es_out_id_t *EsOutAddSlave( es_out_t *out, const es_format_t *fmt, es_out
+     es->cc.i_bitmap = 0;
+     es->p_master = p_master;
+     es->i_pts_level = VLC_TICK_INVALID;
++    es->i_prev_date = VLC_TICK_INVALID;
+ 
+     TAB_APPEND( p_sys->i_es, p_sys->es, es );
+ 
+@@ -2176,6 +2199,28 @@ static int EsOutSend( es_out_t *out, es_out_id_t *es, block_t *p_block )
+             p_block->i_pts += p_sys->i_repeat_offset;
+     }
+ 
++    /* How far along the timeline data has been handed over, which is where a
++     * repeat has to carry the next pass on from. Plenty of demuxers date a
++     * block without saying how long it is; the step from the block before it
++     * is the same thing measured a block late. */
++    if( es->p_pgrm != NULL )
++    {
++        const vlc_tick_t i_date = p_block->i_dts > VLC_TICK_INVALID ?
++                                  p_block->i_dts : p_block->i_pts;
++        if( i_date > VLC_TICK_INVALID )
++        {
++            vlc_tick_t i_len = p_block->i_length;
++
++            if( i_len <= 0 && es->i_prev_date > VLC_TICK_INVALID
++             && i_date > es->i_prev_date )
++                i_len = i_date - es->i_prev_date;
++
++            if( i_date + i_len > es->p_pgrm->i_last_end )
++                es->p_pgrm->i_last_end = i_date + i_len;
++            es->i_prev_date = i_date;
++        }
++    }
++
+     /* Drop all ESes except the video one in case of next-frame */
+     if( p_sys->p_next_frame_es != NULL && p_sys->p_next_frame_es != es )
+     {
