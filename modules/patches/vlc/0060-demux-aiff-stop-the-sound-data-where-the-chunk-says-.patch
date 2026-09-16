@@ -1,7 +1,7 @@
 From 5044dd45eeb939e0f3b670c54b329cffd70a1bff Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 02:58:03 -0400
-Subject: [PATCH 60/93] demux: aiff: stop the sound data where the chunk says
+Subject: [PATCH 60/97] demux: aiff: stop the sound data where the chunk says
  it does
 
 The SSND chunk's size covers the offset and block size fields that come

@@ -1,0 +1,76 @@
+From 391523093c39e23ee7c5bf145059d10447e4f9b9 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 16:05:29 -0400
+Subject: [PATCH 97/97] input: name the input and decoder threads
+
+Which thread is missing its deadline is a question /proc answers per
+thread - schedstat gives the time each spent waiting on a run queue -
+but only if the threads can be told apart, and they all show up as
+"vlc". Naming the input thread and the decoder threads, the audio one
+distinctly from the video one, is what made the scheduling measurements
+in this area possible: it is how the audio decoder thread was shown to
+be the one that starves, at 44 ms of run-queue wait per wakeup under
+load, while the demuxer's delay changes nothing.
+
+4.0 names threads generally (a45953d02f); this is the two that matter,
+for 3.0, on Linux only.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src/input/decoder.c | 10 ++++++++++
+ src/input/input.c   |  7 +++++++
+ 2 files changed, 17 insertions(+)
+
+diff --git a/src/input/decoder.c b/src/input/decoder.c
+index 481ba403f6..4b41dce443 100644
+--- a/src/input/decoder.c
++++ b/src/input/decoder.c
+@@ -30,6 +30,9 @@
+ # include "config.h"
+ #endif
+ #include <assert.h>
++#ifdef __linux__
++# include <sys/prctl.h>
++#endif
+ 
+ #include <vlc_common.h>
+ 
+@@ -1631,6 +1634,13 @@ static void *DecoderThread( void *p_data )
+     decoder_owner_sys_t *p_owner = p_dec->p_owner;
+     bool paused = false;
+ 
++#ifdef __linux__
++    /* So that per-thread scheduling can be read out of /proc. */
++    prctl( PR_SET_NAME,
++           p_dec->fmt_out.i_cat == AUDIO_ES ? "vlc-adec" : "vlc-vdec",
++           0, 0, 0 );
++#endif
++
+     /* The decoder's main loop */
+     vlc_fifo_Lock( p_owner->p_fifo );
+     vlc_fifo_CleanupPush( p_owner->p_fifo );
+diff --git a/src/input/input.c b/src/input/input.c
+index 022199ea90..34c6545a07 100644
+--- a/src/input/input.c
++++ b/src/input/input.c
+@@ -33,6 +33,9 @@
+ 
+ #include <limits.h>
+ #include <assert.h>
++#ifdef __linux__
++# include <sys/prctl.h>
++#endif
+ #include <sys/stat.h>
+ 
+ #include "input_internal.h"
+@@ -492,6 +495,10 @@ static void *Run( void *data )
+     input_thread_private_t *priv = data;
+     input_thread_t *p_input = &priv->input;
+ 
++#ifdef __linux__
++    prctl( PR_SET_NAME, "vlc-input", 0, 0, 0 );
++#endif
++
+     vlc_interrupt_set(&priv->interrupt);
+ 
+     if( !Init( p_input ) )

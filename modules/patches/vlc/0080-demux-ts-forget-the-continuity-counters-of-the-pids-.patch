@@ -1,7 +1,7 @@
 From 40c1fbdb4f1d744811a7a10f83303cd2821a762e Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 15:51:19 -0400
-Subject: [PATCH 80/93] demux: ts: forget the continuity counters of the pids
+Subject: [PATCH 80/97] demux: ts: forget the continuity counters of the pids
  that have their own slot
 
 ReadyQueuesPostSeek() forgets the counters by walking ts_pid_Next(), which

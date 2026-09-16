@@ -1,7 +1,7 @@
 From 4e61b982640e22ff9af58000c92fcdcd81be89e6 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 15:55:54 -0400
-Subject: [PATCH 84/93] input: resume a repeat where the content ends, not
+Subject: [PATCH 84/97] input: resume a repeat where the content ends, not
  where the dates do
 
 A demuxer dates the blocks it hands over but does not always measure them, so
