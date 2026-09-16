@@ -1,7 +1,7 @@
 From 6d6aa3345c9e2af191658a4120298098975e276d Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 03:29:23 -0400
-Subject: [PATCH 62/76] demux: xa: say how long each block is
+Subject: [PATCH 62/77] demux: xa: say how long each block is
 
 The demuxer reads a fixed number of frames at a time and advances its
 date by however many it got, so the last read - short of a full block

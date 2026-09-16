@@ -1,7 +1,7 @@
 From 719122a0c970d467229e3daa716674556e6ee7bc Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 23:02:27 -0400
-Subject: [PATCH 31/76] input: do not drain the output when repeating in place
+Subject: [PATCH 31/77] input: do not drain the output when repeating in place
 
 Draining is for an end that is one. A repeat carries straight on, and a
 drain plays the output empty and then stops it, so the next pass has to

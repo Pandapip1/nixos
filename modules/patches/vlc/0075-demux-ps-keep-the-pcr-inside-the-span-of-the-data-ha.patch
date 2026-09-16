@@ -1,7 +1,7 @@
 From 74d3f8ccd9694f44de7b304beb0a8dfa22e6bac7 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:51:14 -0400
-Subject: [PATCH 75/76] demux: ps: keep the pcr inside the span of the data
+Subject: [PATCH 75/77] demux: ps: keep the pcr inside the span of the data
  handed over
 
 A pack scr says when the pack reaches the decoder, not when what is in it is

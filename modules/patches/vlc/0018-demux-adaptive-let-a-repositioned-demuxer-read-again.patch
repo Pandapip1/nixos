@@ -1,7 +1,7 @@
 From 15647803276b002f589efe1b35e2f7166c883c61 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:30:44 -0400
-Subject: [PATCH 18/76] demux: adaptive: let a repositioned demuxer read again
+Subject: [PATCH 18/77] demux: adaptive: let a repositioned demuxer read again
 
 resetForNewPosition() has two paths. The one that rebuilds the demuxer
 tells the ES output it is no longer at the end; the one that merely

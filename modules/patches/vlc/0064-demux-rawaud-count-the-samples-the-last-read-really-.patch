@@ -1,7 +1,7 @@
 From 298bbf89acb00bbe577fe12a3ec798495ad5325d Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 03:33:17 -0400
-Subject: [PATCH 64/76] demux: rawaud: count the samples the last read really
+Subject: [PATCH 64/77] demux: rawaud: count the samples the last read really
  brought back
 
 The last read returns whatever is left of the file, which is short of a
