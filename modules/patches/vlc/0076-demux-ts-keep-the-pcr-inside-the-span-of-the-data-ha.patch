@@ -1,0 +1,169 @@
+From d838246ca29de126fbfa318c0798592a8fc3894c Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 04:51:29 -0400
+Subject: [PATCH 76/76] demux: ts: keep the pcr inside the span of the data
+ handed over
+
+A pcr says when the data reaches the decoder, not when it is heard, and a mux
+puts the whole of its buffering model between the two: ffmpeg leaves 700 ms of
+it at both ends of a transport stream. The pass this demuxer describes on the
+clock therefore begins 700 ms before its own first frame and ends 700 ms
+before its own last one.
+
+The two leads cancel in the length of a pass, so a repeat lands close enough;
+what they do not cancel in is where the pass starts. The new pass opens its
+clock 700 ms behind the audio the last pass has already queued, es_out reads
+that as the pcr arriving late and widens the jitter allowance to match, by a
+further 150 ms at every loop with no end to it, and the output plays a quarter
+of a second of silence across each seam.
+
+Keep the pcr for pacing, seeking and the times this demuxer reports, but do
+not tell the clock it is anywhere the data has not reached: never before the
+first date handed over, and, at the end of the stream, not short of the last
+one either.
+
+Measured on a 4 s sweep looped with --repeat on a null sink, silence per loop
+in the capture, two runs each:
+
+    before   0.220 / 0.250 / 0.255 s   with the jitter allowance climbing
+                                       1000 -> 1734 ms over three loops
+    after    0.015-0.020 s per loop    and no late pcr reported at all
+
+The same item with video alongside the audio loops at 0.015-0.020 s too, and
+the 60 ms marker at the head of each pass is heard on all four passes.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/demux/mpeg/ts.c                 | 52 ++++++++++++++++++++++++-
+ modules/demux/mpeg/ts_streams.c         |  3 ++
+ modules/demux/mpeg/ts_streams_private.h |  5 +++
+ 3 files changed, 59 insertions(+), 1 deletion(-)
+
+diff --git a/modules/demux/mpeg/ts.c b/modules/demux/mpeg/ts.c
+index f5972af334..5a89f51709 100644
+--- a/modules/demux/mpeg/ts.c
++++ b/modules/demux/mpeg/ts.c
+@@ -196,6 +196,7 @@ static block_t * ProcessTSPacket( demux_t *p_demux, ts_pid_t *pid, block_t *p_pk
+ static bool GatherSectionsData( demux_t *p_demux, ts_pid_t *, block_t *, size_t );
+ static bool GatherPESData( demux_t *p_demux, ts_pid_t *, block_t *, size_t );
+ static void ProgramSetPCR( demux_t *p_demux, ts_pmt_t *p_prg, vlc_tick_t i_pcr );
++static void SetEndPCR( demux_t *p_demux );
+ 
+ static block_t* ReadTSPacket( demux_t *p_demux );
+ static int SeekToTime( demux_t *p_demux, const ts_pmt_t *, vlc_tick_t time );
+@@ -643,6 +644,7 @@ static int Demux( demux_t *p_demux )
+         block_t     *p_pkt;
+         if( !(p_pkt = ReadTSPacket( p_demux )) )
+         {
++            SetEndPCR( p_demux );
+             return VLC_DEMUXER_EOF;
+         }
+ 
+@@ -1435,6 +1437,21 @@ static void SendDataChain( demux_t *p_demux, ts_es_t *p_es, block_t *p_chain )
+         p_block->p_next = NULL;
+ 
+         ts_es_t *p_es_send = p_es;
++
++        if( p_es->fmt.i_cat == AUDIO_ES || p_es->fmt.i_cat == VIDEO_ES )
++        {
++            const vlc_tick_t i_dts = (p_block->i_dts > VLC_TICK_INVALID)
++                                   ? p_block->i_dts : p_block->i_pts;
++            ts_pmt_t *p_pmt = p_es->p_program;
++            if( i_dts > VLC_TICK_INVALID && p_pmt )
++            {
++                if( p_pmt->i_first_sent_dts <= VLC_TICK_INVALID )
++                    p_pmt->i_first_sent_dts = i_dts;
++                if( i_dts > p_pmt->i_last_sent_dts )
++                    p_pmt->i_last_sent_dts = i_dts;
++            }
++        }
++
+         if( p_es_send->i_next_block_flags )
+         {
+             p_block->i_flags |= p_es_send->i_next_block_flags;
+@@ -1920,6 +1937,8 @@ static void ReadyQueuesPostSeek( demux_t *p_demux )
+             FlushESBuffer( pid->u.p_stream );
+         }
+         p_pmt->pcr.i_current = VLC_TICK_INVALID;
++        p_pmt->i_last_sent_dts = VLC_TICK_INVALID;
++        p_pmt->i_last_sent_pcr = VLC_TICK_INVALID;
+     }
+ }
+ 
+@@ -2238,7 +2257,22 @@ static void ProgramSetPCR( demux_t *p_demux, ts_pmt_t *p_pmt, vlc_tick_t i_pcr )
+ 
+     if ( p_sys->i_pmt_es )
+     {
+-        es_out_Control( p_demux->out, ES_OUT_SET_GROUP_PCR, p_pmt->i_number, i_pcr );
++        /* A pcr says when the data reaches the decoder, not when it is heard,
++         * and a mux puts the whole of its buffering model between the two -
++         * 700 ms at both ends of a transport stream ffmpeg wrote. Described
++         * that way a pass begins before its own first frame and ends before
++         * its own last one, so a repeat, placing the next pass where this one
++         * stopped, starts it on ground the last pass has already covered and
++         * the clock reads late for the rest of the pass. Keep the pcr for
++         * pacing and seeking, but never tell the clock it is somewhere the
++         * data has not reached. */
++        vlc_tick_t i_es_pcr = i_pcr;
++        if( p_pmt->i_first_sent_dts > VLC_TICK_INVALID &&
++            i_es_pcr < p_pmt->i_first_sent_dts )
++            i_es_pcr = p_pmt->i_first_sent_dts;
++        p_pmt->i_last_sent_pcr = i_es_pcr;
++
++        es_out_Control( p_demux->out, ES_OUT_SET_GROUP_PCR, p_pmt->i_number, i_es_pcr );
+         /* growing files/named fifo handling */
+         if( p_sys->b_access_control == false &&
+             vlc_stream_Tell( p_sys->stream ) > p_pmt->i_last_dts_byte )
+@@ -2254,6 +2288,22 @@ static void ProgramSetPCR( demux_t *p_demux, ts_pmt_t *p_pmt, vlc_tick_t i_pcr )
+     }
+ }
+ 
++static void SetEndPCR( demux_t *p_demux )
++{
++    demux_sys_t *p_sys = p_demux->p_sys;
++
++    if( unlikely(GetPID(p_sys, 0)->type != TYPE_PAT) )
++        return;
++
++    ts_pat_t *p_pat = GetPID(p_sys, 0)->u.p_pat;
++    for( int i = 0; i < p_pat->programs.i_size; i++ )
++    {
++        ts_pmt_t *p_pmt = p_pat->programs.p_elems[i]->u.p_pmt;
++        if( p_pmt->i_last_sent_dts > p_pmt->i_last_sent_pcr )
++            ProgramSetPCR( p_demux, p_pmt, p_pmt->i_last_sent_dts );
++    }
++}
++
+ static int IsVideoEnd( ts_pid_t *p_pid )
+ {
+     /* jump to near end of PES packet */
+diff --git a/modules/demux/mpeg/ts_streams.c b/modules/demux/mpeg/ts_streams.c
+index d850e3c063..b830d8cda5 100644
+--- a/modules/demux/mpeg/ts_streams.c
++++ b/modules/demux/mpeg/ts_streams.c
+@@ -124,6 +124,9 @@ ts_pmt_t *ts_pmt_New( demux_t *p_demux )
+ 
+     pmt->i_last_dts = VLC_TICK_INVALID;
+     pmt->i_last_dts_byte = 0;
++    pmt->i_first_sent_dts = VLC_TICK_INVALID;
++    pmt->i_last_sent_dts = VLC_TICK_INVALID;
++    pmt->i_last_sent_pcr = VLC_TICK_INVALID;
+ 
+     pmt->p_atsc_si_basepid      = NULL;
+     pmt->p_si_sdt_pid = NULL;
+diff --git a/modules/demux/mpeg/ts_streams_private.h b/modules/demux/mpeg/ts_streams_private.h
+index c6a5ab0827..5c730653e0 100644
+--- a/modules/demux/mpeg/ts_streams_private.h
++++ b/modules/demux/mpeg/ts_streams_private.h
+@@ -76,6 +76,11 @@ struct ts_pmt_t
+     vlc_tick_t i_last_dts;
+     uint64_t i_last_dts_byte;
+ 
++    /* extent of what has actually been handed over */
++    vlc_tick_t i_first_sent_dts; /* kept across a seek: the stream's own start */
++    vlc_tick_t i_last_sent_dts;
++    vlc_tick_t i_last_sent_pcr;
++
+     /* ARIB specific */
+     struct
+     {

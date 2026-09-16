@@ -1,0 +1,50 @@
+From 28223339f71d8dffc3eaab3e9e3e64f1cfd2bab8 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Wed, 16 Sep 2026 04:50:54 -0400
+Subject: [PATCH 72/76] packetizer: mpegaudio: let a break cost one frame, not
+ the rest of the block
+
+The packetizer takes one frame per call and hands what is left of the block
+back to its caller, which offers it again on the next call. A block that
+arrived carrying a discontinuity therefore arrives carrying it every time,
+and each time the parser is reset and its bytestream emptied. The second
+reset finds the block's timestamp already spent - it is cleared once used, so
+that no two frames claim it - so the remainder is dropped for want of one and
+the parser waits for the next block to be dated.
+
+A block off a transport or program stream holds three or four mpeg audio
+frames, so a hundred milliseconds of the pass went that way at every loop of
+a repeat, with the first frames of the item among them. Clear the flag once
+it has been acted on: the break belongs to the seam the block arrived on, not
+to the rest of the block, which is continuous with itself.
+
+Measured on a 4 s item looped with --repeat on a null sink, silence per loop
+in the capture, ts and mpeg-ps carrying mp2:
+
+    ts        0.315 / 0.505 / 0.505 s  ->  0.220 / 0.250 / 0.255 s
+    mpeg-ps   0.475 / 0.665 / 0.655 s  ->  0.370 / 0.560 / 0.555 s
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ modules/packetizer/mpegaudio.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/modules/packetizer/mpegaudio.c b/modules/packetizer/mpegaudio.c
+index 0769b9a5fc..3e201ac001 100644
+--- a/modules/packetizer/mpegaudio.c
++++ b/modules/packetizer/mpegaudio.c
+@@ -307,6 +307,14 @@ static block_t *DecodeBlock( decoder_t *p_dec, block_t **pp_block )
+                 block_Release( p_block );
+                 return NULL;
+             }
++
++            /* What is left of this block once a frame has been taken out of
++             * it comes straight back here, and the break belongs to the seam
++             * the block arrived on, not to the rest of the block: leaving the
++             * flag set makes every following frame reset the parser again,
++             * and the second reset arrives with the timestamp already spent,
++             * so the remainder of the block is dropped for want of one. */
++            p_block->i_flags &= ~BLOCK_FLAG_DISCONTINUITY;
+         }
+ 
+         if( !date_Get( &p_sys->end_date ) && p_block->i_pts <= VLC_TICK_INVALID )
