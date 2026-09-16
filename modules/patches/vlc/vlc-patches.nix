@@ -14,7 +14,7 @@ in
   nixpkgs.overlays = [
     (_: prev: {
       vlc = prev.vlc.overrideAttrs (prevAttrs: {
-        # Sent upstream against 3.0.x. Six groups:
+        # Sent upstream against 3.0.x. Seven groups:
         #
         # 0001-0003 aout. Drift correction in the audio core is applied by
         # resampling, which shifts pitch as well as speed. The accumulated
@@ -60,6 +60,14 @@ in
         # scaletempo bugs found on the way are fixed here: its first stride
         # faded in from the zeroed overlap buffer, and it kept audio across a
         # flush.
+        #
+        # 0041-0042 seek stale timeline state. A timestamp offset that a seek
+        # has to re-establish and does not. ogg carried its chained stream
+        # offset into what it reported, walking the reported time past the end
+        # of the file on every repeat, and skipped the hold that dates a page
+        # whose packets carry no granule, silencing a second at every loop.
+        # mkv kept the chapter offset of an ordered edition on the timestamps
+        # of whatever non ordered edition was selected after it.
         patches = (prevAttrs.patches or [ ]) ++ patches;
       });
     })

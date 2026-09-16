@@ -1,7 +1,7 @@
 From 460b8d833f062bbbbf812bfd1b3534c73c1f6423 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 01:18:13 -0400
-Subject: [PATCH 24/40] input: do not discard decoded data when repeating an
+Subject: [PATCH 24/42] input: do not discard decoded data when repeating an
  item
 
 A repeat is a seek back to the start, so it went through the ordinary seek
