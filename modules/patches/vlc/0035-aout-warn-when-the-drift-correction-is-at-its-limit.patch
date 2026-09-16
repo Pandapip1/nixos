@@ -1,7 +1,7 @@
 From 72ea0928bc2f669a80301e95e724ee4c1755ea71 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 22:17:33 -0400
-Subject: [PATCH 35/41] aout: warn when the drift correction is at its limit
+Subject: [PATCH 35/44] aout: warn when the drift correction is at its limit
 
 At the bound the correction has stopped answering the drift: it is giving
 everything it is allowed to and the drift is still going the wrong way.

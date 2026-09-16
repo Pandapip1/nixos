@@ -1,7 +1,7 @@
 From b6c218cbc9ac824c2c161d8f8864effe42b67eaa Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:56:21 -0400
-Subject: [PATCH 41/41] aout: retune the drift correction for the wider bound
+Subject: [PATCH 41/44] aout: retune the drift correction for the wider bound
 
 The gains were derived when the correction was bounded at half a percent
 of speed. Against the five percent time scaling allows, they leave the

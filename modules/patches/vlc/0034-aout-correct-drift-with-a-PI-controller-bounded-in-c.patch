@@ -1,7 +1,7 @@
 From b13dd80f3242e01fe84ce03fbb408ac60ecf6036 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:53:16 -0400
-Subject: [PATCH 34/41] aout: correct drift with a PI controller, bounded in
+Subject: [PATCH 34/44] aout: correct drift with a PI controller, bounded in
  cents
 
 The correction was a relay: step the rate until the drift halved, then

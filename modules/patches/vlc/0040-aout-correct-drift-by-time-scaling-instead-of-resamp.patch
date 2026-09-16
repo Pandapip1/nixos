@@ -1,7 +1,7 @@
 From 738b659473ba9bdc1cac0947365dc66c4e39fabf Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:53:13 -0400
-Subject: [PATCH 40/41] aout: correct drift by time scaling instead of
+Subject: [PATCH 40/44] aout: correct drift by time scaling instead of
  resampling
 
 Resampling corrects drift by playing the stream at a different rate,

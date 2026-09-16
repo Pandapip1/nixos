@@ -1,7 +1,7 @@
 From 4490ab85a707058cb6a48fd1b05c505669c0639c Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 20:05:51 -0400
-Subject: [PATCH 43/43] scaletempo: do not log every change of scale
+Subject: [PATCH 43/44] scaletempo: do not log every change of scale
 
 Correcting drift varies the scale continuously - a couple of hundred
 changes a second of audio - and each one printed a line.
