@@ -1,7 +1,7 @@
-From a267e463a02be75bf402d920bc593e85b0fb9d1d Mon Sep 17 00:00:00 2001
+From 460b8d833f062bbbbf812bfd1b3534c73c1f6423 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 01:18:13 -0400
-Subject: [PATCH 24/44] input: do not discard decoded data when repeating an
+Subject: [PATCH 24/40] input: do not discard decoded data when repeating an
  item
 
 A repeat is a seek back to the start, so it went through the ordinary seek
@@ -18,15 +18,15 @@ decoders, and use it when the seek came from MainLoopTryRepeat().
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- src/input/es_out.c           | 30 +++++++++++++++++++++++-------
+ src/input/es_out.c           | 26 +++++++++++++++++++-------
  src/input/es_out.h           |  5 +++++
  src/input/es_out_timeshift.c | 10 ++++++++++
  src/input/input.c            | 13 +++++++++++--
  src/input/input_internal.h   |  2 ++
- 5 files changed, 51 insertions(+), 9 deletions(-)
+ 5 files changed, 47 insertions(+), 9 deletions(-)
 
 diff --git a/src/input/es_out.c b/src/input/es_out.c
-index d64ce58ec2..2477c45b46 100644
+index d64ce58ec2..4a4bd2a030 100644
 --- a/src/input/es_out.c
 +++ b/src/input/es_out.c
 @@ -199,7 +199,7 @@ static void EsDeleteInfo( es_out_t *, es_out_id_t *es );
@@ -56,23 +56,20 @@ index d64ce58ec2..2477c45b46 100644
  {
      es_out_sys_t      *p_sys = out->p_sys;
  
-@@ -628,7 +628,14 @@ static void EsOutChangePosition( es_out_t *out )
+@@ -628,7 +628,11 @@ static void EsOutChangePosition( es_out_t *out )
      {
          es_out_id_t *p_es = p_sys->es[i];
  
 -        if( p_es->p_dec != NULL )
-+        /* A repeat of the same item is a seek back to the start, but unlike an
-+         * ordinary seek there is nothing to discard: what is already decoded
-+         * is still wanted, and it is exactly what covers the gap while the
-+         * demuxer starts over. Flushing it here empties the audio output, the
-+         * sink then runs dry, and on PipeWire a drained sink is parked and has
-+         * to be resumed - which is audible. Keep the decoders running and let
-+         * the queued data play out underneath the new pass. */
++        /* A repeat has nothing to discard: what is already decoded is what
++         * covers the gap while the demuxer starts over. Flushing it empties
++         * the audio output, and a sink left to run dry is parked and has to be
++         * resumed - which is audible. */
 +        if( p_es->p_dec != NULL && b_flush )
          {
              input_DecoderFlush( p_es->p_dec );
              if( !p_sys->b_buffering )
-@@ -638,7 +645,8 @@ static void EsOutChangePosition( es_out_t *out )
+@@ -638,7 +642,8 @@ static void EsOutChangePosition( es_out_t *out )
                      input_DecoderStartWait( p_es->p_dec_record );
              }
          }
@@ -82,7 +79,7 @@ index d64ce58ec2..2477c45b46 100644
      }
  
      for( int i = 0; i < p_sys->i_pgrm; i++ ) {
-@@ -2573,7 +2581,7 @@ static int EsOutControlLocked( es_out_t *out, int i_query, va_list args )
+@@ -2573,7 +2578,7 @@ static int EsOutControlLocked( es_out_t *out, int i_query, va_list args )
  
      case ES_OUT_RESET_PCR:
          msg_Dbg( p_sys->p_input, "ES_OUT_RESET_PCR called" );
@@ -91,7 +88,7 @@ index d64ce58ec2..2477c45b46 100644
          return VLC_SUCCESS;
  
      case ES_OUT_SET_GROUP:
-@@ -2813,11 +2821,19 @@ static int EsOutControlLocked( es_out_t *out, int i_query, va_list args )
+@@ -2813,11 +2818,18 @@ static int EsOutControlLocked( es_out_t *out, int i_query, va_list args )
          const vlc_tick_t i_date = va_arg( args, vlc_tick_t );
  
          assert( i_date == -1 );
@@ -103,9 +100,8 @@ index d64ce58ec2..2477c45b46 100644
  
 +    case ES_OUT_SET_TIME_REPEAT:
 +        /* Same as ES_OUT_SET_TIME, but for a seek back to the start that
-+         * repeats the item rather than moving elsewhere in it. Nothing already
-+         * decoded needs discarding, and keeping it is what makes the loop
-+         * inaudible. */
++         * repeats the item: keeping what is already decoded is what makes the
++         * loop inaudible. */
 +        EsOutChangePosition( out, false );
 +        return VLC_SUCCESS;
 +
@@ -157,10 +153,10 @@ index 877706c659..49eb4742b5 100644
      {
          const vlc_tick_t i_date = (vlc_tick_t)va_arg( args, vlc_tick_t );
 diff --git a/src/input/input.c b/src/input/input.c
-index 20e804c56c..eb30a53409 100644
+index 7d5b2941a4..bfc2e2f7bc 100644
 --- a/src/input/input.c
 +++ b/src/input/input.c
-@@ -662,6 +662,7 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
+@@ -654,6 +654,7 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
          var_SetInteger( p_input, "input-repeat", i_repeat );
      }
      priv->i_repeat_pending++;
@@ -168,7 +164,7 @@ index 20e804c56c..eb30a53409 100644
  
      /* Seek to start title/seekpoint */
      val.i_int = input_priv(p_input)->master->i_title_start -
-@@ -2070,7 +2071,11 @@ static bool Control( input_thread_t *p_input,
+@@ -2062,7 +2063,11 @@ static bool Control( input_thread_t *p_input,
              else if( f_pos > 1.f )
                  f_pos = 1.f;
              /* Reset the decoders states and clock sync (before calling the demuxer */
@@ -181,7 +177,7 @@ index 20e804c56c..eb30a53409 100644
              if( demux_Control( input_priv(p_input)->master->p_demux, DEMUX_SET_POSITION,
                                 (double) f_pos, !input_priv(p_input)->b_fast_seek ) )
              {
-@@ -2104,7 +2109,11 @@ static bool Control( input_thread_t *p_input,
+@@ -2096,7 +2101,11 @@ static bool Control( input_thread_t *p_input,
                  i_time = 0;
  
              /* Reset the decoders states and clock sync (before calling the demuxer */

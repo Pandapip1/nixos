@@ -1,7 +1,7 @@
-From 49a65247661550da4e6144e8d07b5881f3af8570 Mon Sep 17 00:00:00 2001
+From df530efcaffdc83c317fe61f5a98793be546cda0 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 23:19:56 -0400
-Subject: [PATCH 32/44] input: let a repeat keep what the output is holding
+Subject: [PATCH 32/40] input: let a repeat keep what the output is holding
 
 The first PCR of a repeated pass reads late because the demuxer had to seek
 to produce it, and es_out answers a late PCR by rebuffering - which throws
@@ -18,33 +18,31 @@ per run before.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- src/audio_output/dec.c | 11 +++++++++--
- src/input/es_out.c     | 16 ++++++++++++++++
- 2 files changed, 25 insertions(+), 2 deletions(-)
+ src/audio_output/dec.c | 11 +++++++----
+ src/input/es_out.c     | 14 ++++++++++++++
+ 2 files changed, 21 insertions(+), 4 deletions(-)
 
 diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
-index 4a71f0ca48..732596699c 100644
+index 2422123c88..d7954c8ed0 100644
 --- a/src/audio_output/dec.c
 +++ b/src/audio_output/dec.c
-@@ -421,10 +421,16 @@ lost:
+@@ -422,10 +422,12 @@ lost:
  }
  
  /**
 - * Whether everything handed to the output has been played.
 + * Whether what was handed to the output has been played, or is about to be.
   *
-  * For pacing on the end of playback without draining. A drain also stops the
-  * output, which is the wrong thing to do when more is about to follow it.
-+ *
-+ * Reported a little before the end rather than at it. Whoever is waiting has
-+ * something to do before the sound it produces reaches the output - demux,
-+ * decode - and waiting for the last sample to be played first means the output
-+ * is empty for exactly as long as that takes. The lead costs nothing: what
-+ * follows is queued behind what is left, not in place of it.
+- * For pacing on the end of playback without draining. A drain also stops the
+- * output, which is the wrong thing to do when more is about to follow it.
++ * For pacing on the end of playback without draining, which would also stop
++ * the output. Reported an AOUT_MAX_PTS_ADVANCE early: whoever is waiting has
++ * to demux and decode before any sound reaches the output, and what follows
++ * is queued behind what is left rather than in place of it.
   */
  bool aout_DecIsEmpty (audio_output_t *aout)
  {
-@@ -432,7 +438,8 @@ bool aout_DecIsEmpty (audio_output_t *aout)
+@@ -433,7 +435,8 @@ bool aout_DecIsEmpty (audio_output_t *aout)
      bool empty;
  
      aout_OutputLock (aout);
@@ -55,7 +53,7 @@ index 4a71f0ca48..732596699c 100644
      return empty;
  }
 diff --git a/src/input/es_out.c b/src/input/es_out.c
-index 38da54b796..fc6d8fa216 100644
+index 95cb06edd2..ffaac46e3d 100644
 --- a/src/input/es_out.c
 +++ b/src/input/es_out.c
 @@ -171,6 +171,7 @@ struct es_out_sys_t
@@ -74,7 +72,7 @@ index 38da54b796..fc6d8fa216 100644
      p_sys->i_preroll_end = -1;
      p_sys->i_prev_stream_level = -1;
  
-@@ -2569,6 +2571,19 @@ static int EsOutControlLocked( es_out_t *out, int i_query, va_list args )
+@@ -2565,6 +2567,17 @@ static int EsOutControlLocked( es_out_t *out, int i_query, va_list args )
                      for( int i = 0; i < p_sys->i_pgrm; i++ )
                        input_clock_Reset( p_sys->pgrm[i]->p_clock );
                  }
@@ -82,10 +80,8 @@ index 38da54b796..fc6d8fa216 100644
 +                {
 +                    /* The first PCR of a repeated pass reads late because the
 +                     * demuxer had to seek to produce it, not because playback
-+                     * is behind. Rebuffering for that throws away the audio
-+                     * that was deliberately kept to cover the loop, and stops
-+                     * the output, which is heard. Take the jitter and carry
-+                     * on. */
++                     * is behind. Rebuffering would throw away the audio kept
++                     * to cover the loop. */
 +                    msg_Dbg( p_sys->p_input,
 +                             "ES_OUT_SET_(GROUP_)PCR is late after a repeat "
 +                             "(pts_delay increased to %d ms)",
@@ -94,9 +90,9 @@ index 38da54b796..fc6d8fa216 100644
                  else
                  {
                      msg_Err( p_sys->p_input,
-@@ -2841,6 +2856,7 @@ static int EsOutControlLocked( es_out_t *out, int i_query, va_list args )
-          * decoded needs discarding, and keeping it is what makes the loop
-          * inaudible. */
+@@ -2836,6 +2849,7 @@ static int EsOutControlLocked( es_out_t *out, int i_query, va_list args )
+          * repeats the item: keeping what is already decoded is what makes the
+          * loop inaudible. */
          EsOutChangePosition( out, false );
 +        p_sys->b_repeated = true;
          return VLC_SUCCESS;

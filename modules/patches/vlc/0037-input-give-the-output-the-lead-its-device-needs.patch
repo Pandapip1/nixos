@@ -1,7 +1,7 @@
-From 22b25ba726f27fc2efc2cd2caef1a8aff91f3eef Mon Sep 17 00:00:00 2001
+From 2ead709e1f848b7038ce678e633b639fe66fa09f Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:35:47 -0400
-Subject: [PATCH 39/44] input: give the output the lead its device needs
+Subject: [PATCH 37/40] input: give the output the lead its device needs
 
 The clock was rebased so the first sample fell due ten milliseconds out,
 whatever the output was playing to. A device holding two tenths of a
@@ -17,7 +17,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
  1 file changed, 14 insertions(+), 1 deletion(-)
 
 diff --git a/src/input/es_out.c b/src/input/es_out.c
-index fc6d8fa216..20d67302b9 100644
+index ffaac46e3d..02468256ff 100644
 --- a/src/input/es_out.c
 +++ b/src/input/es_out.c
 @@ -48,6 +48,7 @@
@@ -28,7 +28,7 @@ index fc6d8fa216..20d67302b9 100644
  #include "../stream_output/stream_output.h"
  
  #include <vlc_iso_lang.h>
-@@ -747,7 +748,19 @@ static void EsOutDecodersStopBuffering( es_out_t *out, bool b_forced )
+@@ -743,7 +744,19 @@ static void EsOutDecodersStopBuffering( es_out_t *out, bool b_forced )
      input_resource_TerminateVout( input_priv(p_sys->p_input)->p_resource );
  
      /* */

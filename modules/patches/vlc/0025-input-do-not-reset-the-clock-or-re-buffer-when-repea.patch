@@ -1,7 +1,7 @@
-From 2c819a6b98c1a2e20de4693f7f66f056cf48d633 Mon Sep 17 00:00:00 2001
+From ed964c7b0d69eb4bd3c2fd43aa9ec8de364d1201 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:08:05 -0400
-Subject: [PATCH 25/44] input: do not reset the clock or re-buffer when
+Subject: [PATCH 25/40] input: do not reset the clock or re-buffer when
  repeating an item
 
 Keeping the decoded data across a repeat is not enough while the repeat
@@ -17,14 +17,14 @@ previous commit kept. The reported lateness grew pass over pass, from
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- src/input/es_out.c | 27 ++++++++++++++++++---------
- 1 file changed, 18 insertions(+), 9 deletions(-)
+ src/input/es_out.c | 26 +++++++++++++++++---------
+ 1 file changed, 17 insertions(+), 9 deletions(-)
 
 diff --git a/src/input/es_out.c b/src/input/es_out.c
-index 2477c45b46..38da54b796 100644
+index 4a4bd2a030..95cb06edd2 100644
 --- a/src/input/es_out.c
 +++ b/src/input/es_out.c
-@@ -649,17 +649,26 @@ static void EsOutChangePosition( es_out_t *out, bool b_flush )
+@@ -646,17 +646,25 @@ static void EsOutChangePosition( es_out_t *out, bool b_flush )
              p_es->i_pts_level = VLC_TICK_INVALID;
      }
  
@@ -32,11 +32,10 @@ index 2477c45b46..38da54b796 100644
 -        input_clock_Reset( p_sys->pgrm[i]->p_clock );
 -        p_sys->pgrm[i]->i_last_pcr = VLC_TICK_INVALID;
 -    }
-+    /* A repeat carries the timeline straight on: the demuxer starts over but
-+     * the timestamps it emits continue from where the last pass ended, so the
-+     * reference still describes them. Resetting it, or buffering again for
-+     * decoders that were deliberately left loaded, would make the new pass
-+     * convert to dates that have already gone by. */
++    /* A repeat carries the timeline straight on: the timestamps the demuxer
++     * emits continue from where the last pass ended, so the reference still
++     * describes them. Resetting it would convert the new pass to dates that
++     * have already gone by. */
 +    if( b_flush )
 +    {
 +        for( int i = 0; i < p_sys->i_pgrm; i++ )

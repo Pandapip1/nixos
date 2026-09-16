@@ -1,7 +1,7 @@
-From c6b3e19e2f57790d08fcd6862c168851ed4a29aa Mon Sep 17 00:00:00 2001
+From e46973da97316de678c4f5f181daafb535df3860 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:35:41 -0400
-Subject: [PATCH 38/44] aout: let outputs report the latency of the device
+Subject: [PATCH 36/40] aout: let outputs report the latency of the device
 
 Outputs can estimate how much is queued, but not what the device itself
 adds before any of it is heard. Add an optional latency_get callback for
@@ -18,10 +18,10 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
  5 files changed, 46 insertions(+)
 
 diff --git a/include/vlc_aout.h b/include/vlc_aout.h
-index 4ba7306812..80bd34af37 100644
+index 5025c70b95..5fcee5e2b8 100644
 --- a/include/vlc_aout.h
 +++ b/include/vlc_aout.h
-@@ -160,6 +160,14 @@ struct audio_output
+@@ -136,6 +136,14 @@ struct audio_output
        * \return 0 on success, non-zero on failure or lack of data
        * \note A stream must have been started when called.
        */
@@ -37,10 +37,10 @@ index 4ba7306812..80bd34af37 100644
      /**< Queues a block of samples for playback (mandatory, cannot be NULL).
        * \note A stream must have been started when called.
 diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
-index 7c5db2e265..6a7649f349 100644
+index 57578e5e0c..d789d4f23c 100644
 --- a/modules/audio_output/pulse.c
 +++ b/modules/audio_output/pulse.c
-@@ -628,6 +628,21 @@ static void context_cb(pa_context *ctx, pa_subscription_event_type_t type,
+@@ -617,6 +617,21 @@ static void context_cb(pa_context *ctx, pa_subscription_event_type_t type,
  
  /*** VLC audio output callbacks ***/
  
@@ -62,7 +62,7 @@ index 7c5db2e265..6a7649f349 100644
  static int TimeGet(audio_output_t *aout, vlc_tick_t *restrict delay)
  {
      aout_sys_t *sys = aout->sys;
-@@ -1366,6 +1381,7 @@ static int Open(vlc_object_t *obj)
+@@ -1348,6 +1363,7 @@ static int Open(vlc_object_t *obj)
      aout->start = Start;
      aout->stop = Stop;
      aout->time_get = TimeGet;
@@ -71,10 +71,10 @@ index 7c5db2e265..6a7649f349 100644
      aout->pause = Pause;
      aout->flush = Flush;
 diff --git a/src/audio_output/aout_internal.h b/src/audio_output/aout_internal.h
-index 84c21e998c..e54557c873 100644
+index d8aa8b3542..579439a95c 100644
 --- a/src/audio_output/aout_internal.h
 +++ b/src/audio_output/aout_internal.h
-@@ -127,6 +127,7 @@ void aout_Destroy (audio_output_t *);
+@@ -130,6 +130,7 @@ void aout_Destroy (audio_output_t *);
  int aout_OutputNew(audio_output_t *, audio_sample_format_t *,
                     aout_filters_cfg_t *filters_cfg);
  int aout_OutputTimeGet(audio_output_t *, vlc_tick_t *);
@@ -82,7 +82,7 @@ index 84c21e998c..e54557c873 100644
  void aout_OutputPlay(audio_output_t *, block_t *);
  void aout_OutputPause( audio_output_t * p_aout, bool, vlc_tick_t );
  void aout_OutputFlush( audio_output_t * p_aout, bool );
-@@ -157,6 +158,7 @@ void aout_DecGetResetStats(audio_output_t *, unsigned *, unsigned *);
+@@ -160,6 +161,7 @@ void aout_DecGetResetStats(audio_output_t *, unsigned *, unsigned *);
  void aout_DecChangePause(audio_output_t *, bool b_paused, vlc_tick_t i_date);
  void aout_DecFlush(audio_output_t *, bool wait);
  bool aout_DecIsEmpty(audio_output_t *);
@@ -91,12 +91,12 @@ index 84c21e998c..e54557c873 100644
  
  static inline void aout_InputRequestRestart(audio_output_t *aout)
 diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
-index 226b7097f8..e47c0888c2 100644
+index a4a8c02f6f..6a0b664ce3 100644
 --- a/src/audio_output/dec.c
 +++ b/src/audio_output/dec.c
-@@ -510,6 +510,17 @@ lost:
-  * is empty for exactly as long as that takes. The lead costs nothing: what
-  * follows is queued behind what is left, not in place of it.
+@@ -471,6 +471,17 @@ lost:
+  * to demux and decode before any sound reaches the output, and what follows
+  * is queued behind what is left rather than in place of it.
   */
 +vlc_tick_t aout_DecGetLatency (audio_output_t *aout)
 +{

@@ -1,7 +1,7 @@
-From 0bd4b93b0742b512061d2ba7482d411f91b829d4 Mon Sep 17 00:00:00 2001
+From 6dddf77577afe7cbed8e29983048c02f4b7d9337 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 19:07:04 -0400
-Subject: [PATCH 03/44] input: repeat the current item in place
+Subject: [PATCH 03/40] input: repeat the current item in place
 
 Repeating one item was the playlist's job: the input reaches the end and
 dies, and PlayItem() builds a new one. Everything underneath goes with it -
@@ -19,14 +19,14 @@ run rather than once per loop.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- src/input/input.c | 14 +++++++++++++-
- 1 file changed, 13 insertions(+), 1 deletion(-)
+ src/input/input.c | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/src/input/input.c b/src/input/input.c
-index 35a8c35fb7..5c3b7c1f33 100644
+index 35a8c35fb7..221704d07f 100644
 --- a/src/input/input.c
 +++ b/src/input/input.c
-@@ -614,9 +614,21 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
+@@ -614,9 +614,20 @@ static int MainLoopTryRepeat( input_thread_t *p_input )
  {
      input_thread_private_t *priv = input_priv(p_input);
      int i_repeat = var_GetInteger( p_input, "input-repeat" );
@@ -38,9 +38,8 @@ index 35a8c35fb7..5c3b7c1f33 100644
 +    if( i_repeat == 0 )
 +    {
 +        /* The playlist would otherwise honour this by destroying the input
-+         * and building a new one, which takes the demuxer, decoder and audio
-+         * output down and back up at every loop. Only for inputs that can be
-+         * rewound and belong to the playlist. */
++         * and building a new one, taking the demuxer, decoder and audio output
++         * down and back up at every loop. */
 +        if( !var_GetBool( p_input, "can-seek" )
 +         || !var_InheritBool( p_input, "repeat" ) )
 +            return VLC_EGENERIC;

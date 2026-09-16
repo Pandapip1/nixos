@@ -1,7 +1,7 @@
-From 35315f4a7a51e646732c1765199b628a91d51d2b Mon Sep 17 00:00:00 2001
+From 737c535528f53e01546662713ee1c341ee195afd Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:34:39 -0400
-Subject: [PATCH 36/44] pulse: tell a zero device latency apart from an unknown
+Subject: [PATCH 34/40] pulse: tell a zero device latency apart from an unknown
  one
 
 Zero doubles as "not measured yet", so an output that really adds no
@@ -10,14 +10,14 @@ for ever and the audio it is holding never goes out.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- modules/audio_output/pulse.c | 17 +++++++++--------
- 1 file changed, 9 insertions(+), 8 deletions(-)
+ modules/audio_output/pulse.c | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
 
 diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
-index fde0f6ba6d..e4cbaf11ab 100644
+index aa41dac205..ac0fe4f73f 100644
 --- a/modules/audio_output/pulse.c
 +++ b/modules/audio_output/pulse.c
-@@ -78,7 +78,7 @@ struct aout_sys_t
+@@ -76,7 +76,7 @@ struct aout_sys_t
          block_t *first;
          block_t **last;
      } fifo;
@@ -26,7 +26,7 @@ index fde0f6ba6d..e4cbaf11ab 100644
  
      pa_volume_t volume_force; /**< Forced volume (stream must be NULL) */
      pa_stream_flags_t flags_force; /**< Forced flags (stream must be NULL) */
-@@ -262,7 +262,7 @@ static vlc_tick_t stream_start_delay(audio_output_t *aout, pa_stream *s)
+@@ -255,7 +255,7 @@ static vlc_tick_t stream_start_delay(audio_output_t *aout, pa_stream *s)
  {
      aout_sys_t *sys = aout->sys;
  
@@ -35,7 +35,7 @@ index fde0f6ba6d..e4cbaf11ab 100644
          return sys->device_latency;
  
      /* Not yet known: nothing better than what the stream says. */
-@@ -362,7 +362,7 @@ static void stream_drop_held(audio_output_t *aout)
+@@ -352,7 +352,7 @@ static void stream_drop_held(audio_output_t *aout)
  static void stream_forget_device(audio_output_t *aout)
  {
      stream_drop_held(aout);
@@ -44,7 +44,7 @@ index fde0f6ba6d..e4cbaf11ab 100644
  }
  
  static void stream_stop(pa_stream *s, audio_output_t *aout)
-@@ -687,7 +687,8 @@ static void stream_try_start(pa_stream *s, audio_output_t *aout)
+@@ -674,7 +674,8 @@ static void stream_try_start(pa_stream *s, audio_output_t *aout)
      const pa_timing_info *ti;
      vlc_tick_t latency, wait;
  
@@ -54,7 +54,7 @@ index fde0f6ba6d..e4cbaf11ab 100644
       || !stream_clock_is_synced(s))
          return;
  
-@@ -722,7 +723,7 @@ static void stream_write_cb(pa_stream *s, size_t nbytes, void *userdata)
+@@ -708,7 +709,7 @@ static void stream_write_cb(pa_stream *s, size_t nbytes, void *userdata)
      aout_sys_t *sys = aout->sys;
      vlc_tick_t queued, room;
  
@@ -62,8 +62,8 @@ index fde0f6ba6d..e4cbaf11ab 100644
 +    if (sys->device_latency != VLC_TICK_INVALID)
          return;
  
-     /* Only ever up to the target fill. The server will take as much as
-@@ -767,9 +768,9 @@ static void Play(audio_output_t *aout, block_t *block)
+     /* Only up to the target fill: the server would take as much as maxlength
+@@ -752,13 +753,12 @@ static void Play(audio_output_t *aout, block_t *block)
      if (sys->first_pts == VLC_TICK_INVALID)
          sys->first_pts = block->i_pts;
  
@@ -71,11 +71,18 @@ index fde0f6ba6d..e4cbaf11ab 100644
 +    if (sys->device_latency == VLC_TICK_INVALID)
      {
 -        /* What the device costs cannot be read until the stream has run for
-+        /* The device latency cannot be read until the stream has run for
-          * as long as the device holds (see stream_clock_is_synced), and this
-          * sink reports nothing for itself either. Run it on silence until
-          * then, holding the audio back meanwhile: starting on the corked
-@@ -1330,7 +1331,7 @@ static int Open(vlc_object_t *obj)
+-         * as long as the device holds (see stream_clock_is_synced), and this
+-         * sink reports nothing for itself either. Run it on silence until
+-         * then, holding the audio back meanwhile: starting on the corked
+-         * figure put playback a fifth of a second late on A2DP. */
++        /* Run on silence until the latency can be read (see
++         * stream_clock_is_synced), holding the audio back meanwhile: starting
++         * on the corked figure put playback a fifth of a second late on
++         * A2DP. */
+         if (pa_stream_is_corked(s) > 0)
+         {
+             /* Prime it so the server has something to ask about, then let it
+@@ -1314,7 +1314,7 @@ static int Open(vlc_object_t *obj)
      sys->sinks = NULL;
      sys->fifo.first = NULL;
      sys->fifo.last = &sys->fifo.first;

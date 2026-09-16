@@ -1,7 +1,7 @@
-From af604c393f9caaf996e7a5e3bfe59e951c060326 Mon Sep 17 00:00:00 2001
+From 976d3287586d64f22fd4d60c1ae8d17ed42bd4da Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 19:35:35 -0400
-Subject: [PATCH 37/44] pulse: measure the device before playback starts
+Subject: [PATCH 35/40] pulse: measure the device before playback starts
 
 The device latency only shows up once the stream has run for as long as
 the device holds, so it was learned while the audio was already playing,
@@ -14,14 +14,14 @@ so the wait only adds to start-up latency.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- modules/audio_output/pulse.c | 41 ++++++++++++++++++++++++++++++------
- 1 file changed, 35 insertions(+), 6 deletions(-)
+ modules/audio_output/pulse.c | 40 ++++++++++++++++++++++++++++++------
+ 1 file changed, 34 insertions(+), 6 deletions(-)
 
 diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
-index e4cbaf11ab..7c5db2e265 100644
+index ac0fe4f73f..57578e5e0c 100644
 --- a/modules/audio_output/pulse.c
 +++ b/modules/audio_output/pulse.c
-@@ -687,9 +687,7 @@ static void stream_try_start(pa_stream *s, audio_output_t *aout)
+@@ -674,9 +674,7 @@ static void stream_try_start(pa_stream *s, audio_output_t *aout)
      const pa_timing_info *ti;
      vlc_tick_t latency, wait;
  
@@ -32,7 +32,7 @@ index e4cbaf11ab..7c5db2e265 100644
          return;
  
      ti = pa_stream_get_timing_info(s);
-@@ -699,13 +697,17 @@ static void stream_try_start(pa_stream *s, audio_output_t *aout)
+@@ -686,13 +684,17 @@ static void stream_try_start(pa_stream *s, audio_output_t *aout)
       || latency >= VLC_TICK_FROM_SEC(5))
          return;
  
@@ -53,15 +53,14 @@ index e4cbaf11ab..7c5db2e265 100644
      stream_drain_fifo(s, aout, wait);
  }
  
-@@ -1258,6 +1260,33 @@ static int Start(audio_output_t *aout, audio_sample_format_t *restrict fmt)
+@@ -1241,6 +1243,32 @@ static int Start(audio_output_t *aout, audio_sample_format_t *restrict fmt)
      free(sys->sink_force);
      sys->sink_force = NULL;
  
-+    /* Settle the clock before playback rather than during it. Measuring takes
-+     * as long as the device holds, and doing it once audio is flowing leaves
-+     * that audio late by the measurement - which the core makes up by dropping
-+     * a chunk of it, heard as a splice. Nothing is playing yet, so the wait
-+     * only adds to start-up latency. */
++    /* Settle the clock before playback rather than during it: measuring once
++     * audio is flowing leaves that audio late by the measurement, which the
++     * core makes up by dropping a chunk of it. Nothing is playing yet, so the
++     * wait only adds to start-up latency. */
 +    if (sys->device_latency == VLC_TICK_INVALID)
 +    {
 +        stream_silence(s, aout, AOUT_MIN_PREPARE_TIME);

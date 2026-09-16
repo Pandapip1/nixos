@@ -1,7 +1,7 @@
-From 23ce3b25b70bde05f0073ef4274825c01939e46a Mon Sep 17 00:00:00 2001
+From a53c3e1d7ac24762dbb86b7a380a0f8998f0fed9 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 20:46:31 -0400
-Subject: [PATCH 19/44] demux: adaptive: give a stream another chance when
+Subject: [PATCH 19/40] demux: adaptive: give a stream another chance when
  seeking
 
 A stream whose demuxer fails to start is marked invalid so doBufferize()

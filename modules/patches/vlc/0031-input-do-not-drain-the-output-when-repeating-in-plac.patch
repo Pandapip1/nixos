@@ -1,7 +1,7 @@
-From 96374f73146c23f9363cc97e90214ec80f62004b Mon Sep 17 00:00:00 2001
+From 719122a0c970d467229e3daa716674556e6ee7bc Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 23:02:27 -0400
-Subject: [PATCH 31/44] input: do not drain the output when repeating in place
+Subject: [PATCH 31/40] input: do not drain the output when repeating in place
 
 Draining is for an end that is one. A repeat carries straight on, and a
 drain plays the output empty and then stops it, so the next pass has to
@@ -14,11 +14,11 @@ turns out not to happen, the end was real and the drain happens then.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- src/input/input.c | 33 ++++++++++++++++++++++++++++++++-
- 1 file changed, 32 insertions(+), 1 deletion(-)
+ src/input/input.c | 31 ++++++++++++++++++++++++++++++-
+ 1 file changed, 30 insertions(+), 1 deletion(-)
 
 diff --git a/src/input/input.c b/src/input/input.c
-index ab37a7c7e8..de021e17e3 100644
+index a95c2c2984..9db251e30f 100644
 --- a/src/input/input.c
 +++ b/src/input/input.c
 @@ -557,6 +557,8 @@ bool input_Stopped( input_thread_t *input )
@@ -30,30 +30,28 @@ index ab37a7c7e8..de021e17e3 100644
  static void MainLoopDemux( input_thread_t *p_input, bool *pb_changed )
  {
      input_thread_private_t* p_priv = input_priv(p_input);
-@@ -600,7 +602,14 @@ static void MainLoopDemux( input_thread_t *p_input, bool *pb_changed )
+@@ -600,7 +602,13 @@ static void MainLoopDemux( input_thread_t *p_input, bool *pb_changed )
      {
          msg_Dbg( p_input, "EOF reached" );
          p_priv->master->b_eof = true;
 -        es_out_Eos(p_priv->p_es_out);
 +
-+        /* Draining is for an end that is one. Repeating in place carries on
-+         * from here, and a drain empties the output and stops it, so the next
-+         * pass has to start it again - heard as a gap at every loop. The
-+         * decoders still report empty once what they produced has been
-+         * played, which is what the main loop waits for. */
++        /* A drain empties the output and stops it, so the next pass has to
++         * start it again - heard as a gap at every loop. The decoders still
++         * report empty once what they produced has been played, which is what
++         * the main loop waits for. */
 +        if( !MainLoopRepeatsInPlace( p_input ) )
 +            es_out_Eos(p_priv->p_es_out);
      }
      else if( i_ret == VLC_DEMUXER_EGENERIC )
      {
-@@ -616,6 +625,23 @@ static void MainLoopDemux( input_thread_t *p_input, bool *pb_changed )
+@@ -615,6 +623,22 @@ static void MainLoopDemux( input_thread_t *p_input, bool *pb_changed )
  #define INPUT_REPEAT_MAX_PENDING 5
  
  
 +/**
 + * Whether reaching the end will repeat the item where it stands rather than
-+ * finish it. The test MainLoopTryRepeat() applies, less the pending count,
-+ * which only says whether a repeat already asked for has been applied yet.
++ * finish it: the test MainLoopTryRepeat() applies, less the pending count.
 + */
 +static bool MainLoopRepeatsInPlace( input_thread_t *p_input )
 +{
@@ -70,7 +68,7 @@ index ab37a7c7e8..de021e17e3 100644
  static int MainLoopTryRepeat( input_thread_t *p_input )
  {
      input_thread_private_t *priv = input_priv(p_input);
-@@ -799,7 +825,12 @@ static void MainLoop( input_thread_t *p_input, bool b_interactive )
+@@ -790,7 +814,12 @@ static void MainLoop( input_thread_t *p_input, bool b_interactive )
              else
              {
                  if( MainLoopTryRepeat( p_input ) )

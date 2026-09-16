@@ -1,18 +1,14 @@
-From 5794f568091b296177ccb9f2b3c1848991b13411 Mon Sep 17 00:00:00 2001
+From 5f08d684e3308b188716b9f7b4119ccadfdfd404 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 20:05:32 -0400
-Subject: [PATCH 42/44] scaletempo: do not fade the audio in on the first
+Subject: [PATCH 39/40] scaletempo: do not fade the audio in on the first
  stride
 
 The overlap buffer holds the tail of the previous stride, to be blended
-into the start of the next one. Before anything has gone out it holds
-the zeros it was allocated with, and blending against those ramps the
-audio up from silence over the length of the overlap - six milliseconds
-of fade, heard as a discontinuity.
-
-It went unnoticed while the filter only ran for deliberate speed changes,
-where it starts along with playback. Correcting drift brings it in and
-out mid-stream, so it happens every time the scale first leaves nominal.
+into the start of the next one. Before anything has gone out it holds the
+zeros it was allocated with, and blending against those ramps the audio up
+from silence over the length of the overlap - six milliseconds of fade,
+heard at the start of every stretch and after every flush.
 
 Copy the first stride across instead, and blend from the one after.
 

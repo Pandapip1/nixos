@@ -14,7 +14,7 @@ in
   nixpkgs.overlays = [
     (_: prev: {
       vlc = prev.vlc.overrideAttrs (prevAttrs: {
-        # Sent upstream against 3.0.x. Seven groups:
+        # Sent upstream against 3.0.x. Six groups:
         #
         # 0001-0003 aout. Drift correction in the audio core is applied by
         # resampling, which shifts pitch as well as speed. The accumulated
@@ -38,33 +38,28 @@ in
         # of existing upstream fixes (webvtt #22448, and the mkv chapter
         # segfault, which master had already fixed by reverting).
         #
-        # 0023-0035 seamless repeat. A repeat tore down and rebuilt the audio
+        # 0023-0034 seamless repeat. A repeat tore down and rebuilt the audio
         # output between plays, leaving an audible gap of up to half a second.
-        # The output now keeps what it is holding across a repeat, lateness is
-        # skipped rather than flushed, and drift is corrected by a bounded PI
-        # controller instead of a bang-bang one.
+        # The output now keeps what it is holding across a repeat, and lateness
+        # is skipped rather than flushed.
         #
-        # 0036-0039 device latency. The core handed the output its first sample
+        # 0035-0037 device latency. The core handed the output its first sample
         # ten milliseconds before it was due, whatever the device needed, so on
         # a sink holding two tenths of a second that sample was born late and
         # the output skipped over the difference - heard as a splice at every
         # start and seek. Outputs can now report what the device adds, and the
         # core gives them that much lead.
         #
-        # 0040-0041 time scaling. Drift was corrected by resampling, which shifts
-        # pitch as well as speed, and on a build without libsamplerate it does
-        # so through the "ugly" resampler: half a percent of correction left a
-        # 440 Hz tone 7.5 cents sharp with 17% of the signal level off-tone for
-        # as long as it lasted. It now drives scaletempo instead, which varies
-        # speed without touching pitch.
-        #
-        # 0042-0044 scaletempo. Its overlap buffer holds the tail of the last
-        # stride to blend into the next; before anything has gone out it holds
-        # zeros, so the first stride faded in from silence over six ms. That
-        # only showed once drift correction started bringing the filter in and
-        # out mid-stream rather than for deliberate speed changes alone.
-        # It also registered no flush callback, so up to fifty milliseconds of
-        # pre-seek audio went out after a seek.
+        # 0038-0040 drift correction. The bang-bang rule that corrected drift
+        # by resampling could not hold the standing offset a device off nominal
+        # rate needs, so it hunted. It is now a PI controller bounded in cents,
+        # slewed so the noise in the delay an output reports is not turned into
+        # pitch wobble. Time scaling was tried instead of resampling to keep
+        # the pitch exact, but it splices the waveform every stride whatever
+        # the correction size - audible on music, worst in the bass. Two
+        # scaletempo bugs found on the way are fixed here: its first stride
+        # faded in from the zeroed overlap buffer, and it kept audio across a
+        # flush.
         patches = (prevAttrs.patches or [ ]) ++ patches;
       });
     })

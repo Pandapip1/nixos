@@ -1,7 +1,7 @@
-From a474b69e2899cc1e940cd6a64868f95636b720a6 Mon Sep 17 00:00:00 2001
+From 688750e3c6fa0c462ab21009c4f0775f7a53b994 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Sun, 13 Sep 2026 17:55:52 -0400
-Subject: [PATCH 01/44] demux: ogg: allow seeking once the streams have been
+Subject: [PATCH 01/40] demux: ogg: allow seeking once the streams have been
  torn down
 
 At the end of a stream Demux() tears the logical streams down, parking the
@@ -18,8 +18,9 @@ back to it: with the read position moved, the next Demux() starts over.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- modules/demux/ogg.c | 7 +++++++
- 1 file changed, 7 insertions(+)
+ modules/demux/ogg.c    | 7 +++++++
+ src/audio_output/dec.c | 5 +++--
+ 2 files changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/modules/demux/ogg.c b/modules/demux/ogg.c
 index 43b0ebf046..126581eeef 100644
@@ -39,6 +40,22 @@ index 43b0ebf046..126581eeef 100644
      return p_stream;
  }
  
+diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
+index 7eca0de2fd..b791f81be9 100644
+--- a/src/audio_output/dec.c
++++ b/src/audio_output/dec.c
+@@ -263,8 +263,9 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+      * This can happen due to insufficient caching, scheduling jitter
+      * or bug in the decoder. Ideally, the output would seek backward. But that
+      * is not portable, not supported by some hardware and often unsafe/buggy
+-     * where supported. The other alternative is to flush the buffers
+-     * completely. */
++     * where supported. Play out what is queued and drop as much from what
++     * follows instead: flushing would throw away a second or more of audio,
++     * heard as a hole. */
+     if (drift > (owner->sync.discontinuity ? 0
+                   : +3 * input_rate * AOUT_MAX_PTS_DELAY / INPUT_RATE_DEFAULT))
+     {
 -- 
 2.55.0
 

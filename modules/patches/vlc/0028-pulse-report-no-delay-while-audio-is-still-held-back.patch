@@ -1,7 +1,7 @@
-From 26907eaa87caf72fefaa5ad68f724cdfca402a28 Mon Sep 17 00:00:00 2001
+From 67b757107dfbe9d2871c532c6aab51a8d7652347 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 20:47:22 -0400
-Subject: [PATCH 28/44] pulse: report no delay while audio is still held back
+Subject: [PATCH 28/40] pulse: report no delay while audio is still held back
 
 Audio waiting for the clock to settle is not queued, so what the stream
 reports is the silence it is running on meanwhile - which describes
@@ -18,14 +18,14 @@ falls from 7-8% to 0.4-0.7%.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- modules/audio_output/pulse.c | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+ modules/audio_output/pulse.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/modules/audio_output/pulse.c b/modules/audio_output/pulse.c
-index 6b5b70454b..0f1e63db7a 100644
+index 3a69a58dd7..7b67c18795 100644
 --- a/modules/audio_output/pulse.c
 +++ b/modules/audio_output/pulse.c
-@@ -635,10 +635,12 @@ static int TimeGet(audio_output_t *aout, vlc_tick_t *restrict delay)
+@@ -624,10 +624,10 @@ static int TimeGet(audio_output_t *aout, vlc_tick_t *restrict delay)
      int ret = -1;
  
      pa_threaded_mainloop_lock(sys->mainloop);
@@ -33,11 +33,9 @@ index 6b5b70454b..0f1e63db7a 100644
 -     * what it reports describes the silence, not the audio. Reporting it
 -     * would have the core treat the padding as lateness and flush. */
 -    if (stream_clock_is_synced(s))
-+    /* Anything held back is not queued yet, so the stream does not account
-+     * for it. Answering with the silence it is running on instead describes
-+     * neither: the core reads audio that is about to be let go all at once as
-+     * a second of earliness, pads a second of silence to meet it, then finds
-+     * that same second late and jumps over it. Say nothing until it is in. */
++    /* Anything held back is not queued yet, and answering with the silence the
++     * stream runs on describes neither: the core would read the audio about to
++     * be released as earliness, pad silence to meet it, then jump over it. */
 +    if (sys->fifo.first == NULL && stream_clock_is_synced(s))
      {
          vlc_tick_t delta = vlc_pa_get_latency(aout, sys->context, s);

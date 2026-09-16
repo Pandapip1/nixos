@@ -1,7 +1,7 @@
-From 9fad82b1e2c3e2bd6ac4f2adff965ec9fd73c631 Mon Sep 17 00:00:00 2001
+From b8940fa0dc529e8b69346ef242c742f6835abb32 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 04:52:00 -0400
-Subject: [PATCH 33/44] aout: jump over lateness instead of emptying the output
+Subject: [PATCH 33/40] aout: jump over lateness instead of emptying the output
 
 Falling behind made aout_DecSynchronize() flush the output, throwing away
 a second or more of queued audio - heard as a hole - and leaving the output
@@ -16,9 +16,9 @@ holds, so the drift reads high until that has played out.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- src/audio_output/aout_internal.h |   2 +
- src/audio_output/dec.c           | 102 +++++++++++++++++++++++--------
- 2 files changed, 79 insertions(+), 25 deletions(-)
+ src/audio_output/aout_internal.h |  2 +
+ src/audio_output/dec.c           | 96 +++++++++++++++++++++++---------
+ 2 files changed, 73 insertions(+), 25 deletions(-)
 
 diff --git a/src/audio_output/aout_internal.h b/src/audio_output/aout_internal.h
 index e4265335fe..d8aa8b3542 100644
@@ -34,7 +34,7 @@ index e4265335fe..d8aa8b3542 100644
          int resamp_type; /**< Resampler mode (FIXME: redundant / resampling) */
          bool discontinuity;
 diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
-index 732596699c..d029716070 100644
+index d7954c8ed0..a4a8c02f6f 100644
 --- a/src/audio_output/dec.c
 +++ b/src/audio_output/dec.c
 @@ -110,6 +110,8 @@ error:
@@ -99,7 +99,7 @@ index 732596699c..d029716070 100644
  
      /* Late audio output.
       * This can happen due to insufficient caching, scheduling jitter
-@@ -268,22 +298,28 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+@@ -269,22 +299,22 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
      if (drift > (owner->sync.discontinuity ? 0
                    : +3 * input_rate * AOUT_MAX_PTS_DELAY / INPUT_RATE_DEFAULT))
      {
@@ -119,15 +119,9 @@ index 732596699c..d029716070 100644
 -        if (aout_OutputTimeGet (aout, &drift) != 0)
 -            return; /* nothing can be done if timing is unknown */
 -        drift += mdate () - dec_pts;
-+        /* Jump over it rather than emptying the output. Flushing throws away
-+         * everything queued - a second or more - which is heard as a hole,
-+         * and leaves the output to start from nothing again. Letting what is
-+         * queued play out and dropping as much from what follows costs a jump
-+         * in the material instead of a gap in the sound.
-+         *
-+         * Only one at a time: the jump shortens what is still to come, not
-+         * what the output already holds, so the drift keeps reading high
-+         * until that has played out. */
++        /* One jump at a time: it shortens what is still to come, not what
++         * the output holds, so the drift reads high until that has played
++         * out. */
 +        if (now >= owner->sync.skip_settles)
 +        {
 +            if (!owner->sync.discontinuity)
@@ -144,7 +138,7 @@ index 732596699c..d029716070 100644
      }
  
      /* Early audio output.
-@@ -296,7 +332,6 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+@@ -297,7 +327,6 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
                        "playing silence", drift);
          aout_DecSilence (aout, -drift, dec_pts);
  
@@ -152,7 +146,7 @@ index 732596699c..d029716070 100644
          owner->sync.discontinuity = true;
          drift = 0;
      }
-@@ -326,11 +361,17 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+@@ -327,11 +356,17 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
          return; /* Everything is fine. Nothing to do. */
  
      if (llabs (drift) > 2 * owner->sync.resamp_start_drift)
@@ -174,7 +168,7 @@ index 732596699c..d029716070 100644
          return;
      }
  
-@@ -404,6 +445,13 @@ int aout_DecPlay (audio_output_t *aout, block_t *block, int input_rate)
+@@ -405,6 +440,13 @@ int aout_DecPlay (audio_output_t *aout, block_t *block, int input_rate)
      /* Drift correction */
      aout_DecSynchronize (aout, block->i_pts, input_rate);
  
@@ -188,7 +182,7 @@ index 732596699c..d029716070 100644
      /* Output */
      owner->sync.end = block->i_pts + block->i_length + 1;
      owner->sync.discontinuity = false;
-@@ -488,6 +536,10 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
+@@ -485,6 +527,10 @@ void aout_DecFlush (audio_output_t *aout, bool wait)
              aout_FiltersFlush (owner->filters);
          aout_OutputFlush (aout, wait);
      }

@@ -1,14 +1,13 @@
-From c8b3c8e3637525a562fb7400a8856a5febe33d6e Mon Sep 17 00:00:00 2001
+From 1cc1f633c431a643a98d2d646cbf76a0d554b257 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Tue, 15 Sep 2026 20:27:38 -0400
-Subject: [PATCH 44/44] scaletempo: discard what is held between strides on a
+Subject: [PATCH 40/40] scaletempo: discard what is held between strides on a
  flush
 
 The filter keeps up to a queue of audio - fifty milliseconds at the
 default stride - plus the tail of the last stride to blend into the next
-one. It registered no flush callback, so both survived a seek: audio
-from before the seek went out after it, blended into the audio that
-followed.
+one. It registered no flush callback, so both survived a seek: audio from
+before the seek went out after it, blended into what followed.
 
 Every other audio filter that holds state across blocks implements this.
 
@@ -18,7 +17,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
  1 file changed, 21 insertions(+)
 
 diff --git a/modules/audio_filter/scaletempo.c b/modules/audio_filter/scaletempo.c
-index dfd8237b01..e4af7a4048 100644
+index 6bd768f877..c3433c3d73 100644
 --- a/modules/audio_filter/scaletempo.c
 +++ b/modules/audio_filter/scaletempo.c
 @@ -413,6 +413,26 @@ static int reinit_buffers( filter_t *p_filter )

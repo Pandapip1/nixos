@@ -1,7 +1,7 @@
-From 02ab4b52d60cf4b8cc0c4a71be3757c2850c9c6f Mon Sep 17 00:00:00 2001
+From 75808e7c5f010031e92ab58a718504d052e556a8 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Mon, 14 Sep 2026 23:02:17 -0400
-Subject: [PATCH 30/44] input: a decoder is empty once its output has been
+Subject: [PATCH 30/40] input: a decoder is empty once its output has been
  played
 
 input_DecoderIsEmpty() said empty for audio as soon as the decoder's fifo
@@ -33,10 +33,10 @@ index ee40a338a8..e4265335fe 100644
  
  static inline void aout_InputRequestRestart(audio_output_t *aout)
 diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
-index 7eca0de2fd..4a71f0ca48 100644
+index b791f81be9..2422123c88 100644
 --- a/src/audio_output/dec.c
 +++ b/src/audio_output/dec.c
-@@ -420,6 +420,23 @@ lost:
+@@ -421,6 +421,23 @@ lost:
      goto out;
  }
  
