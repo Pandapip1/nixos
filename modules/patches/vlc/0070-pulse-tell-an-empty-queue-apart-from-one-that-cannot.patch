@@ -1,4 +1,4 @@
-From 5ef81cce47ea1ea18bbfdb2efbeff1cb230e8ab2 Mon Sep 17 00:00:00 2001
+From c71b1a8e0d9b8bfccdf081d7356422adb70860af Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Date: Wed, 16 Sep 2026 04:35:53 -0400
 Subject: [PATCH 70/70] pulse: tell an empty queue apart from one that cannot
@@ -17,10 +17,12 @@ Say unknown with a negative value instead. The other caller wants nothing
 from the distinction - it counts what is queued towards a target and an
 unknown queue counts as none, which is what an empty one contributes anyway.
 
-Nothing was measured to change by this. On a null sink, starts and underflows
-over six runs are the same before and after, which is expected when the device
-holds forty microseconds and cannot starve; it is on an output whose queue the
-flush actually empties that the wait has anything to do.
+No behaviour was measured to change. Underflows and stream starts over six
+runs on a null sink and three on a bluetooth one, whose device holds 214 ms,
+are the same with the wait skipped and with it taken, and the silence before
+the first sound is unchanged within the resolution of the capture. The wait
+is there for the case where the queue really has run down to one block; this
+only makes it able to see that case.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
