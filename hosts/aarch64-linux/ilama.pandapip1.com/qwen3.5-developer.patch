@@ -1,0 +1,66 @@
+--- qwen3.5.orig.jinja	2026-09-18 02:06:01.756839974 -0400
++++ qwen3.5.jinja	2026-09-18 02:33:30.975078843 -0400
+@@ -10,6 +10,7 @@
+                     {{- raise_exception('System message cannot contain images.') }}
+                 {%- endif %}
+                 {%- if do_vision_count %}
++                    {{- image_count.value + 1 }}
+                     {%- set image_count.value = image_count.value + 1 %}
+                 {%- endif %}
+                 {%- if add_vision_id %}
+@@ -21,6 +22,7 @@
+                     {{- raise_exception('System message cannot contain videos.') }}
+                 {%- endif %}
+                 {%- if do_vision_count %}
++                    {{- video_count.value + 1 }}
+                     {%- set video_count.value = video_count.value + 1 %}
+                 {%- endif %}
+                 {%- if add_vision_id %}
+@@ -57,11 +59,31 @@
+             {{- '\n\n' + content }}
+         {%- endif %}
+     {%- endif %}
++    {%- for message in messages[1:] %}
++        {%- if message.role == 'system' %}
++            {%- set content = render_content(message.content, false, true)|trim %}
++            {%- if content %}
++                {{- '\n\n' + content }}
++            {%- endif %}
++        {%- endif %}
++    {%- endfor %}
+     {{- '<|im_end|>\n' }}
+ {%- else %}
+     {%- if messages[0].role == 'system' %}
++        {{- '<|im_start|>system\n' }}
+         {%- set content = render_content(messages[0].content, false, true)|trim %}
+-        {{- '<|im_start|>system\n' + content + '<|im_end|>\n' }}
++        {%- if content %}
++            {{- content }}
++        {%- endif %}
++        {%- for message in messages[1:] %}
++            {%- if message.role == 'system' %}
++                {{- '\n\n' }}
++                {{- render_content(message.content, false, true)|trim }}
++            {%- else %}
++                {%- break %}
++            {%- endif %}
++        {%- endfor %}
++        {{- '<|im_end|>\n' }}
+     {%- endif %}
+ {%- endif %}
+ {%- set ns = namespace(multi_step_tool=true, last_query_index=messages|length - 1) %}
+@@ -81,9 +103,13 @@
+ {%- for message in messages %}
+     {%- set content = render_content(message.content, true)|trim %}
+     {%- if message.role == "system" %}
+-        {%- if not loop.first %}
++        {%- if loop.first or messages[loop.index0 - 1].role == "system" %}
++            {# Already rendered above. #}
++        {%- else %}
+             {{- raise_exception('System message must be at the beginning.') }}
+         {%- endif %}
++    {%- elif message.role == "developer" %}
++        {# llama.cpp normalizes developer to system. #}
+     {%- elif message.role == "user" %}
+         {{- '<|im_start|>' + message.role + '\n' + content + '<|im_end|>' + '\n' }}
+     {%- elif message.role == "assistant" %}
