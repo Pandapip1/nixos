@@ -17,6 +17,9 @@
     base_url = "http://[::1]:8480/v1"
     wire_api = "responses"
     requires_openai_auth = false
+
+    [projects."/"]
+    trust_level = "trusted"
   '';
 }
 )
