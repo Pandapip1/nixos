@@ -7,6 +7,7 @@
   imports = [
     ./hardware-configuration.nix
     ./mudhuts-session.nix
+    ./llama.nix
   ];
 
   # Use COSMIC DE
