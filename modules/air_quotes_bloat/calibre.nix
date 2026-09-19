@@ -7,6 +7,6 @@
 
 lib.mkIf (config.services.graphical-desktop.enable && !(config.optimizations.lean.enable)) {
   extraProfiles.singleton.packages = with pkgs; [
-    calibre
+#    calibre
   ];
 }
