@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 22 Sep 2026 08:00:00 -0400
+Subject: [PATCH] native: skip clang-format download from Google Storage
+
+native/CMakeLists.txt's configure step unconditionally shells out to
+tools/buildtools/download_from_google_storage.py to fetch a
+clang-format binary from Google Cloud Storage. That's a live network
+fetch at CMake configure time, purely for dev formatting tooling -
+unrelated to the actual dotcefnative compiled output - and it fails
+outright in a network-sandboxed build (e.g. inside a Nix build, which
+has no network access except in fixed-output derivations).
+
+Replace the download+execute_process+fatal-error block with a no-op
+status message.
+---
+ native/CMakeLists.txt | 19 +------------------
+ 1 file changed, 1 insertion(+), 18 deletions(-)
+
+diff --git a/JustCef/native/CMakeLists.txt b/JustCef/native/CMakeLists.txt
+--- a/JustCef/native/CMakeLists.txt
++++ b/JustCef/native/CMakeLists.txt
+@@ -136,24 +136,7 @@ elseif(OS_LINUX)
+   set(GS_OUTPATH "linux64/clang-format")
+ endif()
+
+-message(STATUS "Downloading clang-format from Google Storage...")
+-message(STATUS "Working directory ${CMAKE_CURRENT_SOURCE_DIR}")
+-message(STATUS "${PYTHON_EXECUTABLE} tools/buildtools/download_from_google_storage.py --no_resume --platform=${GS_PLATFORM} --no_auth --bucket chromium-clang-format -s tools/buildtools/${GS_HASHPATH} -o tools/buildtools/${GS_OUTPATH}")
+-execute_process(
+-  COMMAND "${PYTHON_EXECUTABLE}"
+-          "tools/buildtools/download_from_google_storage.py"
+-          "--no_resume"
+-          "--platform=${GS_PLATFORM}"
+-          "--no_auth"
+-          "--bucket" "chromium-clang-format"
+-          "-s" "tools/buildtools/${GS_HASHPATH}"
+-          "-o" "tools/buildtools/${GS_OUTPATH}"
+-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+-  RESULT_VARIABLE EXECUTE_RV
+-  )
+-if(NOT EXECUTE_RV STREQUAL "0")
+-  message(FATAL_ERROR "Execution failed with unexpected result: ${EXECUTE_RV}")
+-endif()
++message(STATUS "Skipping clang-format download (patched out for sandboxed builds with no network access - clang-format is dev formatting tooling, unrelated to the compiled dotcefnative output)")
+
+
+ #
+--
+2.55.0
+

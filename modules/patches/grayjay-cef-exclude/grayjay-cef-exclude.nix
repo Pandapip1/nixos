@@ -9,36 +9,34 @@
   # platform-conditional at the fetch level - fetchLFS downloads all of it,
   # every time, regardless of which single platform is actually being built.
   #
-  # It's all unnecessary except one directory: JustCef/DotCef.csproj (the
-  # only JustCef project this package's `projectFile` list references) is a
-  # pure C# project with no native build step - its RuntimeIdentifier-gated
-  # <ItemGroup>s just copy prebuilt/<rid>/** as content files. It never
-  # touches native/third_party/cef/ at all (that's only used by JustCef's
-  # own native/CMakeLists.txt build, which this package never invokes), and
-  # dotnet only selects ONE prebuilt/<rid>/ for a given build.
+  # None of it is needed at fetch time. JustCef/DotCef.csproj (the only
+  # JustCef project this package's `projectFile` list references) is a pure
+  # C# project with no native build step - it copies prebuilt/<rid>/** as
+  # content files - but modules/patches/grayjay-cef-unvendor/ builds CEF from
+  # JustCef's own native/CMakeLists.txt against pkgs.cef-binary instead, and
+  # that native build reproduces everything prebuilt/<platform>/ supplies. So
+  # this fetch skips prebuilt/ entirely too, not just native/third_party/cef/.
   #
   # This overlay replaces grayjay's src with a hand-rolled fetch that skips
-  # LFS smudge entirely on first checkout (git lfs install --skip-smudge
-  # equivalent via GIT_LFS_SKIP_SMUDGE=1 - writes ~130-byte pointer files
-  # instead of downloading), then does one targeted `git lfs pull
-  # --include="prebuilt/<platform>/**"` inside just the JustCef submodule.
-  # Verified directly (standalone reproduction against the real repo, not
-  # guessed): with smudge skipped, the full JustCef tree is 12MB; after the
-  # targeted pull it's 641MB (316MB of that genuinely is prebuilt/linux-arm64,
-  # the rest base source); native/third_party/cef/*.tar.bz2 stayed as
-  # confirmed ~134-byte LFS pointers (one declares `size 513681969` for the
-  # linuxarm64 archive alone - so all 8 of those alone would be several GB),
-  # and the other 4 prebuilt/<platform>/ dirs stayed in the low-hundreds-of-KB
-  # range (pointer stubs only). Net effect: JustCef's fetch drops from an
-  # estimated 4.5-5.5GB to ~330MB, roughly a 93-95% reduction - and nothing
-  # is lost, since the excluded content was never used by this build to
-  # begin with (confirmed by reading DotCef.csproj directly, not assumed).
+  # LFS smudge entirely on checkout (GIT_LFS_SKIP_SMUDGE=1 - writes ~130-byte
+  # pointer files instead of downloading) and leaves it at that - no targeted
+  # pull for anything under JustCef. Verified directly (standalone
+  # reproduction against the real repo, not guessed): with smudge skipped,
+  # the full JustCef tree is 12MB; native/third_party/cef/*.tar.bz2 and every
+  # prebuilt/<platform>/ dir stayed as confirmed ~134-byte LFS pointers (one
+  # tar.bz2 pointer alone declares `size 513681969` for the linuxarm64
+  # archive - so all 8 of those plus 5 prebuilt/ dirs together are several
+  # GB). Net effect: JustCef's fetch drops from an estimated 4.5-5.5GB to
+  # ~12MB. Nothing is lost even before grayjay-cef-unvendor lands: the
+  # excluded content was never used by the stock (non-unvendored) build
+  # either (confirmed by reading DotCef.csproj directly), so leaving them as
+  # pointer stubs instead of real binaries only matters once something
+  # actually needs prebuilt/<platform>/ again - which unvendoring avoids by
+  # building the same content from source instead.
   #
-  # Leaving the excluded paths as tiny LFS pointer text files (rather than
-  # fully absent) is deliberate and safe: dotnet's RuntimeIdentifier-gated
-  # <ItemGroup>s in DotCef.csproj simply never select them for a linux-arm64
-  # (or linux-x64) build, so their content - real binary or pointer stub -
-  # is irrelevant to what actually gets built.
+  # This fetch is now platform-independent (nothing platform-specific is
+  # pulled), so a single outputHash covers every system - unlike the old
+  # per-platform pull, which had different content per target.
   #
   # Note: modules/patches/fetchgit-lfs/ (already in this repo) takes a
   # different, complementary approach to the same underlying slow-fetch
@@ -55,46 +53,28 @@
   # two and doesn't need the other to also be enabled.
   nixpkgs.overlays = [
     (final: prev: {
-      grayjay = prev.grayjay.overrideAttrs (
-        old:
-        let
-          system = final.stdenv.hostPlatform.system;
-          platform =
-            {
-              aarch64-linux = "linux-arm64";
-              x86_64-linux = "linux-x64";
-            }
-            .${system} or (throw "grayjay-cef-exclude: unsupported system ${system}");
-          # Per-platform, since each fetches different prebuilt/<platform>/**
-          # content. Only aarch64-linux (ilama, the host this was built for)
-          # has a real hash so far; x86_64-linux is a placeholder until this
-          # is actually built on an x86_64-linux host that uses grayjay -
-          # `nix build` there once and swap in the real hash from the
-          # mismatch error, same as this one was obtained.
-          outputHash =
-            {
-              aarch64-linux = "sha256-2hQIvimycaGgqdG0BqJYlFy/aOwV3CnIVFaR50uanJU=";
-            }
-            .${system} or lib.fakeHash;
-        in
-        {
-          src = final.stdenv.mkDerivation {
-            name = "grayjay-source-cef-excluded";
-            nativeBuildInputs = [
-              final.git
-              final.git-lfs
-              final.cacert
-            ];
-            builder = final.writeShellScript "builder" ''
-              source $stdenv/setup
-              ${lib.getExe' final.bash "bash"} ${./fetch-grayjay-src.sh} "$out" "${platform}"
-            '';
-            outputHashMode = "recursive";
-            outputHashAlgo = "sha256";
-            inherit outputHash;
-          };
-        }
-      );
+      grayjay = prev.grayjay.overrideAttrs (old: {
+        src = final.stdenv.mkDerivation {
+          name = "grayjay-source-cef-excluded";
+          nativeBuildInputs = [
+            final.git
+            final.git-lfs
+            final.cacert
+          ];
+          builder = final.writeShellScript "builder" ''
+            source $stdenv/setup
+            ${lib.getExe' final.bash "bash"} ${./fetch-grayjay-src.sh} "$out"
+          '';
+          outputHashMode = "recursive";
+          outputHashAlgo = "sha256";
+          # TODO: placeholder - the previous real hash (for the old,
+          # per-platform prebuilt/<platform>/ fetch) no longer applies now
+          # that prebuilt/ is skipped entirely too. Replace with the real
+          # hash from the first build attempt's mismatch error once disk
+          # space and the build queue allow running it.
+          outputHash = lib.fakeHash;
+        };
+      });
     })
   ];
 }
