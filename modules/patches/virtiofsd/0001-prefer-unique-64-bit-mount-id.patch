@@ -1,0 +1,235 @@
+From 926d2b9bc95d2674c42f88854e76975dcfe47da4 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 22 Sep 2026 01:30:33 -0400
+Subject: [PATCH] passthrough: prefer the unique 64-bit mount ID over the
+ legacy one
+
+The legacy STATX_MNT_ID / name_to_handle_at() mount ID is a reused,
+32-bit-range counter, and the kernel can legitimately report it as 0
+for mounts that have no stable place in that legacy space (e.g. some
+internal/anonymous mounts). MountFds::get() treats that as a hard
+mismatch against whatever nonzero legacy ID was cached earlier for the
+same mount, failing with:
+
+  Mount point's (...) mount ID (0) does not match expected value (...)
+
+Since Linux 6.8 (STATX_MNT_ID_UNIQUE) and 6.12 (AT_HANDLE_MNT_ID_UNIQUE
+for name_to_handle_at()), the kernel can report a proper unique, stable
+64-bit mount ID instead. Request and prefer it on both sides of the
+comparison - the original statx()-based path (used by MountFd::new()
+and MountFds::get()'s confirmation recheck) and the
+name_to_handle_at()-based path (used by FileHandle::from_name_at_fail_hard()
+to cache the ID in the first place) - falling back to the legacy
+32-bit ID on kernels older than 6.12/6.8 respectively.
+
+AT_HANDLE_MNT_ID_UNIQUE requires an 8-byte output buffer rather than
+name_to_handle_at()'s traditional 4-byte int*, so a second extern
+binding for the same libc symbol is added with a u64 out-param; this is
+the caller's responsibility per open_by_handle_at(2), not something the
+kernel negotiates.
+
+This does not weaken MountFds::get()'s anti-submount-swap check: the
+unique ID is strictly more trustworthy than the legacy one (guaranteed
+non-reused for as long as the mount exists), so switching to it, where
+available, tightens rather than loosens what the check verifies.
+---
+ src/oslib.rs                        | 78 +++++++++++++++++++++++++++++
+ src/passthrough/file_handle.rs      | 14 ++++--
+ src/passthrough/stat.rs             | 18 +++++--
+ src/passthrough/stat/file_status.rs |  9 ++++
+ 4 files changed, 113 insertions(+), 6 deletions(-)
+
+diff --git a/src/oslib.rs b/src/oslib.rs
+index 8833855..95bca50 100644
+--- a/src/oslib.rs
++++ b/src/oslib.rs
+@@ -365,6 +365,29 @@ mod filehandle {
+             flags: libc::c_int,
+         ) -> libc::c_int;
+ 
++        // Same symbol as above, bound a second time with a 64-bit `mount_id`
++        // out-parameter. This is only safe to call with `AT_HANDLE_MNT_ID_UNIQUE`
++        // set in `flags`: per open_by_handle_at(2), that flag is the caller's
++        // promise that the buffer behind `mount_id` is at least 64 bits wide,
++        // since the kernel then writes the full u64 unique mount ID there
++        // instead of the legacy 32-bit one. Calling this binding without that
++        // flag (or on a kernel that doesn't support it) is undefined: the
++        // kernel would only be told about (and only write) an `int`-sized
++        // slot by the flag, not by the Rust type on our side.
++        //
++        // The mismatched-signature warning this otherwise triggers
++        // (`clashing_extern_declarations`) is exactly the deliberate,
++        // documented-above rebinding, not a mistake.
++        #[link_name = "name_to_handle_at"]
++        #[allow(clashing_extern_declarations)]
++        pub fn name_to_handle_at_unique(
++            dirfd: libc::c_int,
++            pathname: *const libc::c_char,
++            file_handle: *mut CFileHandle,
++            mount_id: *mut u64,
++            flags: libc::c_int,
++        ) -> libc::c_int;
++
+         // Technically `file_handle` should be a `mut` pointer, but `open_by_handle_at()` is specified
+         // not to change it, so we can declare it `const`.
+         pub fn open_by_handle_at(
+@@ -398,6 +421,61 @@ pub fn name_to_handle_at(
+     Ok(())
+ }
+ 
++// Since Linux 6.12. Not yet in the `libc` crate; value confirmed against
++// include/uapi/linux/fcntl.h.
++const AT_HANDLE_MNT_ID_UNIQUE: libc::c_int = 0x001;
++
++/// Like `name_to_handle_at()`, but returns the mount ID as the unique 64-bit
++/// one (the same value `statx(2)` returns for `STATX_MNT_ID_UNIQUE`) rather
++/// than the legacy, reused 32-bit one, on kernels that support it (6.12+).
++///
++/// On older kernels `AT_HANDLE_MNT_ID_UNIQUE` is rejected outright (unknown
++/// `name_to_handle_at()` flags are validated, unlike `statx()`'s mask bits),
++/// so this transparently falls back to the legacy call and zero-extends its
++/// result. This is why two separate extern bindings exist for the same libc
++/// symbol (see `filehandle::name_to_handle_at_unique()`): which one is safe
++/// to call depends on whether `AT_HANDLE_MNT_ID_UNIQUE` is actually going to
++/// be honored, since that flag is also what tells the kernel the output
++/// buffer is 8 bytes wide rather than 4.
++pub fn name_to_handle_at_mnt_id(
++    dirfd: &impl AsRawFd,
++    pathname: &CStr,
++    file_handle: &mut CFileHandle,
++    flags: libc::c_int,
++) -> Result<u64> {
++    let mut mount_id: u64 = 0;
++    // SAFETY: `dirfd` is a valid file descriptor, `file_handle` is a valid
++    // reference to `CFileHandle`, and `mount_id` is a valid reference to a
++    // `u64`, matching the 8-byte buffer `AT_HANDLE_MNT_ID_UNIQUE` requires.
++    let unique_result = check_retval(unsafe {
++        filehandle::name_to_handle_at_unique(
++            dirfd.as_raw_fd(),
++            pathname.as_ptr(),
++            file_handle,
++            &mut mount_id,
++            flags | AT_HANDLE_MNT_ID_UNIQUE,
++        )
++    });
++
++    match unique_result {
++        Ok(_) => Ok(mount_id),
++        Err(_) => {
++            // Fall back to the legacy, 32-bit-buffer call for kernels older
++            // than 6.12. Reset `file_handle` first rather than assume
++            // anything about what the failed attempt above may or may not
++            // have written into it: callers pre-size it to `MAX_HANDLE_SZ`
++            // via `CFileHandle::default()` (this codebase doesn't use the
++            // two-call EOVERFLOW-probe-then-fill pattern), and that's
++            // exactly the state a fresh, independent call needs to start
++            // from.
++            *file_handle = CFileHandle::default();
++            let mut legacy_mount_id: libc::c_int = 0;
++            name_to_handle_at(dirfd, pathname, file_handle, &mut legacy_mount_id, flags)?;
++            Ok(legacy_mount_id as u64)
++        }
++    }
++}
++
+ pub fn open_by_handle_at(
+     mount_fd: &impl AsRawFd,
+     file_handle: &CFileHandle,
+diff --git a/src/passthrough/file_handle.rs b/src/passthrough/file_handle.rs
+index 8b8746e..b197b4f 100644
+--- a/src/passthrough/file_handle.rs
++++ b/src/passthrough/file_handle.rs
+@@ -47,12 +47,20 @@ impl FileHandle {
+     /// Try to create a file handle for the given file.  In contrast to `from_name_at()`, this will
+     /// always return a file handle or an error.
+     pub fn from_name_at_fail_hard(dir: &impl AsRawFd, path: &CStr) -> io::Result<Self> {
+-        let mut mount_id: libc::c_int = 0;
+         let mut c_fh = oslib::CFileHandle::default();
+ 
+-        oslib::name_to_handle_at(dir, path, &mut c_fh, &mut mount_id, libc::AT_EMPTY_PATH)?;
++        // Prefer the unique 64-bit mount ID over the legacy, reused 32-bit
++        // one (falls back automatically on kernels older than 6.12 - see
++        // `name_to_handle_at_mnt_id()`). This is the other half of the mount
++        // ID `MountFds::get()` (mount_fd.rs) later re-derives via `statx()`
++        // and compares this value against; both now prefer the same unique
++        // ID when the kernel supports it, instead of the confirmation check
++        // comparing a stable legacy ID against a mount that the kernel may
++        // legitimately report a legacy ID of 0 for (e.g. some internal
++        // mounts), which previously surfaced as a hard, spurious mismatch.
++        let mnt_id = oslib::name_to_handle_at_mnt_id(dir, path, &mut c_fh, libc::AT_EMPTY_PATH)?;
+         Ok(FileHandle {
+-            mnt_id: mount_id as MountId,
++            mnt_id: mnt_id as MountId,
+             handle: c_fh,
+         })
+     }
+diff --git a/src/passthrough/stat.rs b/src/passthrough/stat.rs
+index 08d05a2..125233f 100644
+--- a/src/passthrough/stat.rs
++++ b/src/passthrough/stat.rs
+@@ -9,7 +9,7 @@ use std::os::unix::io::AsRawFd;
+ 
+ mod file_status;
+ use crate::oslib;
+-use file_status::{statx_st, STATX_BASIC_STATS, STATX_MNT_ID};
++use file_status::{statx_st, STATX_BASIC_STATS, STATX_MNT_ID, STATX_MNT_ID_UNIQUE};
+ 
+ const EMPTY_CSTR: &[u8] = b"\0";
+ 
+@@ -75,7 +75,19 @@ impl SafeStatXAccess for statx_st {
+     }
+ 
+     fn mount_id(&self) -> Option<MountId> {
+-        if self.stx_mask & STATX_MNT_ID != 0 {
++        // Prefer the unique 64-bit mount ID (Linux 6.8+, requested below via
++        // STATX_MNT_ID_UNIQUE) over the legacy one: the legacy ID is a reused
++        // 32-bit-range counter and the kernel may legitimately report it as 0
++        // for mounts that have no stable place in that legacy space (e.g.
++        // internal/anonymous mounts), which is indistinguishable at this
++        // layer from "no ID available" and previously caused MountFds::get()
++        // to hard-fail with a false mismatch. The kernel sets exactly one of
++        // these two mask bits per request, and STATX_MNT_ID_UNIQUE is only
++        // set when it actually filled `stx_mnt_id` with the unique value, so
++        // checking it first is safe and does not paper over a real mismatch.
++        if self.stx_mask & STATX_MNT_ID_UNIQUE != 0 {
++            Some(self.stx_mnt_id)
++        } else if self.stx_mask & STATX_MNT_ID != 0 {
+             Some(self.stx_mnt_id)
+         } else {
+             None
+@@ -123,7 +135,7 @@ pub fn statx(dir: &impl AsRawFd, path: Option<&CStr>) -> io::Result<StatExt> {
+             dir.as_raw_fd(),
+             path.as_ptr(),
+             libc::AT_EMPTY_PATH | libc::AT_SYMLINK_NOFOLLOW,
+-            STATX_BASIC_STATS | STATX_MNT_ID,
++            STATX_BASIC_STATS | STATX_MNT_ID | STATX_MNT_ID_UNIQUE,
+             stx_ui.as_mut_ptr(),
+         )
+     };
+diff --git a/src/passthrough/stat/file_status.rs b/src/passthrough/stat/file_status.rs
+index 8867a6a..b2884fa 100644
+--- a/src/passthrough/stat/file_status.rs
++++ b/src/passthrough/stat/file_status.rs
+@@ -6,6 +6,12 @@ pub use libc::statx as statx_st;
+ #[cfg(target_env = "gnu")]
+ pub use libc::{STATX_BASIC_STATS, STATX_MNT_ID};
+ 
++// STATX_MNT_ID_UNIQUE (since Linux 6.8) is not yet exposed by every libc
++// crate release, so define it by hand rather than gate the build on it.
++// Value confirmed against include/uapi/linux/stat.h.
++#[cfg(target_env = "gnu")]
++pub const STATX_MNT_ID_UNIQUE: libc::c_uint = 0x00004000;
++
+ // musl provides the 'struct statx', but without stx_mnt_id.
+ // However, the libc crate does not provide libc::statx
+ // if musl is used. So we add just the required struct and
+@@ -52,3 +58,6 @@ pub const STATX_BASIC_STATS: libc::c_uint = 0x07ff;
+ 
+ #[cfg(not(target_env = "gnu"))]
+ pub const STATX_MNT_ID: libc::c_uint = 0x1000;
++
++#[cfg(not(target_env = "gnu"))]
++pub const STATX_MNT_ID_UNIQUE: libc::c_uint = 0x4000;
+-- 
+2.55.0
+
