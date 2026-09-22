@@ -73,7 +73,13 @@
               ++ fido2.optional-dependencies.pcsc
             );
 
-          doCheck = false;
+          # No doCheck override: upstream (as of the pinned rev) has no test
+          # suite at all - no tests/ directory, no pytest config, no CI - so
+          # this is just the buildPythonApplication default (true) with
+          # nothing for it to run. Confirmed by building with doCheck = true
+          # explicitly set: succeeds, no-op.
+          # TODO: Ask upstream (BryanJacobs/fido2-hid-bridge) to add a test
+          # suite so this doCheck default is actually verifying something.
 
           passthru.updateScript = nix-update-script {
             extraArgs = [ "--version=branch" ];
