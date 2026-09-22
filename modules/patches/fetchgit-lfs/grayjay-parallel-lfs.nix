@@ -43,23 +43,34 @@
   # in this directory is the same fix as a diff against nixpkgs' actual file,
   # ready to submit; hasn't been proposed there yet.
   #
-  # This overrides only pkgs.grayjay's own fetch (via `fetcher`, which
-  # fetchgit's derivation exposes as a plain, overridable attribute) rather
-  # than pkgs.fetchgit itself - fetchgit is a function that hardcodes
+  # This overrides pkgs.grayjay's own fetch (via `fetcher`, which fetchgit's
+  # derivation exposes as a plain, overridable attribute) rather than
+  # pkgs.fetchgit itself - fetchgit is a function that hardcodes
   # `fetcher = ./nix-prefetch-git` at eval time (not a parameter), so there's
   # no clean way to override every fetchLFS caller in nixpkgs at once from
   # here without reimplementing fetchgit's ~250 lines of derivation-
-  # construction logic. Scoping it to grayjay is more conservative anyway.
-  # No new content hash needed: this is a fixed-output derivation, and the
-  # verification above confirms the output tree this produces is identical
-  # to the original fetcher's - only *how* it's fetched changes.
-  nixpkgs.overlays = [
-    (_: prev: {
-      grayjay = prev.grayjay.overrideAttrs (old: {
-        src = old.src.overrideAttrs (_: {
-          fetcher = ./nix-prefetch-git-parallel-lfs;
-        });
-      });
-    })
-  ];
+  # construction logic.
+  #
+  # NOT currently applied: ../grayjay-cef-exclude/ replaces grayjay's `src`
+  # outright with a fetch that skips ~93-95% of the payload this would
+  # otherwise speed up (the vendored CEF platforms this build never uses -
+  # see that module's comment). Since both overlays reassign `src`, only the
+  # last one in the overlay list actually takes effect; reducing bytes
+  # fetched is the bigger win than fetching the same, mostly-unneeded bytes
+  # faster, so cef-exclude wins and this is left inert (the code and the
+  # upstream-nixpkgs-reference.patch are still worth keeping - the fetchgit
+  # bug is real and generic - just not wired into `nixpkgs.overlays` here).
+  # Re-enable by moving the block below out of this comment if cef-exclude
+  # is ever removed, or apply this fetcher's approach to cef-exclude's own
+  # fetch-grayjay-src.sh for the ~330MB it still does fetch.
+  #
+  # nixpkgs.overlays = [
+  #   (_: prev: {
+  #     grayjay = prev.grayjay.overrideAttrs (old: {
+  #       src = old.src.overrideAttrs (_: {
+  #         fetcher = ./nix-prefetch-git-parallel-lfs;
+  #       });
+  #     });
+  #   })
+  # ];
 }
