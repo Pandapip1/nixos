@@ -1,0 +1,31 @@
+--- a/pkgs/build-support/fetchgit/nix-prefetch-git
++++ b/pkgs/build-support/fetchgit/nix-prefetch-git
+@@ -360,7 +360,13 @@
+     local rev="${3:-HEAD}"
+ 
+     if [ -n "$fetchLFS" ]; then
+-        clean_git lfs install
++        # --skip-smudge: don't let LFS objects download one-by-one, serially,
++        # as a side effect of the checkouts below (git's smudge filter runs
++        # per-blob, on a single connection, with no batching or concurrency).
++        # Pointer files get checked out instead; the batch `git lfs pull'
++        # passes below then fetch the real content, with LFS's own batch API
++        # and configurable concurrency (default 8 parallel transfers).
++        clean_git lfs install --skip-smudge
+     fi
+ 
+     # Perform the checkout.
+@@ -376,6 +382,13 @@
+             fi;;
+     esac
+ 
++    if [ -n "$fetchLFS" ]; then
++        ( cd "$dir" && clean_git lfs pull )
++        if test -n "$fetchSubmodules"; then
++            ( cd "$dir" && clean_git submodule foreach --recursive 'git lfs pull' )
++        fi
++    fi
++
+     pushd "$dir" >/dev/null
+     fullRev=$( (git rev-parse "$rev" 2>/dev/null || git rev-parse "refs/heads/$branchName") | tail -n1)
+     humanReadableRev=$(git describe "$fullRev" 2> /dev/null || git describe --tags "$fullRev" 2> /dev/null || echo -- none --)
