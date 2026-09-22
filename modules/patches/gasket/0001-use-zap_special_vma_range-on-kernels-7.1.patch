@@ -1,0 +1,51 @@
+From 92ee8d6e4a52d511bbfa5f2ca19e419da5502d3a Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Tue, 22 Sep 2026 01:47:55 -0400
+Subject: [PATCH] Use zap_special_vma_range() on kernels >= 7.1
+
+zap_vma_ptes() was renamed to zap_special_vma_range() in mainline
+mm (David Hildenbrand, "mm: rename zap_vma_ptes() to
+zap_special_vma_range()", merged into mm-stable 2026-03-29), first
+shipping in Linux 7.1. The old name no longer exists on kernels that
+have this rename, breaking the out-of-tree build with an undefined
+reference.
+
+The rename is a straight drop-in: same three-argument signature
+(vma, address, size), and gasket's call site here already ignores
+the return value, so the old int-returning / new void-returning
+difference doesn't matter.
+---
+ src/gasket_core.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/src/gasket_core.c b/src/gasket_core.c
+index b1c2726..8967abd 100644
+--- a/src/gasket_core.c
++++ b/src/gasket_core.c
+@@ -915,14 +915,21 @@ int gasket_mm_unmap_region(const struct gasket_dev *gasket_dev,
+ 		return 1;
+ 
+ 	/*
+-	 * The length passed to zap_vma_ptes MUST BE A MULTIPLE OF
+-	 * PAGE_SIZE! Trust me. I have the scars.
++	 * The length passed to zap_vma_ptes/zap_special_vma_range MUST BE A
++	 * MULTIPLE OF PAGE_SIZE! Trust me. I have the scars.
+ 	 *
+ 	 * Next multiple of y: ceil_div(x, y) * y
+ 	 */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
++	/* zap_vma_ptes() was renamed to zap_special_vma_range() in 7.1. */
++	zap_special_vma_range(vma, vma->vm_start + virt_offset,
++			       DIV_ROUND_UP(mappable_region.length_bytes, PAGE_SIZE) *
++			       PAGE_SIZE);
++#else
+ 	zap_vma_ptes(vma, vma->vm_start + virt_offset,
+ 		     DIV_ROUND_UP(mappable_region.length_bytes, PAGE_SIZE) *
+ 		     PAGE_SIZE);
++#endif
+ 	return 0;
+ }
+ EXPORT_SYMBOL(gasket_mm_unmap_region);
+-- 
+2.55.0
+
