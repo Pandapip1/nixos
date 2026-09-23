@@ -132,4 +132,11 @@ in
     verbosity = 5;
     };
   };
+
+  # Use pkgs.llama-cpp-vulkan's patched vulkan-global-prio support
+  # (modules/patches/llama-cpp.nix) to request a low Vulkan queue
+  # priority, so llama-server doesn't starve the compositor of GPU time.
+  systemd.services.llama-cpp.serviceConfig.Environment = [
+    "GGML_VK_GLOBAL_PRIO=low"
+  ];
 }
