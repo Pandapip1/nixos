@@ -17,7 +17,7 @@
           ''!f() { nix-shell -p glab --run "glab auth git-credential $1"; }; f'';
       };
       signing = {
-        format = "gpg";
+        format = "openpgp";
         signByDefault = true;
       };
       maintenance.enable = true;
