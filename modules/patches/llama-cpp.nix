@@ -11,8 +11,8 @@
         src = prev.fetchFromGitHub {
           owner = "pandapip1";
           repo = "llama.cpp";
-          rev = "657e6659edabee3fa94eeae564ef6c20b1368407"; # vulkan-global-prio
-          hash = "sha256-Dmkr98t1Xf+Vn/aKWS/vwLACWld9Wkx+izuS79pzVDg=";
+          rev = "1a8b885b20495040d14a7386b7182e93a3a52c22"; # vulkan-global-prio
+          hash = "sha256-XLyJAPsI5mZ0yufO0ylYfJZnms+RmiJCuqKAh40JVAk=";
         };
       });
     })
