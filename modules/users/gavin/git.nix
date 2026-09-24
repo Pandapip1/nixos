@@ -23,6 +23,7 @@ in
         "https://gitlab.freedesktop.org".helper = oauthHelper;
         "https://gitlab.com".helper = oauthHelper;
         "https://codeberg.org".helper = oauthHelper;
+        "https://code.videolan.org".helper = oauthHelper;
       };
       signing = {
         format = "openpgp";
