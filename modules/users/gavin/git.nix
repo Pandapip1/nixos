@@ -5,7 +5,7 @@
 }:
 let
   oauthHelper = [
-    "cache --timeout 21600"
+    (lib.getExe' pkgs.gitFull "git-credential-libsecret")
     (lib.getExe pkgs.git-credential-oauth)
   ];
 in
@@ -24,6 +24,10 @@ in
         "https://gitlab.com".helper = oauthHelper;
         "https://codeberg.org".helper = oauthHelper;
         "https://code.videolan.org".helper = oauthHelper;
+        "https://gitlab.gnome.org".helper = oauthHelper;
+        "https://invent.kde.org".helper = oauthHelper;
+        "https://salsa.debian.org".helper = oauthHelper;
+        "https://bitbucket.org".helper = oauthHelper;
       };
       signing = {
         format = "openpgp";
