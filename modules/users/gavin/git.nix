@@ -1,4 +1,15 @@
 {
+  lib,
+  pkgs,
+  ...
+}:
+let
+  oauthHelper = [
+    "cache --timeout 21600"
+    (lib.getExe pkgs.git-credential-oauth)
+  ];
+in
+{
   home-manager.users.gavin = {
     programs.git = {
       enable = true;
@@ -7,14 +18,11 @@
         email = "gavinnjohn@gmail.com";
       };
       settings.credential = {
-        "https://github.com".helper =
-          ''!f() { nix-shell -p gh --run "gh auth git-credential $1"; }; f'';
-        "https://gist.github.com".helper =
-          ''!f() { nix-shell -p gh --run "gh auth git-credential $1"; }; f'';
-        "https://gitlab.freedesktop.org".helper =
-          ''!f() { nix-shell -p glab --run "glab auth git-credential $1"; }; f'';
-        "https://gitlab.com".helper =
-          ''!f() { nix-shell -p glab --run "glab auth git-credential $1"; }; f'';
+        "https://github.com".helper = oauthHelper;
+        "https://gist.github.com".helper = oauthHelper;
+        "https://gitlab.freedesktop.org".helper = oauthHelper;
+        "https://gitlab.com".helper = oauthHelper;
+        "https://codeberg.org".helper = oauthHelper;
       };
       signing = {
         format = "openpgp";
