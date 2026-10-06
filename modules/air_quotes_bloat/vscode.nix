@@ -59,7 +59,6 @@ lib.mkIf (config.services.graphical-desktop.enable && !(config.optimizations.lea
         #   };
         # })
         # "AI"
-        continue.continue
       ];
     })
   ];
