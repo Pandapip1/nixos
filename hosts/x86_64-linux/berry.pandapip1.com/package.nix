@@ -258,7 +258,7 @@
         enableACME = true;
         forceSSL = true;
         locations."/" = {
-          proxyPass = "http://localhost:${toString config.services.forgejo.port}";
+          proxyPass = "http://localhost:${toString config.services.forgejo.settings.server.HTTP_PORT}";
           proxyWebsockets = true;
         };
       };
@@ -266,7 +266,7 @@
         enableACME = true;
         forceSSL = true;
         locations."/" = {
-          proxyPass = "http://localhost:${toString config.services.forgejo.port}";
+          proxyPass = "http://localhost:${toString config.services.forgejo.settings.server.HTTP_PORT}";
           proxyWebsockets = true;
         };
       };
