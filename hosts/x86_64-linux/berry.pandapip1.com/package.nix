@@ -345,7 +345,7 @@
         chmod 400 /run/pg-password-${db}/pg-${user}-pw
       '';
     };
-  systemd.services.redmine.requires = [ "set-random-pg-password-keycloak.service" ];
+  systemd.services.redmine.requires = [ "set-random-pg-password-redmine.service" ];
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
