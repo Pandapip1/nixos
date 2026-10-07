@@ -403,6 +403,10 @@
         PROTOCOL = "http";
       };
       session.COOKIE_SECURE = true;
+      service = {
+        DISABLE_REGISTRATION = false;
+        ALLOW_ONLY_EXTERNAL_REGISTRATION = true;
+      };
     };
   };
   systemd.services.forgejo.after = [ "set-random-pg-password-forgejo.service" ];
