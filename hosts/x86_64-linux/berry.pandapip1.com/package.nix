@@ -126,10 +126,6 @@
       script = ''
         set -euxo pipefail
 
-        if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
-          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
-        fi
-
         pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
         psql -v ON_ERROR_STOP=1 -c "ALTER USER ${user} WITH PASSWORD '$pw';"
@@ -156,6 +152,8 @@
     settings.password_encryption = "scram-sha-256";
     ensureDatabases = [
       config.services.keycloak.database.name
+      config.services.redmine.database.name
+      config.services.forgejo.database.name
     ];
     ensureUsers = [
       {
@@ -368,10 +366,6 @@
       script = ''
         set -euxo pipefail
 
-        if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
-          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
-        fi
-
         pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
         psql -v ON_ERROR_STOP=1 -c "ALTER USER ${user} WITH PASSWORD '$pw';"
@@ -434,10 +428,6 @@
 
       script = ''
         set -euxo pipefail
-
-        if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
-          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
-        fi
 
         pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
