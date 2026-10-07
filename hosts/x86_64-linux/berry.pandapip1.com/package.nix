@@ -82,7 +82,7 @@
       type = "postgresql";
       name = "keycloak";
       username = "keycloak";
-      passwordFile = "/run/pg-passwords/pg-keycloak-pw";
+      passwordFile = "/run/pg-password-keycloak/pg-keycloak-pw";
       host = "localhost";
       port = config.services.postgresql.settings.port;
       createLocally = false;
@@ -102,29 +102,28 @@
     after = [ "postgresql.service" ];
     requires = [ "postgresql.service" ];
     wantedBy = [ "multi-user.target" ];
+    path = with pkgs; [ postgresql ];
 
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
       RuntimeDirectoryPreserve = "yes";
       User = "keycloak";
-      RuntimeDirectory = "pg-passwords";
+      RuntimeDirectory = "pg-password-keycloak";
     };
 
     script = ''
       set -euxo pipefail
 
-      psql=${lib.getExe' pkgs.postgresql "psql"}
-
       pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
 
-      $psql -v ON_ERROR_STOP=1 -c "ALTER USER keycloak WITH PASSWORD '$pw';"
+      psql -v ON_ERROR_STOP=1 -c "ALTER USER keycloak WITH PASSWORD '$pw';"
 
-      if [ -f /run/pg-passwords/pg-keycloak-pw ]; then
-        chmod 600 /run/pg-passwords/pg-keycloak-pw
+      if [ -f /run/pg-password-keycloak/pg-keycloak-pw ]; then
+        chmod 600 /run/pg-password-keycloak/pg-keycloak-pw
       fi
-      echo "$pw" > /run/pg-passwords/pg-keycloak-pw
-      chmod 400 /run/pg-passwords/pg-keycloak-pw
+      echo "$pw" > /run/pg-password-keycloak/pg-keycloak-pw
+      chmod 400 /run/pg-password-keycloak/pg-keycloak-pw
     '';
   };
 
@@ -146,6 +145,11 @@
     ensureUsers = [
       {
         name = config.services.keycloak.database.username;
+        ensureClauses.superuser = true; # During initial setup, we def want the keycloak user to be superuser
+        # TODO: Once setup done, superuser = false
+      }
+      {
+        name = config.services.redmine.user;
         ensureClauses.superuser = true; # During initial setup, we def want the keycloak user to be superuser
         # TODO: Once setup done, superuser = false
       }
@@ -211,6 +215,14 @@
           proxyWebsockets = true;
         };
       };
+      "redmine.berry.pandapip1.com" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://localhost:${toString config.services.redmine.port}";
+          proxyWebsockets = true;
+        };
+      };
     };
   };
   # Open port 80 and 443
@@ -225,6 +237,64 @@
 
   # Enable nebula network
   services.nebula.networks.nebula0.enable = true;
+
+  # Redmine
+  services.redmine = {
+    enable = true;
+
+    port = 3944;
+    address = "::1";
+
+    database = {
+      type = "postgresql";
+      host = "localhost";
+      port = config.services.postgresql.settings.port;
+      passwordFile = "/run/pg-password-redmine/pg-redmine-pw";
+      createLocally = false;
+    };
+
+    components = {
+      git = true;
+    };
+
+    plugins = {
+      redmine_oauth = pkgs.fetchFromGitHub {
+        owner = "kontron";
+        repo = "redmine_oauth";
+        tag = "v4.2.3";
+        hash = lib.fakeHash;
+      };
+    };
+  };
+  systemd.services.set-random-pg-password-redmine = {
+    description = "Set random redmine password for PostgreSQL";
+    after = [ "postgresql.service" ];
+    requires = [ "postgresql.service" ];
+    wantedBy = [ "multi-user.target" ];
+    path = with pkgs; [ postgresql ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      RuntimeDirectoryPreserve = "yes";
+      User = config.services.redmine.user;
+      RuntimeDirectory = "pg-password-redmine";
+    };
+
+    script = ''
+      set -euxo pipefail
+
+      pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
+
+      psql -v ON_ERROR_STOP=1 -c "ALTER USER redmine WITH PASSWORD '$pw';"
+
+      if [ -f /run/pg-password-redmine/pg-redmine-pw ]; then
+        chmod 600 /run/pg-password-redmine/pg-redmine-pw
+      fi
+      echo "$pw" > /run/pg-password-redmine/pg-redmine-pw
+      chmod 400 /run/pg-password-redmine/pg-redmine-pw
+    '';
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
