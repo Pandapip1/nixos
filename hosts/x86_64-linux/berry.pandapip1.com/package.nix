@@ -262,7 +262,7 @@
         owner = "kontron";
         repo = "redmine_oauth";
         tag = "v4.2.3";
-        hash = lib.fakeHash;
+        hash = "sha256-J1VF3ZQIiHVJsJ2wfYrHE1A6g8sb/Iz5rIot1g9QzqY=";
       };
     };
   };
