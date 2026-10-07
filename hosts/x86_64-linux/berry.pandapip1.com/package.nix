@@ -257,7 +257,7 @@
     enable = true;
 
     port = 3944;
-    address = "::1";
+    address = "[::1]";
 
     database = {
       type = "postgresql";
