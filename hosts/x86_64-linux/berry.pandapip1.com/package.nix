@@ -120,6 +120,9 @@
       script = ''
         set -euxo pipefail
 
+        psql -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE template1 REFRESH COLLATION VERSION;"
+        psql -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE postgres REFRESH COLLATION VERSION;"
+
         if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
           psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
         fi
@@ -300,6 +303,9 @@
       script = ''
         set -euxo pipefail
 
+        psql -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE template1 REFRESH COLLATION VERSION;"
+        psql -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE postgres REFRESH COLLATION VERSION;"
+
         if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
           psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
         fi
@@ -315,6 +321,7 @@
         chmod 400 /run/pg-password-${db}/pg-${user}-pw
       '';
     };
+  systemd.services.redmine.requires = [ "set-random-pg-password-keycloak.service" ];
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
