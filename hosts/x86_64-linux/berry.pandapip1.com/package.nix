@@ -104,8 +104,13 @@
     in
     {
       description = "Set random ${db} password for PostgreSQL";
-      after = [ "postgresql.service" "postgresql-refresh-collation.service" ];
-      requires = [ "postgresql.service" ];
+      after = [
+        "postgresql.service"
+        "postgresql-refresh-collation.service"
+        # redmine added so that they don't race
+        "set-random-pg-password-redmine.service"
+      ];
+      requires = [ "postgresql.service" "postgresql-refresh-collation.service" ];
       wantedBy = [ "multi-user.target" ];
       path = with pkgs; [ postgresql ];
 
@@ -282,6 +287,7 @@
     after = [ "postgresql.service" ];
     requires = [ "postgresql.service" ];
     wantedBy = [ "multi-user.target" ];
+    path = with pkgs; [ postgresql ];
 
     serviceConfig = {
       Type = "oneshot";
@@ -309,7 +315,7 @@
     {
       description = "Set random ${db} password for PostgreSQL";
       after = [ "postgresql.service" "postgresql-refresh-collation.service" ];
-      requires = [ "postgresql.service" ];
+      requires = [ "postgresql.service" "postgresql-refresh-collation.service" ];
       wantedBy = [ "multi-user.target" ];
       path = with pkgs; [ postgresql ];
 
