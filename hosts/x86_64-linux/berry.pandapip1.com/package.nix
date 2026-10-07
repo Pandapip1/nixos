@@ -104,7 +104,7 @@
     in
     {
       description = "Set random ${db} password for PostgreSQL";
-      after = [ "postgresql.service" ];
+      after = [ "postgresql.service" "postgresql-refresh-collation.service" ];
       requires = [ "postgresql.service" ];
       wantedBy = [ "multi-user.target" ];
       path = with pkgs; [ postgresql ];
@@ -119,9 +119,6 @@
 
       script = ''
         set -euxo pipefail
-
-        psql -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE template1 REFRESH COLLATION VERSION;"
-        psql -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE postgres REFRESH COLLATION VERSION;"
 
         if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
           psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
@@ -280,6 +277,30 @@
       };
     };
   };
+  systemd.services.postgresql-refresh-collation = {
+    description = "Refresh PostgreSQL collation versions";
+    after = [ "postgresql.service" ];
+    requires = [ "postgresql.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      User = "postgres";
+    };
+
+    script = ''
+      set -euo pipefail
+
+      databases=$(psql -d postgres -tAc "SELECT datname FROM pg_database WHERE datallowconn AND NOT datistemplate")
+
+      for db in template1 postgres $databases; do
+        echo "Processing $db..."
+        psql -d "$db" -v ON_ERROR_STOP=1 -c "REINDEX DATABASE \"$db\";"
+        psql -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE \"$db\" REFRESH COLLATION VERSION;"
+      done
+    '';
+  };
   systemd.services.set-random-pg-password-redmine =
     let
       db = config.services.redmine.database.name;
@@ -287,7 +308,7 @@
     in
     {
       description = "Set random ${db} password for PostgreSQL";
-      after = [ "postgresql.service" ];
+      after = [ "postgresql.service" "postgresql-refresh-collation.service" ];
       requires = [ "postgresql.service" ];
       wantedBy = [ "multi-user.target" ];
       path = with pkgs; [ postgresql ];
@@ -302,9 +323,6 @@
 
       script = ''
         set -euxo pipefail
-
-        psql -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE template1 REFRESH COLLATION VERSION;"
-        psql -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE postgres REFRESH COLLATION VERSION;"
 
         if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
           psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
