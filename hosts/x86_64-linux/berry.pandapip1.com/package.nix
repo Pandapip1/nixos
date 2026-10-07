@@ -97,35 +97,44 @@
     group = "keycloak";
   };
   users.groups.keycloak = { };
-  systemd.services.set-random-pg-password-keycloak = {
-    description = "Set random keycloak password for PostgreSQL";
-    after = [ "postgresql.service" ];
-    requires = [ "postgresql.service" ];
-    wantedBy = [ "multi-user.target" ];
-    path = with pkgs; [ postgresql ];
+  systemd.services.set-random-pg-password-keycloak =
+    let
+      db = "keycloak";
+      user = "keycloak";
+    in
+    {
+      description = "Set random ${db} password for PostgreSQL";
+      after = [ "postgresql.service" ];
+      requires = [ "postgresql.service" ];
+      wantedBy = [ "multi-user.target" ];
+      path = with pkgs; [ postgresql ];
 
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      RuntimeDirectoryPreserve = "yes";
-      User = "keycloak";
-      RuntimeDirectory = "pg-password-keycloak";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        RuntimeDirectoryPreserve = "yes";
+        User = user;
+        RuntimeDirectory = "pg-password-${db}";
+      };
+
+      script = ''
+        set -euxo pipefail
+
+        if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
+          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
+        fi
+
+        pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
+
+        psql -v ON_ERROR_STOP=1 -c "ALTER USER ${user} WITH PASSWORD '$pw';"
+
+        if [ -f /run/pg-password-${db}/pg-${user}-pw ]; then
+          chmod 600 /run/pg-password-${db}/pg-${user}-pw
+        fi
+        echo "$pw" > /run/pg-password-${db}/pg-keycloak-pw
+        chmod 400 /run/pg-password-${db}/pg-${user}-pw
+      '';
     };
-
-    script = ''
-      set -euxo pipefail
-
-      pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
-
-      psql -v ON_ERROR_STOP=1 -c "ALTER USER keycloak WITH PASSWORD '$pw';"
-
-      if [ -f /run/pg-password-keycloak/pg-keycloak-pw ]; then
-        chmod 600 /run/pg-password-keycloak/pg-keycloak-pw
-      fi
-      echo "$pw" > /run/pg-password-keycloak/pg-keycloak-pw
-      chmod 400 /run/pg-password-keycloak/pg-keycloak-pw
-    '';
-  };
 
   # Postgres for Keycloak and other data needed by berry's various services
   # TODO: Add config.services.postgresql.user and config.services.postgresql.group to set those in particular
@@ -249,6 +258,8 @@
       type = "postgresql";
       host = "localhost";
       port = config.services.postgresql.settings.port;
+      name = "redmine";
+      user = "redmine";
       passwordFile = "/run/pg-password-redmine/pg-redmine-pw";
       createLocally = false;
     };
@@ -266,39 +277,44 @@
       };
     };
   };
-  systemd.services.set-random-pg-password-redmine = {
-    description = "Set random redmine password for PostgreSQL";
-    after = [ "postgresql.service" ];
-    requires = [ "postgresql.service" ];
-    wantedBy = [ "multi-user.target" ];
-    path = with pkgs; [ postgresql ];
+  systemd.services.set-random-pg-password-redmine =
+    let
+      db = config.services.redmine.database.name;
+      inherit (config.services.redmine) user;
+    in
+    {
+      description = "Set random ${db} password for PostgreSQL";
+      after = [ "postgresql.service" ];
+      requires = [ "postgresql.service" ];
+      wantedBy = [ "multi-user.target" ];
+      path = with pkgs; [ postgresql ];
 
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      RuntimeDirectoryPreserve = "yes";
-      User = config.services.redmine.user;
-      RuntimeDirectory = "pg-password-redmine";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        RuntimeDirectoryPreserve = "yes";
+        User = user;
+        RuntimeDirectory = "pg-password-${db}";
+      };
+
+      script = ''
+        set -euxo pipefail
+
+        if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
+          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
+        fi
+
+        pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
+
+        psql -v ON_ERROR_STOP=1 -c "ALTER USER ${user} WITH PASSWORD '$pw';"
+
+        if [ -f /run/pg-password-${db}/pg-${user}-pw ]; then
+          chmod 600 /run/pg-password-${db}/pg-${user}-pw
+        fi
+        echo "$pw" > /run/pg-password-${db}/pg-keycloak-pw
+        chmod 400 /run/pg-password-${db}/pg-${user}-pw
+      '';
     };
-
-    script = ''
-      set -euxo pipefail
-
-      pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
-
-      psql -v ON_ERROR_STOP=1 -c "ALTER USER redmine WITH PASSWORD '$pw';"
-
-      if [ -f /run/pg-password-redmine/pg-redmine-pw ]; then
-        chmod 600 /run/pg-password-redmine/pg-redmine-pw
-      fi
-      echo "$pw" > /run/pg-password-redmine/pg-redmine-pw
-      chmod 400 /run/pg-password-redmine/pg-redmine-pw
-
-      if ! psql -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = 'redmine'" | grep -q 1; then
-        psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE redmine OWNER redmine;"
-      fi
-    '';
-  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
