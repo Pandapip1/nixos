@@ -230,11 +230,43 @@
           proxyWebsockets = true;
         };
       };
+      "keycloak.pandapip1.com" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
+          proxyWebsockets = true;
+        };
+      };
       "redmine.berry.pandapip1.com" = {
         enableACME = true;
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://localhost:${toString config.services.redmine.port}";
+          proxyWebsockets = true;
+        };
+      };
+      "redmine.pandapip1.com" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://localhost:${toString config.services.redmine.port}";
+          proxyWebsockets = true;
+        };
+      };
+      "forgejo.berry.pandapip1.com" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://localhost:${toString config.services.forgejo.port}";
+          proxyWebsockets = true;
+        };
+      };
+      "forgejo.pandapip1.com" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://localhost:${toString config.services.forgejo.port}";
           proxyWebsockets = true;
         };
       };
@@ -348,6 +380,71 @@
     };
   systemd.services.redmine.after = [ "set-random-pg-password-redmine.service" ];
   systemd.services.redmine.requires = [ "set-random-pg-password-redmine.service" ];
+
+  # ForgeJo
+  services.forgejo = {
+    enable = true;
+    dump.enable = true;
+    lfs.enable = true;
+    database = {
+      type = "postgres";
+      host = "localhost";
+      port = config.services.postgresql.settings.port;
+      name = "forgejo";
+      user = "forgejo";
+      passwordFile = "/run/pg-password-forgejo/pg-forgejo-pw";
+      createDatabase = false;
+    };
+    settings = {
+      server = {
+        DOMAIN = "forgejo.pandapip1.com";
+        HTTP_ADDR = "[::1]";
+        HTTP_PORT = 5824;
+        PROTOCOL = "http";
+      };
+      session.COOKIE_SECURE = true;
+    };
+  };
+  systemd.services.forgejo.after = [ "set-random-pg-password-forgejo.service" ];
+  systemd.services.forgejo.requires = [ "set-random-pg-password-forgejo.service" ];
+  systemd.services.set-random-pg-password-forgejo =
+    let
+      db = config.services.forgejo.database.name;
+      inherit (config.services.forgejo) user;
+    in
+    {
+      description = "Set random ${db} password for PostgreSQL";
+      after = [ "postgresql.service" "postgresql-refresh-collation.service" ];
+      requires = [ "postgresql.service" "postgresql-refresh-collation.service" ];
+      wantedBy = [ "multi-user.target" ];
+      path = with pkgs; [ postgresql ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        RuntimeDirectoryPreserve = "yes";
+        User = user;
+        RuntimeDirectory = "pg-password-${db}";
+      };
+
+      script = ''
+        set -euxo pipefail
+
+        if ! psql -d keycloak -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1; then
+          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER ${user};"
+        fi
+
+        pw=$(head -c 128 /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
+
+        psql -v ON_ERROR_STOP=1 -c "ALTER USER ${user} WITH PASSWORD '$pw';"
+
+        if [ -f /run/pg-password-${db}/pg-${user}-pw ]; then
+          chmod 600 /run/pg-password-${db}/pg-${user}-pw
+        fi
+        echo "$pw" > /run/pg-password-${db}/pg-${user}-pw
+        chmod 400 /run/pg-password-${db}/pg-${user}-pw
+      '';
+    };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
