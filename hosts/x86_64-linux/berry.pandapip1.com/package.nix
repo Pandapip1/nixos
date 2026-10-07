@@ -293,6 +293,10 @@
       fi
       echo "$pw" > /run/pg-password-redmine/pg-redmine-pw
       chmod 400 /run/pg-password-redmine/pg-redmine-pw
+
+      if ! psql -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = 'redmine'" | grep -q 1; then
+        psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE redmine OWNER redmine;"
+      fi
     '';
   };
 
