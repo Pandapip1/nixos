@@ -168,6 +168,11 @@
         ensureClauses.superuser = true; # During initial setup, we def want the keycloak user to be superuser
         # TODO: Once setup done, superuser = false
       }
+      {
+        name = config.services.forgejo.user;
+        ensureClauses.superuser = true; # During initial setup, we def want the keycloak user to be superuser
+        # TODO: Once setup done, superuser = false
+      }
     ];
     # TODO: Set up initialScript?
   };
