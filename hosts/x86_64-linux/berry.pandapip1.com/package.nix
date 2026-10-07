@@ -89,6 +89,7 @@
     };
     # TODO: configure
   };
+  systemd.services.keycloak.after = [ "set-random-pg-password-keycloak.service" ];
   systemd.services.keycloak.requires = [ "set-random-pg-password-keycloak.service" ];
   # Currently just used for postgres auth
   # See https://github.com/NixOS/nixpkgs/issues/422823
@@ -345,6 +346,7 @@
         chmod 400 /run/pg-password-${db}/pg-${user}-pw
       '';
     };
+  systemd.services.redmine.after = [ "set-random-pg-password-redmine.service" ];
   systemd.services.redmine.requires = [ "set-random-pg-password-redmine.service" ];
 
   # This value determines the NixOS release from which the default
