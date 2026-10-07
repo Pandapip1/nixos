@@ -257,7 +257,7 @@
     enable = true;
 
     port = 3944;
-    address = "[::1]";
+    address = "127.0.0.1"; # TODO: WEBrick doesn't recognize IPv6 addrs
 
     database = {
       type = "postgresql";
