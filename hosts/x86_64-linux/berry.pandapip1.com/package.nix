@@ -136,7 +136,7 @@
         if [ -f /run/pg-password-${db}/pg-${user}-pw ]; then
           chmod 600 /run/pg-password-${db}/pg-${user}-pw
         fi
-        echo "$pw" > /run/pg-password-${db}/pg-keycloak-pw
+        echo "$pw" > /run/pg-password-${db}/pg-${user}-pw
         chmod 400 /run/pg-password-${db}/pg-${user}-pw
       '';
     };
@@ -341,7 +341,7 @@
         if [ -f /run/pg-password-${db}/pg-${user}-pw ]; then
           chmod 600 /run/pg-password-${db}/pg-${user}-pw
         fi
-        echo "$pw" > /run/pg-password-${db}/pg-keycloak-pw
+        echo "$pw" > /run/pg-password-${db}/pg-${user}-pw
         chmod 400 /run/pg-password-${db}/pg-${user}-pw
       '';
     };
