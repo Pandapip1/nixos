@@ -397,7 +397,7 @@
     settings = {
       server = {
         DOMAIN = "forgejo.pandapip1.com";
-        HTTP_ADDR = "[::1]";
+        HTTP_ADDR = "::1";
         HTTP_PORT = 5824;
         PROTOCOL = "http";
       };
