@@ -1,4 +1,9 @@
 {
+  lib,
+  ...
+}:
+
+{
   nixpkgs.overlays = [
     (_: prev: {
       mudhuts = prev.rustPlatform.buildRustPackage (finalAttrs: {
@@ -8,8 +13,8 @@
         src = prev.fetchFromGitHub {
           owner = "Pandapip1";
           repo = "mudhuts";
-          rev = "aea212e5d9d960bb9919b50bf022ddac9dfe5807";
-          hash = "sha256-kY2RVKTkVr/Cp6sDUr5uZsYz1k9Bd5+REh2OpwVX/CE=";
+          rev = "b052cd5";
+          hash = "sha256-1haA7R8eNgPr0/AZsHsjFMH022wsKi3J8boS5CciKBU=";
         };
         cargoLock = {
           lockFile = finalAttrs.src + "/Cargo.lock";
