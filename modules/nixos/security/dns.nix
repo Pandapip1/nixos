@@ -1,40 +1,21 @@
 {
+  config,
   pkgs,
   ...
 }:
 
 {
+  networking.nameservers = [
+    "127.0.0.1"
+    "::1"
+  ];
+
   services = {
     unbound = {
       enable = true;
       resolveLocalQueries = false;
       package = pkgs.unbound-full;
-      settings = {
-        server = {
-          interface = [ "::" ];
-          port = 53;
-          verbosity = 1;
-          root-hints = "/run/dns/root.hints";
-
-          # disable DNSSEC validation, needed for opennic
-          # TODO(@Pandapip1): OpenNIC does support DNSSEC
-          # https://wiki.opennic.org/opennic/dnssec
-          val-permissive-mode = "yes";
-
-          # Override RFC7686
-          local-zone = [ ''"onion." nodefault'' ];
-          domain-insecure = [ "onion" ];
-          private-domain  = [ "onion" ];
-        };
-
-        forward-zone = [
-          {
-            name = "onion";
-            # TODO: Configure tor to bind to v6 loopback instead of v4
-            forward-addr = [ "127.0.0.1@9053" ];
-          }
-        ];
-      };
+      settings = config.localDns.unboundSettings;
     };
     # TODO: Create & upstream option to configure port
     avahi = {
@@ -52,11 +33,6 @@
       nssmdns6 = true;
     };
   };
-  networking.nameservers = [
-    "127.0.0.1"
-    "::1"
-  ];
-
   systemd.services.opennic-root-hints = {
     description = "Fetch OpenNIC root hints with env-based server failover";
     wantedBy = [ "multi-user.target" ];
