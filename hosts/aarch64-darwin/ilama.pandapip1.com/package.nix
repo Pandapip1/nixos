@@ -6,6 +6,7 @@
 {
   networking = {
     computerName = "Gavin’s MacBook Pro";
+    knownNetworkServices = [ "Wi-Fi" ];
     localHostName = "Gavins-MacBook-Pro";
   };
 
