@@ -22,14 +22,6 @@
     vscodium
   ];
 
-  nix = {
-    channel.enable = false;
-    settings.experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-  };
-
   # Preserve the version used by this Mac's existing bootstrap configuration.
   system.stateVersion = 6;
 }

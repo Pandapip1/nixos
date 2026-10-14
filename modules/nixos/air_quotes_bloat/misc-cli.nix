@@ -6,19 +6,12 @@
 {
   environment.systemPackages = with pkgs; [
     killall
-    btop
-    dig
     usbutils
     pciutils
     gdb
-    nixfmt
     cdrkit
-    tree
     vulnix
     lynis
-    poppler-utils
-    screen
-    attic-client
     # Performance debugging
     perf
     trace-cmd

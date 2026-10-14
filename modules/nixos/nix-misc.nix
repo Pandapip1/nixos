@@ -1,10 +1,6 @@
 {
   lib,
-  config,
   pkgs,
-  self,
-  nixpkgs,
-  nur,
   ...
 }:
 
@@ -29,66 +25,30 @@
             let
               qemu-common = pkgs.callPackage "${pkgs.path}/nixos/lib/qemu-common.nix" { };
             in
-            toString (pkgs.writeShellScript "qemu-verbose" ''
-              set -euo pipefail
-              args=()
-              while [ "$#" -gt 0 ]; do
-                if [ "$1" = "-append" ]; then
-                  args+=(
-                    "-append"
-                    "$(printf '%s' "$2" | ${lib.getExe' pkgs.gnused "sed"} -E 's/(^| )loglevel=[0-9]+/\1loglevel=8/')"
-                  )
-                  shift 2
-                else
-                  args+=("$1")
-                  shift
-                fi
-              done
-              ${qemu-common.qemuBinary pkgs.qemu_kvm} "''${args[@]}" 2>&1 \
-                | ${lib.getExe' pkgs.gnused "sed"} -u 's/\r//g'
-            '');
+            toString (
+              pkgs.writeShellScript "qemu-verbose" ''
+                set -euo pipefail
+                args=()
+                while [ "$#" -gt 0 ]; do
+                  if [ "$1" = "-append" ]; then
+                    args+=(
+                      "-append"
+                      "$(printf '%s' "$2" | ${lib.getExe' pkgs.gnused "sed"} -E 's/(^| )loglevel=[0-9]+/\1loglevel=8/')"
+                    )
+                    shift 2
+                  else
+                    args+=("$1")
+                    shift
+                  fi
+                done
+                ${qemu-common.qemuBinary pkgs.qemu_kvm} "''${args[@]}" 2>&1 \
+                  | ${lib.getExe' pkgs.gnused "sed"} -u 's/\r//g'
+              ''
+            );
         };
       }
     )
   ];
-
-  nix = {
-    settings.experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-    channel.enable = false;
-    package = pkgs.nixVersions.latest;
-    nixPath = lib.mkForce [
-      "nixpkgs=flake:nixpkgs"
-      "nur=flake:nur"
-      # `nix-instantiate --eval -E '(import <config>)'` will get the config for the current machine
-      "config=${pkgs.writeText "configuration.nix" "(builtins.getFlake (toString ${self.outPath})).nixosConfigurations.${config.networking.hostName}.config"}"
-    ];
-    registry =
-      let
-        mkRegistryEntry = name: path: {
-          ${name}.to = {
-            type = "path";
-            inherit path;
-            narHash = builtins.readFile (
-              pkgs.buildPackages.runCommandLocal "get-${name}-hash" { }
-                "${lib.getExe' pkgs.buildPackages.nix "nix-hash"} --type sha256 --sri ${path} > $out"
-            );
-          };
-        };
-      in
-      mkRegistryEntry "nixpkgs" pkgs.path // mkRegistryEntry "nur" nur.outPath;
-  };
-
-  nixpkgs = {
-    flake = {
-      source = nixpkgs.outPath;
-      setFlakeRegistry = false; # We do this ourselves
-      setNixPath = false; # Again, we do this ourselves
-    };
-    config.warnUndeclaredOptions = true;
-  };
 
   boot.binfmt.emulatedSystems = lib.remove pkgs.hostPlatform.system [
     "aarch64-linux"
