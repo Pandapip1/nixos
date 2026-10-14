@@ -1,8 +1,9 @@
+{ config, lib, ... }:
+
 {
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    startAsUserService = true;
     verbose = true;
     sharedModules = [
       {
@@ -13,5 +14,7 @@
         programs.nushell.enable = true;
       }
     ];
+  } // lib.optionalAttrs (config.moduleClass == "nixos") {
+    startAsUserService = true;
   };
 }

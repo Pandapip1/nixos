@@ -8,6 +8,12 @@ Manual update:
 sudo nixos-rebuild switch --flake git+https://codeberg.org/Pandapip1/nixos.git?shallow=1
 ```
 
+Update macOS with nix-darwin:
+
+```
+sudo darwin-rebuild switch --flake .#ilama
+```
+
 Build disk images
 
 ```

@@ -9,6 +9,10 @@
         nixpkgs.follows = "nixpkgs";
       };
     };
+    nix-darwin = {
+      url = "github:nix-darwin/nix-darwin/master";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
@@ -114,16 +118,21 @@
       inherit (nixpkgs) lib;
       hostsDir = self.outPath + "/hosts";
       modulesDir = self.outPath + "/modules";
+      discover = directory: lib.collect (x: !lib.isAttrs x) (
+        lib.packagesFromDirectoryRecursive {
+          callPackage = path: _: path;
+          inherit directory;
+        }
+      );
       hosts = lib.packagesFromDirectoryRecursive {
         callPackage = path: _: path;
         directory = hostsDir;
       };
-      modules = lib.collect (x: !lib.isAttrs x) (
-        lib.packagesFromDirectoryRecursive {
-          callPackage = path: _: path;
-          directory = modulesDir;
-        }
-      );
+      modulesFor = moduleClass:
+        map (module: {
+          _class = moduleClass;
+          imports = [ module ];
+        }) (discover (modulesDir + "/common") ++ discover (modulesDir + "/${moduleClass}"));
       inputHMModules = with inputs; [
         cosmic-manager.homeManagerModules.default
       ];
@@ -138,7 +147,12 @@
         nix-index-database.overlays.nix-index
         nur.overlays.default
         nixos-apple-silicon.overlays.default
+        (final: _: {
+          ext4fuse = final.callPackage ./packages/ext4fuse.nix { };
+        })
       ];
+      linuxSystems = lib.filter (lib.hasSuffix "-linux") (lib.attrNames hosts);
+      darwinSystems = lib.filter (lib.hasSuffix "-darwin") (lib.attrNames hosts);
     in
     {
       legacyPackages = lib.listToAttrs (
@@ -197,7 +211,7 @@
               };
             }
           ) hosts.${system};
-        }) (lib.attrNames hosts)
+        }) linuxSystems
       );
 
       nixosConfigurations = lib.mergeAttrsList (
@@ -221,26 +235,79 @@
                     # having to include this stuff as specialArgs
                     # Everything that doesn't depend on something defined here
                     # should go in modules/
-                    networking = {
-                      inherit hostName domain;
-                    };
-                    nixpkgs = {
-                      hostPlatform = {
-                        inherit system;
+                    config = {
+                      networking = {
+                        inherit hostName domain;
                       };
-                      buildPlatform = builtins.currentSystem or system;
-                      overlays = inputOverlays;
+                      nixpkgs = {
+                        hostPlatform = {
+                          inherit system;
+                        };
+                        buildPlatform = builtins.currentSystem or system;
+                        overlays = inputOverlays;
+                      };
+                      home-manager.sharedModules = inputHMModules;
                     };
-                    home-manager.sharedModules = inputHMModules;
+                    options.moduleClass = lib.mkOption {
+                      type = lib.types.enum [ "nixos" "darwin" ];
+                      readOnly = true;
+                      default = "nixos";
+                      description = "The module class of the current host configuration.";
+                    };
                   })
                   hostModulePath
                 ]
-                ++ modules
+                ++ modulesFor "nixos"
                 ++ inputModules;
               };
             }
           ) hosts."${system}"
-        ) (lib.attrNames hosts)
+        ) linuxSystems
+      );
+
+      darwinConfigurations = lib.mergeAttrsList (
+        map (
+          system:
+          lib.mapAttrs' (
+            fqdn: hostModulePath:
+            let
+              splitName = lib.splitString "." fqdn;
+              hostName = lib.head splitName;
+              domain =
+                if (lib.length splitName == 1) then null else lib.concatStringsSep "." (lib.tail splitName);
+            in
+            {
+              name = hostName;
+              value = inputs.nix-darwin.lib.darwinSystem {
+                specialArgs = inputs;
+                modules = [
+                  inputs.home-manager.darwinModules.default
+                  ({ lib, ... }: {
+                    config = {
+                      networking = {
+                        inherit hostName;
+                        search = lib.optional (domain != null) domain;
+                      };
+                      nixpkgs = {
+                        hostPlatform = system;
+                        overlays = inputOverlays;
+                      };
+                      home-manager.sharedModules = inputHMModules;
+                      system.configurationRevision = self.rev or self.dirtyRev or null;
+                    };
+                    options.moduleClass = lib.mkOption {
+                      type = lib.types.enum [ "nixos" "darwin" ];
+                      readOnly = true;
+                      default = "darwin";
+                      description = "The module class of the current host configuration.";
+                    };
+                  })
+                  hostModulePath
+                ] ++ modulesFor "darwin";
+              };
+            }
+          ) hosts.${system}
+        ) darwinSystems
       );
     };
 }

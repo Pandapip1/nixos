@@ -17,7 +17,7 @@
 
   nix-gc.profiles.system.configurationLimit = 1; # Only one bootable at a time
 
-  services.avahi.avahi = lib.mkForce false; # Grape should not use mDNS
+  services.avahi.enable = lib.mkForce false; # Grape should not use mDNS
 
   system.stateVersion = "25.11";
 }

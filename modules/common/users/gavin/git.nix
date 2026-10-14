@@ -4,10 +4,14 @@
   ...
 }:
 let
-  oauthHelper = [
-    (lib.getExe' pkgs.gitFull "git-credential-libsecret")
-    (lib.getExe pkgs.git-credential-oauth)
-  ];
+  oauthHelper =
+    if pkgs.stdenv.hostPlatform.isDarwin then
+      [ "osxkeychain" ]
+    else
+      [
+        (lib.getExe' pkgs.gitFull "git-credential-libsecret")
+        (lib.getExe pkgs.git-credential-oauth)
+      ];
 in
 {
   home-manager.users.gavin = {

@@ -10,7 +10,6 @@
 
   services.home-assistant = {
     enable = true;
-    openFirewall = true;
     extraComponents = [
       # Recommended for fast zlib compression
       # https://www.home-assistant.io/integrations/isal
