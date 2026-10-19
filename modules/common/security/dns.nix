@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ lib, pkgs, ... }:
 
 {
   options.localDns.unboundSettings = lib.mkOption {
@@ -9,10 +9,13 @@
 
   config.localDns.unboundSettings = {
     server = {
-      interface = [ "::" ];
+      interface = [
+        "127.0.0.1"
+        "::1"
+      ];
       port = 53;
       verbosity = 1;
-      root-hints = "/run/dns/root.hints";
+      root-hints = "${pkgs.dns-root-data}/root.hints";
 
       # Permit the Tor DNSPort used by the onion forward zone below.
       do-not-query-localhost = false;
