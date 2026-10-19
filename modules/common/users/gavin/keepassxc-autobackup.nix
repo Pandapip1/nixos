@@ -186,6 +186,7 @@ in
         RunAtLoad = true;
         StartInterval = 900;
         ProcessType = "Background";
+        EnvironmentVariables.SSH_AUTH_SOCK = "/Users/gavin/.gnupg/S.gpg-agent.ssh";
         StandardOutPath = "/tmp/keepass-sync.log";
         StandardErrorPath = "/tmp/keepass-sync.error.log";
       };
