@@ -124,7 +124,14 @@ let
               [[ "$remote_branch" == "HEAD" ]] || printf '%s\n' "$remote_branch"
             done
       )
-      if [[ ! " ''${remote_branches[*]} " =~ " $branch " ]]; then
+      branch_is_remote=false
+      for remote_branch in "''${remote_branches[@]}"; do
+        if [[ "$remote_branch" == "$branch" ]]; then
+          branch_is_remote=true
+          break
+        fi
+      done
+      if [[ "$branch_is_remote" == false ]]; then
         remote_branches+=("$branch")
       fi
 
