@@ -6,6 +6,30 @@
 }:
 
 let
+  keychainService = "org.pandapip1.keepass-sync";
+
+  storeKeepassPassword = pkgs.writeShellApplication {
+    name = "keepass-sync-store-password";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      if (( $# == 0 )); then
+        echo "Usage: keepass-sync-store-password DATABASE.kdbx [...]" >&2
+        exit 2
+      fi
+
+      for database in "$@"; do
+        database=$(basename "$database")
+        read -r -s -p "Password for $database: " password
+        printf '\n'
+        /usr/bin/security add-generic-password -U \
+          -a "$database" \
+          -s "${keychainService}" \
+          -w "$password"
+        unset password
+      done
+    '';
+  };
+
   keepassMerge = pkgs.writeShellApplication {
     name = "keepass-merge";
     runtimeInputs = [
@@ -21,13 +45,26 @@ let
       other=$3
       database_path=$4
 
-      password_file="''${database_path%.kdbx}.pass.gpg"
-      if [[ ! -f "$password_file" ]]; then
-        echo "Cannot merge $database_path: $password_file does not exist" >&2
-        exit 1
-      fi
-
-      password=$(gpg --quiet --batch --decrypt "$password_file")
+      ${
+        if pkgs.stdenv.hostPlatform.isDarwin then
+          ''
+            if ! password=$(/usr/bin/security find-generic-password \
+              -a "$database_path" -s "${keychainService}" -w); then
+              echo "No macOS Keychain password is stored for $database_path." >&2
+              echo "Run: keepass-sync-store-password '$database_path'" >&2
+              exit 1
+            fi
+          ''
+        else
+          ''
+            password_file="''${database_path%.kdbx}.pass.gpg"
+            if [[ ! -f "$password_file" ]]; then
+              echo "Cannot merge $database_path: $password_file does not exist" >&2
+              exit 1
+            fi
+            password=$(gpg --quiet --batch --decrypt "$password_file")
+          ''
+      }
       printf '%s\n' "$password" \
         | keepassxc-cli merge --quiet --same-credentials "$current" "$other"
     '';
@@ -87,9 +124,14 @@ let
               [[ "$remote_branch" == "HEAD" ]] || printf '%s\n' "$remote_branch"
             done
       )
+      if [[ ! " ''${remote_branches[*]} " =~ " $branch " ]]; then
+        remote_branches+=("$branch")
+      fi
 
       for remote_branch in "''${remote_branches[@]}"; do
         remote_ref="refs/remotes/origin/$remote_branch"
+        # The active device branch may not have been published yet.
+        git show-ref --verify --quiet "$remote_ref" || continue
         if ! git merge-base --is-ancestor "$remote_ref" HEAD; then
           git -c commit.gpgsign=false merge --no-edit "$remote_ref"
         fi
@@ -109,6 +151,8 @@ let
 in
 {
   home-manager.users.gavin = {
+    home.packages = lib.optional pkgs.stdenv.hostPlatform.isDarwin storeKeepassPassword;
+
     systemd.user = lib.mkIf (config.moduleClass == "nixos") {
       services.keepass-sync = {
         Unit.Description = "Synchronize KeePass databases across device branches";
