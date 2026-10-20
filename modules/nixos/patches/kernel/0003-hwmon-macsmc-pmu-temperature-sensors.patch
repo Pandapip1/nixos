@@ -1,0 +1,267 @@
+From 1d378e3bed3e7776b8e8b3df2afe2c0b0b1e6001 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Subject: [PATCH] hwmon: macsmc: expose T600x PMU temperature keys
+
+macOS exposes the AppleARMPMUTempSensor readings through IOHID. The SMC
+identifiers below are derived from its LocationIDs; its tdie values match
+btop on macOS. Create one Core N hwmon channel for every possible CPU and
+map it evenly onto the available tdie sensors. This keeps the standard
+hwmon interface and btop correct on 8-, 10-, and 20-core T600x systems.
+
+Signed-off-by: Gavin John <gavinnjohn@gmail.com>
+---
+diff --git a/arch/arm64/boot/dts/apple/t600x-die0.dtsi b/arch/arm64/boot/dts/apple/t600x-die0.dtsi
+--- a/arch/arm64/boot/dts/apple/t600x-die0.dtsi
++++ b/arch/arm64/boot/dts/apple/t600x-die0.dtsi
+@@ -40,10 +40,14 @@
+ 		smc_reboot: reboot {
+ 			compatible = "apple,smc-reboot";
+ 			nvmem-cells = <&shutdown_flag>, <&boot_stage>,
+ 				<&boot_error_count>, <&panic_count>;
+ 			nvmem-cell-names = "shutdown_flag", "boot_stage",
+ 				"boot_error_count", "panic_count";
+ 		};
++		pmu_temperature {
++			compatible = "apple,t6000-smc-pmu-temp";
++		};
++
+ 	};
+ 
+ 	smc_mbox: mbox@290408000 {
+diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
+--- a/drivers/hwmon/Kconfig
++++ b/drivers/hwmon/Kconfig
+@@ -403,11 +403,18 @@ config SENSORS_ARM_SCPI
+ 	tristate "ARM SCPI Sensors"
+ 	depends on ARM_SCPI_PROTOCOL
+ 	depends on THERMAL || !THERMAL_OF
+ 	help
+ 	  This driver provides support for temperature, voltage, current
+ 	  and power sensors available on ARM Ltd's SCP based platforms. The
+ 	  actual number and type of sensors exported depend on the platform.
+ 
++config SENSORS_MACSMC_PMU_TEMP
++	tristate "Apple Silicon SMC PMU temperature sensors"
++	depends on MFD_MACSMC
++	help
++	  Experimental T600x PMU die-temperature driver. It exports one
++	  Core N channel for each CPU and maps it to a derived PMU tdie key.
++
+ config SENSORS_ASB100
+ 	tristate "Asus ASB100 Bach"
+ 	depends on (X86 || COMPILE_TEST) && I2C
+diff --git a/drivers/hwmon/Makefile b/drivers/hwmon/Makefile
+--- a/drivers/hwmon/Makefile
++++ b/drivers/hwmon/Makefile
+@@ -49,7 +49,8 @@
+ obj-$(CONFIG_SENSORS_AHT10)	+= aht10.o
+ obj-$(CONFIG_SENSORS_APPLESMC)	+= applesmc.o
+ obj-$(CONFIG_SENSORS_AQUACOMPUTER_D5NEXT) += aquacomputer_d5next.o
+ obj-$(CONFIG_SENSORS_ARM_SCMI)	+= scmi-hwmon.o
++obj-$(CONFIG_SENSORS_MACSMC_PMU_TEMP) += macsmc-pmu-temp.o
+ obj-$(CONFIG_SENSORS_ARM_SCPI)	+= scpi-hwmon.o
+ obj-$(CONFIG_SENSORS_AS370)	+= as370-hwmon.o
+ obj-$(CONFIG_SENSORS_ASC7621)	+= asc7621.o
+diff --git a/drivers/mfd/macsmc.c b/drivers/mfd/macsmc.c
+--- a/drivers/mfd/macsmc.c
++++ b/drivers/mfd/macsmc.c
+@@ -47,4 +47,5 @@
+ static const struct mfd_cell apple_smc_devs[] = {
+ 	MFD_CELL_OF("macsmc-gpio", NULL, NULL, 0, 0, "apple,smc-gpio"),
+ 	MFD_CELL_OF("macsmc-reboot", NULL, NULL, 0, 0, "apple,smc-reboot"),
++	MFD_CELL_OF("macsmc-pmu-temp", NULL, NULL, 0, 0, "apple,t6000-smc-pmu-temp"),
+ };
+diff --git a/drivers/hwmon/macsmc-pmu-temp.c b/drivers/hwmon/macsmc-pmu-temp.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/hwmon/macsmc-pmu-temp.c
+@@ -0,0 +1,189 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include <linux/bitops.h>
++#include <linux/cpumask.h>
++#include <linux/device.h>
++#include <linux/hwmon.h>
++#include <linux/limits.h>
++#include <linux/mfd/macsmc.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++
++#define PMU_TEMP_MAX_TDIE	11
++#define PMU_TEMP_MAX_AUX	5
++#define PMU_TEMP_LABEL_LEN	24
++
++struct pmu_temp_key {
++	smc_key key;
++	const char *label;
++};
++
++struct pmu_temp {
++	struct apple_smc *smc;
++	unsigned int nr_channels;
++	smc_key *channel_keys;
++	char (*labels)[PMU_TEMP_LABEL_LEN];
++	u32 *config;
++	struct hwmon_channel_info channel_info;
++	const struct hwmon_channel_info *info[2];
++	struct hwmon_chip_info chip_info;
++};
++
++static const smc_key tdie_keys[] = {
++	SMC_KEY(TP0b), SMC_KEY(TP1b), SMC_KEY(TP2b), SMC_KEY(TP3b),
++	SMC_KEY(TP4b), SMC_KEY(TP5b), SMC_KEY(TP6b), SMC_KEY(TP7b),
++	SMC_KEY(TP8b), SMC_KEY(TP9b), SMC_KEY(TPab),
++};
++
++static const struct pmu_temp_key aux_keys[] = {
++	{ SMC_KEY(TP1l), "PMU tdie1-local" },
++	{ SMC_KEY(TP2l), "PMU tdie2-local" },
++	{ SMC_KEY(TP1g), "PMU TP1g" },
++	{ SMC_KEY(TP2g), "PMU TP2g" },
++	{ SMC_KEY(TP3g), "PMU TP3g" },
++};
++
++static long float_to_mc(u32 raw)
++{
++	u64 mantissa = (raw & 0x7fffff) + BIT(23);
++	int exponent = ((raw >> 23) & 0xff) - 150;
++	long result;
++
++	mantissa *= 1000;
++	if (fls64(mantissa) + exponent > sizeof(long) * BITS_PER_BYTE - 1)
++		result = LONG_MAX;
++	else if (exponent < 0)
++		result = (mantissa + BIT_ULL(-exponent - 1)) >> -exponent;
++	else
++		result = mantissa << exponent;
++	return (raw & BIT(31)) ? -result : result;
++}
++
++static umode_t pmu_temp_visible(const void *data, enum hwmon_sensor_types type,
++				u32 attr, int channel)
++{
++	const struct pmu_temp *pmu = data;
++
++	if (type != hwmon_temp || channel >= pmu->nr_channels)
++		return 0;
++	return (attr == hwmon_temp_input || attr == hwmon_temp_label) ? 0444 : 0;
++}
++
++static int pmu_temp_read(struct device *dev, enum hwmon_sensor_types type,
++			 u32 attr, int channel, long *val)
++{
++	struct pmu_temp *pmu = dev_get_drvdata(dev);
++	u32 raw;
++	int ret;
++
++	if (type != hwmon_temp || attr != hwmon_temp_input ||
++	    channel >= pmu->nr_channels)
++		return -EOPNOTSUPP;
++	ret = apple_smc_read_u32(pmu->smc, pmu->channel_keys[channel], &raw);
++	if (ret)
++		return ret;
++	*val = float_to_mc(raw);
++	return (*val < -50000 || *val > 150000) ? -ERANGE : 0;
++}
++
++static int pmu_temp_read_string(struct device *dev, enum hwmon_sensor_types type,
++				u32 attr, int channel, const char **str)
++{
++	struct pmu_temp *pmu = dev_get_drvdata(dev);
++
++	if (type != hwmon_temp || attr != hwmon_temp_label ||
++	    channel >= pmu->nr_channels)
++		return -EOPNOTSUPP;
++	*str = pmu->labels[channel];
++	return 0;
++}
++
++static const struct hwmon_ops pmu_temp_ops = {
++	.is_visible = pmu_temp_visible,
++	.read = pmu_temp_read,
++	.read_string = pmu_temp_read_string,
++};
++
++static bool pmu_temp_is_float(struct apple_smc *smc, smc_key key)
++{
++	struct apple_smc_key_info info;
++
++	return !apple_smc_get_key_info(smc, key, &info) &&
++		info.size == sizeof(u32) && info.type_code == SMC_KEY(flt);
++}
++
++static int pmu_temp_probe(struct platform_device *pdev)
++{
++	struct pmu_temp *pmu;
++	struct device *hwmon;
++	smc_key present_tdie[PMU_TEMP_MAX_TDIE];
++	unsigned int ntdie = 0, naux = 0, aux = 0, ncores, i;
++
++	pmu = devm_kzalloc(&pdev->dev, sizeof(*pmu), GFP_KERNEL);
++	if (!pmu)
++		return -ENOMEM;
++	pmu->smc = dev_get_drvdata(pdev->dev.parent);
++	if (!pmu->smc)
++		return -EPROBE_DEFER;
++
++	for (i = 0; i < ARRAY_SIZE(tdie_keys); i++)
++		if (pmu_temp_is_float(pmu->smc, tdie_keys[i]))
++			present_tdie[ntdie++] = tdie_keys[i];
++	if (!ntdie)
++		return -ENODEV;
++
++	/* Apple Silicon has one hardware thread per CPU core. */
++	ncores = num_possible_cpus();
++	pmu->nr_channels = ncores;
++	for (i = 0; i < ARRAY_SIZE(aux_keys); i++)
++		if (pmu_temp_is_float(pmu->smc, aux_keys[i].key))
++			naux++;
++	pmu->nr_channels += naux;
++
++	pmu->channel_keys = devm_kcalloc(&pdev->dev, pmu->nr_channels,
++					 sizeof(*pmu->channel_keys), GFP_KERNEL);
++	pmu->labels = devm_kcalloc(&pdev->dev, pmu->nr_channels,
++				   sizeof(*pmu->labels), GFP_KERNEL);
++	pmu->config = devm_kcalloc(&pdev->dev, pmu->nr_channels + 1,
++				   sizeof(*pmu->config), GFP_KERNEL);
++	if (!pmu->channel_keys || !pmu->labels || !pmu->config)
++		return -ENOMEM;
++
++	for (i = 0; i < ncores; i++) {
++		pmu->channel_keys[i] = present_tdie[i * ntdie / ncores];
++		snprintf(pmu->labels[i], PMU_TEMP_LABEL_LEN, "Core %u", i);
++	}
++	for (i = 0; i < ARRAY_SIZE(aux_keys); i++) {
++		if (!pmu_temp_is_float(pmu->smc, aux_keys[i].key))
++			continue;
++		pmu->channel_keys[ncores + aux] = aux_keys[i].key;
++		strscpy(pmu->labels[ncores + aux], aux_keys[i].label,
++			PMU_TEMP_LABEL_LEN);
++		aux++;
++	}
++	for (i = 0; i < pmu->nr_channels; i++)
++		pmu->config[i] = HWMON_T_INPUT | HWMON_T_LABEL;
++
++	pmu->channel_info.type = hwmon_temp;
++	pmu->channel_info.config = pmu->config;
++	pmu->info[0] = &pmu->channel_info;
++	pmu->chip_info.ops = &pmu_temp_ops;
++	pmu->chip_info.info = pmu->info;
++	hwmon = devm_hwmon_device_register_with_info(&pdev->dev, "macsmc_pmu_temp",
++						     pmu, &pmu->chip_info, NULL);
++	return PTR_ERR_OR_ZERO(hwmon);
++}
++
++static const struct of_device_id pmu_temp_of_match[] = {
++	{ .compatible = "apple,t6000-smc-pmu-temp" }, {}
++};
++MODULE_DEVICE_TABLE(of, pmu_temp_of_match);
++
++static struct platform_driver pmu_temp_driver = {
++	.probe = pmu_temp_probe,
++	.driver = { .name = "macsmc-pmu-temp", .of_match_table = pmu_temp_of_match },
++};
++module_platform_driver(pmu_temp_driver);
++
++MODULE_LICENSE("GPL");
