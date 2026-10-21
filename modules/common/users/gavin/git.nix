@@ -6,7 +6,10 @@
 let
   oauthHelper =
     if pkgs.stdenv.hostPlatform.isDarwin then
-      [ "osxkeychain" ]
+      [
+        "osxkeychain"
+        (lib.getExe pkgs.git-credential-oauth)
+      ]
     else
       [
         (lib.getExe' pkgs.gitFull "git-credential-libsecret")

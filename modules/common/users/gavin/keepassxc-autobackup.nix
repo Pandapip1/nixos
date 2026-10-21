@@ -84,6 +84,15 @@ let
       fi
 
       cd "$repo"
+
+      # Authenticate over HTTPS through the OAuth credential helper so that a
+      # passphrase-protected SSH key never triggers a pinentry in the
+      # background. Never fall back to an interactive prompt.
+      export GIT_TERMINAL_PROMPT=0
+      export GIT_CONFIG_COUNT=1
+      export GIT_CONFIG_KEY_0="url.https://codeberg.org/.insteadOf"
+      export GIT_CONFIG_VALUE_0="ssh://git@codeberg.org/"
+
       lock_dir=.git/keepass-sync.lock
       if ! mkdir "$lock_dir" 2>/dev/null; then
         echo "Another KeePass sync is already running; skipping"
@@ -186,7 +195,6 @@ in
         RunAtLoad = true;
         StartInterval = 900;
         ProcessType = "Background";
-        EnvironmentVariables.SSH_AUTH_SOCK = "/Users/gavin/.gnupg/S.gpg-agent.ssh";
         StandardOutPath = "/tmp/keepass-sync.log";
         StandardErrorPath = "/tmp/keepass-sync.error.log";
       };
