@@ -21,6 +21,8 @@
         "steam"
         "steam-unwrapped"
         "claude-code"
+        "empryo-tui"
+        "empryo-gui"
         # NVIDIA drivers.
         "nvidia-x11"
         "nvidia-settings"
