@@ -25,5 +25,13 @@
         SENSORS_MACSMC_PMU_TEMP = true;
       };
     }
+    {
+      # BCM4387 firmware bring-up intermittently crashes with no known
+      # host-side root cause; retry a bounded number of times (each attempt
+      # starting from a hardware watchdog reset) before giving up and
+      # unbinding. See the patch for the full writeup.
+      name = "brcmfmac-bounded-firmware-retry";
+      patch = ./0004-wireless-brcmfmac-bounded-firmware-retry.patch;
+    }
   ];
 }

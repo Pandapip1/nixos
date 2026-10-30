@@ -1,0 +1,171 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Subject: [PATCH] wifi: brcmfmac: retry PCIe firmware bring-up before giving up
+
+This machine's BCM4387 (Wi-Fi/BT combo chip) intermittently crashes
+during brcmfmac's PCIe firmware bring-up -- drivers/net/wireless/
+broadcom/brcm80211/brcmfmac/pcie.c's brcmf_pcie_setup() logs "Dongle
+setup failed" at its `fail:` label and, on the very first failure,
+calls brcmf_fw_crashed() then device_release_driver(), permanently
+unbinding the driver until something reloads the module. The crash
+signature (THREADX TRAP address, stack contents) varies between
+occurrences, consistent with a timing race rather than a deterministic
+bug, and it is not root-caused upstream: it is not the already-fixed
+BCM4387 AXI-reset issue (brcmf_chip_cr4_set_passive() in chip.c already
+only calls brcmf_chip_coredisable(), not a reset release, matching
+Hector Martin's existing fix), and it originates in Broadcom's
+closed-source on-chip firmware, which isn't decodable from this driver.
+A NixOS-level userspace workaround already reloads the module after
+boot if it never binds (see brcmfmac-wifi-crash-recovery.nix), but a
+kernel-level fix is worth doing directly in the driver's own failure
+path instead of only relying on userspace to notice.
+
+Give brcmf_pcie_setup() a bounded number of attempts (3) before
+unbinding. Each attempt, including the first, starts with a hardware
+watchdog reset of the chip via the existing brcmf_pcie_reset_device()
+(the same targeted reset the runtime brcmf_pcie_reset() bus op already
+uses for crash recovery once the device is up) rather than assuming the
+chip resets itself to a clean slate on its own -- this is cheaper and
+more targeted than brcmf_pcie_remove()'s full teardown, which frees
+devinfo/bus and can't be used mid-probe. On failure, whatever
+host-side state this attempt reached (IRQ, scratch buffers, ring
+buffers) is released -- each release function is already individually
+guarded by its own allocated/initialized flag or a NULL check, so this
+is safe regardless of how far a given attempt got -- and the whole
+firmware request is re-issued from scratch via
+brcmf_pcie_prepare_fw_request() + brcmf_fw_get_firmwares(), the same
+pair of calls brcmf_pcie_reset() uses. brcmf_detach() is deliberately
+not called here (unlike brcmf_pcie_reset()): nothing has attached yet
+at any failure point inside brcmf_pcie_setup(), since the only
+brcmf_attach() call in this function is itself one of the goto-fail
+sites. The retry counter lives on brcmf_pciedev_info and resets to
+zero on a successful bring-up, so a crash recurring hours into an
+uptime session (e.g. after suspend/resume) gets its own fresh 3
+attempts rather than inheriting a stale count from boot.
+
+Incidentally fixes a small pre-existing leak on the request_irq
+failure path: every other goto-fail site in this function either
+releases the fw/fwsig/nvram firmware blobs itself or has already
+handed them to brcmf_pcie_download_fw_nvram() (which frees them
+unconditionally, even on its own failure), but the request_irq failure
+check -- running before download_fw_nvram -- jumped to `fail:`
+without releasing them. Harmless as a one-time leak, but worth fixing
+now that a retry loop would otherwise repeat it on every attempt.
+
+Signed-off-by: Gavin John <gavinnjohn@gmail.com>
+Co-authored-by: Claude Sonnet 5 <noreply@anthropic.com>
+---
+--- a/drivers/net/wireless/broadcom/brcm80211/brcmfmac/pcie.c
++++ b/drivers/net/wireless/broadcom/brcm80211/brcmfmac/pcie.c
+@@ -427,6 +427,7 @@
+ 	struct brcmf_mp_device *settings;
+ 	struct brcmf_otp_params otp;
+ 	bool fwseed;
++	unsigned int setup_attempts;
+ #ifdef DEBUG
+ 	u32 console_interval;
+ 	bool console_active;
+@@ -2495,6 +2496,22 @@
+ #define BRCMF_PCIE_FW_TXCAP	3
+ #define BRCMF_PCIE_FW_SIG	4
+ 
++/*
++ * The firmware crash this chip (BCM4387) intermittently hits during PCIe
++ * bring-up (see the "retrying dongle setup" / "Dongle setup failed" paths
++ * below) has no known host-side root cause -- it originates in Broadcom's
++ * closed-source on-chip firmware and isn't decodable from this driver.
++ * Rather than give up on the first failure, retry the whole bring-up a
++ * bounded number of times: each retry does a hardware watchdog reset of
++ * the chip (brcmf_pcie_reset_device(), the same targeted reset already used
++ * by the runtime brcmf_pcie_reset() bus op -- not the much heavier
++ * brcmf_pcie_remove(), which frees devinfo/bus and can't be used mid-probe)
++ * before re-requesting firmware and re-running setup from scratch. This
++ * mirrors brcmf_pcie_reset()'s own recovery sequence, minus brcmf_detach()
++ * since nothing has attached yet at any failure point in this function.
++ */
++#define BRCMF_PCIE_SETUP_MAX_ATTEMPTS	3
++
+ static void brcmf_pcie_setup(struct device *dev, int ret,
+ 			     struct brcmf_fw_request *fwreq)
+ {
+@@ -2514,6 +2531,15 @@
+ 	if (ret)
+ 		goto fail;
+ 
++	/*
++	 * Always bring the chip up from a known hardware state before
++	 * touching it, on the first attempt as well as on retries -- don't
++	 * assume it reset itself cleanly on its own. This is the same
++	 * watchdog reset brcmf_pcie_reset() already relies on for runtime
++	 * recovery.
++	 */
++	brcmf_pcie_reset_device(devinfo);
++
+ 	brcmf_pcie_attach(devinfo);
+ 
+ 	fw = fwreq->items[BRCMF_PCIE_FW_CODE].binary;
+@@ -2545,8 +2571,20 @@
+ 	 */
+ 	brcmf_pcie_select_core(devinfo, BCMA_CORE_PCIE2);
+ 	ret = brcmf_pcie_request_irq(devinfo);
+-	if (ret)
++	if (ret) {
++		/*
++		 * Pre-existing leak on this specific failure path (every
++		 * other goto-fail site below this point either releases
++		 * fw/fwsig/nvram itself or has already handed them to
++		 * brcmf_pcie_download_fw_nvram(), which frees them
++		 * unconditionally). Fix it here too, since the retry loop
++		 * added below would otherwise compound it on every attempt.
++		 */
++		release_firmware(fw);
++		release_firmware(fwsig);
++		brcmf_fw_nvram_free(nvram);
+ 		goto fail;
++	}
+ 
+ 	ret = brcmf_pcie_download_fw_nvram(devinfo, fw, fwsig, nvram, nvram_len);
+ 	if (ret)
+@@ -2591,11 +2629,42 @@
+ 
+ 	brcmf_pcie_fwcon_timer(devinfo, true);
+ 
++	devinfo->setup_attempts = 0;
+ 	return;
+ 
+ fail:
+ 	brcmf_err(bus, "Dongle setup failed\n");
+ 	brcmf_pcie_bus_console_read(devinfo, true);
++
++	if (++devinfo->setup_attempts < BRCMF_PCIE_SETUP_MAX_ATTEMPTS) {
++		struct brcmf_fw_request *retry_fwreq;
++
++		brcmf_err(bus,
++			  "retrying dongle setup after firmware crash (attempt %u/%u)\n",
++			  devinfo->setup_attempts + 1, BRCMF_PCIE_SETUP_MAX_ATTEMPTS);
++
++		/*
++		 * Tear down whatever host-side state this attempt got to
++		 * (all of these are no-ops/idempotent if that step was never
++		 * reached -- each is individually guarded by its own
++		 * allocated/initialized flag or a NULL check). Nothing has
++		 * attached yet at any failure point above, so unlike
++		 * brcmf_pcie_reset() there is no brcmf_detach() to do here.
++		 */
++		brcmf_pcie_release_irq(devinfo);
++		brcmf_pcie_release_scratchbuffers(devinfo);
++		brcmf_pcie_release_ringbuffers(devinfo);
++		brcmf_pcie_reset_device(devinfo);
++
++		retry_fwreq = brcmf_pcie_prepare_fw_request(devinfo);
++		if (retry_fwreq &&
++		    !brcmf_fw_get_firmwares(dev, retry_fwreq, brcmf_pcie_setup))
++			return;
++
++		brcmf_err(bus, "failed to re-arm firmware request for retry\n");
++		kfree(retry_fwreq);
++	}
++
+ 	brcmf_fw_crashed(dev);
+ 	device_release_driver(dev);
+ }
