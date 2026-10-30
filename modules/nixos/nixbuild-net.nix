@@ -7,6 +7,14 @@
 
 let
   cfg = config.nixbuild-net;
+  keygenScript = pkgs.writeShellScript "nixbuild-net-keygen" ''
+    set -euo pipefail
+    mkdir -p "$(dirname ${lib.escapeShellArg cfg.identity.key})"
+    ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -N "" -f ${lib.escapeShellArg cfg.identity.key} -C nixbuild-net
+    chmod 400 ${lib.escapeShellArg cfg.identity.key}
+    mv ${lib.escapeShellArg cfg.identity.key}.pub ${lib.escapeShellArg cfg.identity.publicKeyPath}
+    chmod 444 ${lib.escapeShellArg cfg.identity.publicKeyPath}
+  '';
 in
 {
   options = {
@@ -21,6 +29,10 @@ in
         key = lib.mkOption {
           description = "The location of the SSH identity file";
           default = "/etc/secrets/nixbuild/id_nixbuild-net";
+        };
+        publicKeyPath = lib.mkOption {
+          description = "World-readable location of the generated SSH public key, so it can easily be added to your nixbuild.net account";
+          default = "/etc/nixbuild-net.pub";
         };
       };
       publicKey = lib.mkOption {
@@ -40,6 +52,19 @@ in
     '';
 
     secrets.nixbuild.ownership.user = "root";
+
+    systemd.services.nixbuild-net-generate-key = {
+      description = "Generate SSH key for nixbuild.net";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "systemd-tmpfiles-setup.service" ];
+      before = [ "nix-daemon.service" ];
+      unitConfig.ConditionPathExists = "!${cfg.identity.key}";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = keygenScript;
+      };
+    };
 
     programs.ssh.knownHosts = {
       nixbuild = {
