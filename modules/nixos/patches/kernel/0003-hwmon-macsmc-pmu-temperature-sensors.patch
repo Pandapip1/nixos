@@ -2,41 +2,62 @@ From 1d378e3bed3e7776b8e8b3df2afe2c0b0b1e6001 Mon Sep 17 00:00:00 2001
 From: Gavin John <gavinnjohn@gmail.com>
 Subject: [PATCH] hwmon: macsmc: expose T600x PMU temperature keys
 
-macOS exposes the AppleARMPMUTempSensor readings through IOHID. The SMC
-identifiers below are derived from its LocationIDs; its tdie values match
-btop on macOS. Create one Core N hwmon channel for every possible CPU and
-map it evenly onto the available tdie sensors. This keeps the standard
-hwmon interface and btop correct on 8-, 10-, and 20-core T600x systems.
+Exposes per-core PMU die temperature as a standard hwmon "Core N" channel
+(plus each core's 3 individual raw probes as "Core N (Sensor M)"), for
+btop/lm-sensors compatibility on T600x (M1 Pro/Max/Ultra) systems.
+
+The original cut of this driver guessed its SMC key names (TP0b..TPab,
+TP1l/TP2l/TP1g/TP2g/TP3g) from macOS's IOHID AppleARMPMUTempSensor
+LocationIDs, since raw SMC keys were inaccessible to userspace on macOS
+too -- it was never actually validated against a real key table on
+either OS. Validated now by direct SMC query on real hardware (a small
+out-of-tree debugfs dump of every key/type/value via macsmc's own
+exported API): none of those key names exist on a real T6000. What
+exists instead is a 30-key "Tp0*" family (lowercase 'p') that decomposes
+into 10 groups of 3 lexicographically-consecutive suffix characters --
+see the comment in macsmc-pmu-temp.c for the full key list and evidence
+(all 30 keys rise together under all-core load while chassis/peripheral
+sensors don't, confirming they're CPU/SoC-die-adjacent).
+
+Also fixed: SMC_KEY(flt) (used by pmu_temp_is_float()) can never match a
+real "flt " type code, since stringifying the 3-character token "flt"
+yields a NUL 4th byte, not the space the real SMC type code has as its
+4th byte (confirmed 0x666c7420 by direct register dump) -- this repo's
+drivers/hwmon/macsmc-hwmon.c already works around the same macro
+limitation via the explicit 4-arg __SMC_KEY() form, which this driver
+now uses too.
+
+Each core's temperature is now the average of its 3 raw probes rather
+than picking one arbitrarily (as the original present_tdie[i*ntdie/ncores]
+decimation would have done) -- userspace tools that build a per-core
+view (e.g. btop, which this driver targets) expect exactly one value per
+"Core N" label. The 3 raw probes remain available individually as
+"Core N (Sensor M)" channels.
+
+NOT yet confirmed: the exact group-to-logical-CPU assignment (currently
+an ordinal assumption -- see the in-file comment for what would be
+needed to confirm it).
 
 Signed-off-by: Gavin John <gavinnjohn@gmail.com>
 ---
 diff --git a/arch/arm64/boot/dts/apple/t600x-die0.dtsi b/arch/arm64/boot/dts/apple/t600x-die0.dtsi
 --- a/arch/arm64/boot/dts/apple/t600x-die0.dtsi
 +++ b/arch/arm64/boot/dts/apple/t600x-die0.dtsi
-@@ -40,10 +40,14 @@
- 		smc_reboot: reboot {
- 			compatible = "apple,smc-reboot";
- 			nvmem-cells = <&shutdown_flag>, <&boot_stage>,
- 				<&boot_error_count>, <&panic_count>;
- 			nvmem-cell-names = "shutdown_flag", "boot_stage",
- 				"boot_error_count", "panic_count";
+@@ -262,6 +262,10 @@
+ 			nvmem-cells = <&rtc_offset>;
+ 			nvmem-cell-names = "rtc_offset";
  		};
++
 +		pmu_temperature {
 +			compatible = "apple,t6000-smc-pmu-temp";
 +		};
-+
  	};
  
  	smc_mbox: mbox@290408000 {
 diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
 --- a/drivers/hwmon/Kconfig
 +++ b/drivers/hwmon/Kconfig
-@@ -403,11 +403,18 @@ config SENSORS_ARM_SCPI
- 	tristate "ARM SCPI Sensors"
- 	depends on ARM_SCPI_PROTOCOL
- 	depends on THERMAL || !THERMAL_OF
- 	help
- 	  This driver provides support for temperature, voltage, current
+@@ -409,6 +409,13 @@
  	  and power sensors available on ARM Ltd's SCP based platforms. The
  	  actual number and type of sensors exported depend on the platform.
  
@@ -65,17 +86,19 @@ diff --git a/drivers/hwmon/Makefile b/drivers/hwmon/Makefile
 diff --git a/drivers/mfd/macsmc.c b/drivers/mfd/macsmc.c
 --- a/drivers/mfd/macsmc.c
 +++ b/drivers/mfd/macsmc.c
-@@ -47,4 +47,5 @@
- static const struct mfd_cell apple_smc_devs[] = {
- 	MFD_CELL_OF("macsmc-gpio", NULL, NULL, 0, 0, "apple,smc-gpio"),
+@@ -52,6 +52,7 @@
+ 	MFD_CELL_OF("macsmc-hwmon", NULL, NULL, 0, 0, "apple,smc-hwmon"),
  	MFD_CELL_OF("macsmc-reboot", NULL, NULL, 0, 0, "apple,smc-reboot"),
+ 	MFD_CELL_OF("macsmc-rtc", NULL, NULL, 0, 0, "apple,smc-rtc"),
 +	MFD_CELL_OF("macsmc-pmu-temp", NULL, NULL, 0, 0, "apple,t6000-smc-pmu-temp"),
  };
+ 
+ static int apple_smc_cmd_locked(struct apple_smc *smc, u64 cmd, u64 arg,
 diff --git a/drivers/hwmon/macsmc-pmu-temp.c b/drivers/hwmon/macsmc-pmu-temp.c
 new file mode 100644
 --- /dev/null
 +++ b/drivers/hwmon/macsmc-pmu-temp.c
-@@ -0,0 +1,189 @@
+@@ -0,0 +1,254 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +#include <linux/bitops.h>
 +#include <linux/cpumask.h>
@@ -88,19 +111,15 @@ new file mode 100644
 +#include <linux/slab.h>
 +#include <linux/string.h>
 +
-+#define PMU_TEMP_MAX_TDIE	11
-+#define PMU_TEMP_MAX_AUX	5
-+#define PMU_TEMP_LABEL_LEN	24
-+
-+struct pmu_temp_key {
-+	smc_key key;
-+	const char *label;
-+};
++#define PMU_TEMP_PROBES_PER_CORE	3
++#define PMU_TEMP_MAX_CORES		10
++#define PMU_TEMP_LABEL_LEN		24
 +
 +struct pmu_temp {
 +	struct apple_smc *smc;
-+	unsigned int nr_channels;
-+	smc_key *channel_keys;
++	unsigned int ncores;
++	unsigned int nr_channels; /* ncores averaged + ncores*PROBES_PER_CORE raw */
++	smc_key (*channel_keys)[PMU_TEMP_PROBES_PER_CORE];
 +	char (*labels)[PMU_TEMP_LABEL_LEN];
 +	u32 *config;
 +	struct hwmon_channel_info channel_info;
@@ -108,18 +127,51 @@ new file mode 100644
 +	struct hwmon_chip_info chip_info;
 +};
 +
-+static const smc_key tdie_keys[] = {
-+	SMC_KEY(TP0b), SMC_KEY(TP1b), SMC_KEY(TP2b), SMC_KEY(TP3b),
-+	SMC_KEY(TP4b), SMC_KEY(TP5b), SMC_KEY(TP6b), SMC_KEY(TP7b),
-+	SMC_KEY(TP8b), SMC_KEY(TP9b), SMC_KEY(TPab),
-+};
-+
-+static const struct pmu_temp_key aux_keys[] = {
-+	{ SMC_KEY(TP1l), "PMU tdie1-local" },
-+	{ SMC_KEY(TP2l), "PMU tdie2-local" },
-+	{ SMC_KEY(TP1g), "PMU TP1g" },
-+	{ SMC_KEY(TP2g), "PMU TP2g" },
-+	{ SMC_KEY(TP3g), "PMU TP3g" },
++/*
++ * Confirmed by direct SMC query on real T6000 (M1 Pro, 8P+2E) hardware --
++ * not derived from IOHID LocationIDs the way the first cut of this driver
++ * was. There is no key named "TP0b".."TPab" or "TP1l"/"TP2l"/"TP1g"/"TP2g"/
++ * "TP3g" anywhere in this chip's ~2179-entry SMC key table (verified with a
++ * small out-of-tree debugfs dump of every key/type/value via macsmc's own
++ * exported API). What does exist is a 30-key "Tp0*" family (lowercase 'p'),
++ * all type "flt", which decomposes into exactly 10 groups of 3
++ * lexicographically-consecutive suffix characters with one character
++ * skipped between groups:
++ *   0-2, 4-6, 8-A, C-E, G-I, K-M, O-Q, S-U, W-Y, a-c
++ * All 30 keys rise together (+7..+13C) under an all-core load relative to
++ * idle, while known chassis/peripheral sensors (battery, NAND, charge
++ * regulator) barely move under the same load -- confirming this family is
++ * CPU/SoC-die-adjacent. 10 groups of 3 probes matches this chip's 8P+2E
++ * core count.
++ *
++ * NOT yet confirmed: which group corresponds to which specific logical
++ * CPU. apple_smc_get_key_by_index() returns keys in ascending sorted order
++ * (see macsmc.h), and these 10 groups appear in that same ascending order,
++ * so bucketing-every-3-in-order is the most defensible default absent
++ * further data -- but it is an ordinal assumption, not a verified
++ * core-to-group mapping. A clean single-core-pinned thermal sweep (machine
++ * otherwise idle, no concurrent builds) would be needed to confirm or
++ * correct the exact assignment.
++ *
++ * Userspace tools that build a per-core view (e.g. btop, which this driver
++ * is written for -- see commit message) expect exactly one value per
++ * "Core N" label; feeding them 3 identically-labeled entries per core would
++ * produce duplicate/nondeterministic display rather than useful data. So
++ * each core's 3 probes are also averaged into a single "Core N" channel
++ * for that purpose, while the 3 raw per-probe readings remain separately
++ * available as "Core N (Sensor M)" for anyone who wants them.
++ */
++static const char pmu_tdie_suffixes[PMU_TEMP_MAX_CORES][PMU_TEMP_PROBES_PER_CORE] = {
++	{ '0', '1', '2' },
++	{ '4', '5', '6' },
++	{ '8', '9', 'A' },
++	{ 'C', 'D', 'E' },
++	{ 'G', 'H', 'I' },
++	{ 'K', 'L', 'M' },
++	{ 'O', 'P', 'Q' },
++	{ 'S', 'T', 'U' },
++	{ 'W', 'X', 'Y' },
++	{ 'a', 'b', 'c' },
 +};
 +
 +static long float_to_mc(u32 raw)
@@ -148,21 +200,50 @@ new file mode 100644
 +	return (attr == hwmon_temp_input || attr == hwmon_temp_label) ? 0444 : 0;
 +}
 +
++static int pmu_temp_read_one(struct pmu_temp *pmu, smc_key key, long *val)
++{
++	u32 raw;
++	long mc;
++
++	if (apple_smc_read_u32(pmu->smc, key, &raw))
++		return -EIO;
++	mc = float_to_mc(raw);
++	if (mc < -50000 || mc > 150000)
++		return -ERANGE;
++	*val = mc;
++	return 0;
++}
++
 +static int pmu_temp_read(struct device *dev, enum hwmon_sensor_types type,
 +			 u32 attr, int channel, long *val)
 +{
 +	struct pmu_temp *pmu = dev_get_drvdata(dev);
-+	u32 raw;
-+	int ret;
++	unsigned int idx, core, probe, j, n = 0;
++	long sum = 0;
 +
 +	if (type != hwmon_temp || attr != hwmon_temp_input ||
 +	    channel >= pmu->nr_channels)
 +		return -EOPNOTSUPP;
-+	ret = apple_smc_read_u32(pmu->smc, pmu->channel_keys[channel], &raw);
-+	if (ret)
-+		return ret;
-+	*val = float_to_mc(raw);
-+	return (*val < -50000 || *val > 150000) ? -ERANGE : 0;
++
++	if (channel >= pmu->ncores) {
++		idx = channel - pmu->ncores;
++		core = idx / PMU_TEMP_PROBES_PER_CORE;
++		probe = idx % PMU_TEMP_PROBES_PER_CORE;
++		return pmu_temp_read_one(pmu, pmu->channel_keys[core][probe], val);
++	}
++
++	for (j = 0; j < PMU_TEMP_PROBES_PER_CORE; j++) {
++		long mc;
++
++		if (pmu_temp_read_one(pmu, pmu->channel_keys[channel][j], &mc))
++			continue;
++		sum += mc;
++		n++;
++	}
++	if (!n)
++		return -EIO;
++	*val = sum / n;
++	return 0;
 +}
 +
 +static int pmu_temp_read_string(struct device *dev, enum hwmon_sensor_types type,
@@ -188,15 +269,15 @@ new file mode 100644
 +	struct apple_smc_key_info info;
 +
 +	return !apple_smc_get_key_info(smc, key, &info) &&
-+		info.size == sizeof(u32) && info.type_code == SMC_KEY(flt);
++		info.size == sizeof(u32) &&
++		info.type_code == __SMC_KEY('f', 'l', 't', ' ');
 +}
 +
 +static int pmu_temp_probe(struct platform_device *pdev)
 +{
 +	struct pmu_temp *pmu;
 +	struct device *hwmon;
-+	smc_key present_tdie[PMU_TEMP_MAX_TDIE];
-+	unsigned int ntdie = 0, naux = 0, aux = 0, ncores, i;
++	unsigned int ncores, i, j;
 +
 +	pmu = devm_kzalloc(&pdev->dev, sizeof(*pmu), GFP_KERNEL);
 +	if (!pmu)
@@ -205,21 +286,16 @@ new file mode 100644
 +	if (!pmu->smc)
 +		return -EPROBE_DEFER;
 +
-+	for (i = 0; i < ARRAY_SIZE(tdie_keys); i++)
-+		if (pmu_temp_is_float(pmu->smc, tdie_keys[i]))
-+			present_tdie[ntdie++] = tdie_keys[i];
-+	if (!ntdie)
-+		return -ENODEV;
-+
 +	/* Apple Silicon has one hardware thread per CPU core. */
 +	ncores = num_possible_cpus();
-+	pmu->nr_channels = ncores;
-+	for (i = 0; i < ARRAY_SIZE(aux_keys); i++)
-+		if (pmu_temp_is_float(pmu->smc, aux_keys[i].key))
-+			naux++;
-+	pmu->nr_channels += naux;
++	if (ncores > PMU_TEMP_MAX_CORES)
++		ncores = PMU_TEMP_MAX_CORES;
++	if (!ncores)
++		return -ENODEV;
++	pmu->ncores = ncores;
++	pmu->nr_channels = ncores + ncores * PMU_TEMP_PROBES_PER_CORE;
 +
-+	pmu->channel_keys = devm_kcalloc(&pdev->dev, pmu->nr_channels,
++	pmu->channel_keys = devm_kcalloc(&pdev->dev, ncores,
 +					 sizeof(*pmu->channel_keys), GFP_KERNEL);
 +	pmu->labels = devm_kcalloc(&pdev->dev, pmu->nr_channels,
 +				   sizeof(*pmu->labels), GFP_KERNEL);
@@ -229,19 +305,30 @@ new file mode 100644
 +		return -ENOMEM;
 +
 +	for (i = 0; i < ncores; i++) {
-+		pmu->channel_keys[i] = present_tdie[i * ntdie / ncores];
++		bool any = false;
++
++		for (j = 0; j < PMU_TEMP_PROBES_PER_CORE; j++) {
++			smc_key key = __SMC_KEY('T', 'p', '0', pmu_tdie_suffixes[i][j]);
++
++			pmu->channel_keys[i][j] = key;
++			if (pmu_temp_is_float(pmu->smc, key))
++				any = true;
++		}
++		if (!any)
++			return -ENODEV;
 +		snprintf(pmu->labels[i], PMU_TEMP_LABEL_LEN, "Core %u", i);
-+	}
-+	for (i = 0; i < ARRAY_SIZE(aux_keys); i++) {
-+		if (!pmu_temp_is_float(pmu->smc, aux_keys[i].key))
-+			continue;
-+		pmu->channel_keys[ncores + aux] = aux_keys[i].key;
-+		strscpy(pmu->labels[ncores + aux], aux_keys[i].label,
-+			PMU_TEMP_LABEL_LEN);
-+		aux++;
-+	}
-+	for (i = 0; i < pmu->nr_channels; i++)
 +		pmu->config[i] = HWMON_T_INPUT | HWMON_T_LABEL;
++	}
++
++	for (i = 0; i < ncores; i++) {
++		for (j = 0; j < PMU_TEMP_PROBES_PER_CORE; j++) {
++			unsigned int chan = ncores + i * PMU_TEMP_PROBES_PER_CORE + j;
++
++			snprintf(pmu->labels[chan], PMU_TEMP_LABEL_LEN,
++				 "Core %u (Sensor %u)", i, j + 1);
++			pmu->config[chan] = HWMON_T_INPUT | HWMON_T_LABEL;
++		}
++	}
 +
 +	pmu->channel_info.type = hwmon_temp;
 +	pmu->channel_info.config = pmu->config;
@@ -265,3 +352,4 @@ new file mode 100644
 +module_platform_driver(pmu_temp_driver);
 +
 +MODULE_LICENSE("GPL");
++MODULE_DESCRIPTION("Apple Silicon SMC PMU temperature sensors");
