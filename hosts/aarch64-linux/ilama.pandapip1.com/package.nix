@@ -8,6 +8,7 @@
     ./hardware-configuration.nix
     ./mudhuts-session.nix
     ./llama.nix
+    ./embedded-dev.nix
   ];
 
   # Use COSMIC DE
