@@ -4,5 +4,5 @@
 }:
 
 {
-  services.udev.packages = with pkgs; [ labelle ];
+#  services.udev.packages = with pkgs; [ labelle ];
 }
