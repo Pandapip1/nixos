@@ -88,12 +88,11 @@ lib.mkMerge [
     # Full-screen emergency messages, in the initrd and the running system.
     boot.initrd.systemd.services.systemd-bsod.wantedBy = [ "initrd.target" ];
 
-    # Archive pstore records to /var/lib/systemd/pstore and free the backend.
-    systemd.additionalUpstreamSystemUnits = [
-      "systemd-bsod.service"
-      "systemd-pstore.service"
-    ];
+    systemd.additionalUpstreamSystemUnits = [ "systemd-bsod.service" ];
     systemd.services.systemd-bsod.wantedBy = [ "sysinit.target" ];
+
+    # Archive pstore records to /var/lib/systemd/pstore and free the backend
+    # (NixOS already ships the unit).
     systemd.services.systemd-pstore.wantedBy = [ "sysinit.target" ];
   }
 
