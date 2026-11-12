@@ -122,8 +122,8 @@ let
       }
 
       update() {
-        interface=$(/sbin/route -n get default 2>/dev/null |
         pin_dns
+        interface=$(/sbin/route -n get default 2>/dev/null |
           awk '$1 == "interface:" { print $2; exit }')
         servers=""
         if [ -n "$interface" ]; then
@@ -197,7 +197,8 @@ $server" ;;
           *) continue ;;
         esac
         while IFS= read -r -t 1 _; do :; done
-        update
+        # stdin here is the monitor stream; keep update's commands off it.
+        update < /dev/null
       done
     '';
   };
