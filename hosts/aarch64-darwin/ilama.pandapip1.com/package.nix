@@ -18,6 +18,7 @@
 
   environment.systemPackages = with pkgs; [
     ext4fuse
+    xcodebuildmcp
     vim
     vscodium
   ];

@@ -149,6 +149,7 @@
         nixos-apple-silicon.overlays.default
         (final: _: {
           ext4fuse = final.callPackage ./packages/ext4fuse.nix { };
+          xcodebuildmcp = final.callPackage ./packages/xcodebuildmcp.nix { };
         })
       ];
       linuxSystems = lib.filter (lib.hasSuffix "-linux") (lib.attrNames hosts);
