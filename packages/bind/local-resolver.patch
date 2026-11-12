@@ -11,6 +11,12 @@ pkgs.bind-resolver in flake.nix).
   they stay open for reuse; useful when connections are expensive (Tor).
 - prefetch-percent N: also refresh a cached RRset once it is N% through its
   original TTL, answering from the cache meanwhile.
+- TCP connections to servers are only reused while idle, never shared by
+  queries in flight at the same time (pipelined). Some servers reset a
+  connection that receives a second query before answering the first
+  (Route 53, which serves every CloudFront distribution, does), and that
+  fails every query on it. With all recursion over TCP (Tor), concurrent
+  A/AAAA/HTTPS lookups for one name then reliably SERVFAILed.
 
 diff --git a/bin/named/config.c b/bin/named/config.c
 index 3c2a505..a66c2ba 100644
@@ -88,10 +94,39 @@ index e094c41..63573dc 100644
  	isc_timer_create(named_g_mainloop, interface_timer_tick, server,
  			 &server->interface_timer);
 diff --git a/lib/dns/dispatch.c b/lib/dns/dispatch.c
-index 277a96b..8308b20 100644
 --- a/lib/dns/dispatch.c
 +++ b/lib/dns/dispatch.c
-@@ -2448,3 +2448,33 @@ dns_dispatch_checkperm(dns_dispatch_t *disp) {
+@@ -1256,14 +1256,23 @@
+ 			/* A dispatch in indeterminate state, skip it */
+ 			break;
+ 		case DNS_DISPATCHSTATE_CONNECTED:
+-			/* We found a connected dispatch */
+-			dns_dispatch_attach(disp, &disp_connected);
++			/*
++			 * Only reuse a connection with no query in flight on
++			 * it. Sending a second query before the first is
++			 * answered (pipelining) makes some servers reset the
++			 * connection, failing every query on it: Route 53
++			 * (CloudFront), for one. A busy connection is passed
++			 * over and the query gets a connection of its own.
++			 */
++			if (disp->requests == 0) {
++				dns_dispatch_attach(disp, &disp_connected);
++			}
+ 			break;
+ 		case DNS_DISPATCHSTATE_CONNECTING:
+-			/* We found "a" dispatch, store it for later */
+-			if (disp_fallback == NULL) {
+-				dns_dispatch_attach(disp, &disp_fallback);
+-			}
++			/*
++			 * A connection still being set up already has a query
++			 * waiting for it; adding another would pipeline them.
++			 */
+ 			break;
+ 		case DNS_DISPATCHSTATE_CANCELED:
+ 			/* A canceled dispatch, skip it. */
+@@ -2448,3 +2457,33 @@
  
  	return isc_nm_xfr_checkperm(disp->handle);
  }
