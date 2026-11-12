@@ -9,8 +9,6 @@ let
   # offsets until the ogg rework, whose context had moved too far and which
   # failed outright. Building the branch directly removes the question: what
   # is built here is exactly what was measured there.
-  rev = "bdd87c95b35570e36da8437a844d5c5020f55005";
-  hash = "sha256-8cjtKYO/2SQlJh4BkFYYCpJILVS/BYNFgFfqjo0lnpw=";
 in
 {
   nixpkgs.overlays = [
@@ -24,13 +22,7 @@ in
       # the tests that hold the lot in place. Each commit on the branch says
       # what it changed and what was measured.
       vlc = prev.vlc.overrideAttrs (prevAttrs: {
-        version = "3.0.23-unstable-2026-09-16";
-
-        src = prev.fetchFromGitHub {
-          owner = "Pandapip1";
-          repo = "vlc";
-          inherit rev hash;
-        };
+        inherit (prev.callPackage ../../../../packages/vlc/fork-src.nix { }) version src;
 
         # nixpkgs' own patches stay; ours are in the source now.
         patches = prevAttrs.patches or [ ];
