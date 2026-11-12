@@ -5,9 +5,9 @@
 
 {
   networking = {
-    computerName = "Gavin’s MacBook Pro";
+    computerName = "Gavin’s MacBook Neo";
     knownNetworkServices = [ "Wi-Fi" ];
-    localHostName = "Gavins-MacBook-Pro";
+    localHostName = "Gavins-MacBook-Neo";
   };
 
   users.users.gavin = {
@@ -22,6 +22,6 @@
     vscodium
   ];
 
-  # Preserve the version used by this Mac's existing bootstrap configuration.
+  # Matches the fresh Nix install (nixbld gid 350).
   system.stateVersion = 6;
 }
