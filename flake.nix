@@ -151,6 +151,11 @@
           ext4fuse = final.callPackage ./packages/ext4fuse.nix { };
           xcodebuildmcp = final.callPackage ./packages/xcodebuildmcp.nix { };
           captive-portal = final.callPackage ./packages/captive-portal/package.nix { };
+          tor-pf = final.callPackage ./packages/tor-pf.nix { };
+          # BIND for the local resolver only; see the patch for what it changes.
+          bind-resolver = final.bind.overrideAttrs (old: {
+            patches = (old.patches or [ ]) ++ [ ./packages/bind/local-resolver.patch ];
+          });
         })
       ];
       linuxSystems = lib.filter (lib.hasSuffix "-linux") (lib.attrNames hosts);

@@ -1,0 +1,745 @@
+Local-resolver changes to BIND 9.20 (used only for the named service; see
+pkgs.bind-resolver in flake.nix).
+
+- No network: when no address family has a route, fetches wait for a routing
+  change (woken by the routing socket) instead of failing at once, and a
+  recursive query that still fails is dropped rather than answered SERVFAIL,
+  so clients retry instead of caching the failure.
+- stale-answer-ttl may be 0, so stale answers aren't cached by clients.
+- Answering from the cache restarts the idle timer of open TCP connections to
+  the servers the query would otherwise have gone to (tcp-reuse-timeout), so
+  they stay open for reuse; useful when connections are expensive (Tor).
+- prefetch-percent N: also refresh a cached RRset once it is N% through its
+  original TTL, answering from the cache meanwhile.
+
+diff --git a/bin/named/config.c b/bin/named/config.c
+index 3c2a505..a66c2ba 100644
+--- a/bin/named/config.c
++++ b/bin/named/config.c
+@@ -96,6 +96,7 @@ options {\n\
+ #endif
+ 			    "\
+ 	prefetch 2 9;\n\
++	prefetch-percent 0;\n\
+ #	querylog <boolean>;\n\
+ 	recursing-file \"named.recursing\";\n\
+ 	recursive-clients 1000;\n\
+diff --git a/bin/named/server.c b/bin/named/server.c
+index e094c41..63573dc 100644
+--- a/bin/named/server.c
++++ b/bin/named/server.c
+@@ -4922,7 +4922,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
+ 	obj = NULL;
+ 	result = named_config_get(maps, "stale-answer-ttl", &obj);
+ 	INSIST(result == ISC_R_SUCCESS);
+-	view->staleanswerttl = ISC_MAX(cfg_obj_asduration(obj), 1);
++	view->staleanswerttl = cfg_obj_asduration(obj);
+ 
+ 	/*
+ 	 * Resolver.
+@@ -5775,6 +5775,15 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
+ 		view->prefetch_eligible = view->prefetch_trigger + 6;
+ 	}
+ 
++	/*
++	 * Also refresh once a cached RRset is this far (in percent) through its
++	 * original TTL; 0 turns it off.
++	 */
++	obj = NULL;
++	result = named_config_get(maps, "prefetch-percent", &obj);
++	INSIST(result == ISC_R_SUCCESS);
++	view->prefetch_percent = ISC_MIN(cfg_obj_asuint32(obj), 100);
++
+ 	/*
+ 	 * For now, there is only one kind of trusted keys, the
+ 	 * "security roots".
+@@ -10160,6 +10169,24 @@ cleanup:
+ 	return result;
+ }
+ 
++/*
++ * The routing table changed: wake any fetches waiting because there was no
++ * network. Runs on the routing socket's loop; the view list only changes
++ * while all loops are paused for reconfiguration, so walking it here is safe.
++ */
++static void
++network_changed(void *arg) {
++	named_server_t *server = (named_server_t *)arg;
++
++	for (dns_view_t *view = ISC_LIST_HEAD(server->viewlist); view != NULL;
++	     view = ISC_LIST_NEXT(view, link))
++	{
++		if (view->resolver != NULL) {
++			dns_resolver_networkchanged(view->resolver);
++		}
++	}
++}
++
+ static void
+ run_server(void *arg) {
+ 	isc_result_t result;
+@@ -10185,6 +10212,8 @@ run_server(void *arg) {
+ 					  named_g_dispatchmgr, geoip,
+ 					  &server->interfacemgr),
+ 		   "creating interface manager");
++	ns_interfacemgr_setnetchange(server->interfacemgr, network_changed,
++				     server);
+ 
+ 	isc_timer_create(named_g_mainloop, interface_timer_tick, server,
+ 			 &server->interface_timer);
+diff --git a/lib/dns/dispatch.c b/lib/dns/dispatch.c
+index 277a96b..8308b20 100644
+--- a/lib/dns/dispatch.c
++++ b/lib/dns/dispatch.c
+@@ -2448,3 +2448,33 @@ dns_dispatch_checkperm(dns_dispatch_t *disp) {
+ 
+ 	return isc_nm_xfr_checkperm(disp->handle);
+ }
++
++void
++dns_dispatchmgr_touchtcp(dns_dispatchmgr_t *mgr, const isc_sockaddr_t *peer) {
++	struct cds_lfht_iter iter;
++	dns_dispatch_t *disp = NULL;
++	uint32_t tid = isc_tid();
++
++	REQUIRE(VALID_DISPATCHMGR(mgr));
++	REQUIRE(peer != NULL);
++
++	if (mgr->reuse_timeout == 0 || tid >= mgr->nloops) {
++		return;
++	}
++
++	/*
++	 * Reusable TCP connections are kept per loop, so only this loop's
++	 * connections are ones a query handled here could reuse.
++	 */
++	rcu_read_lock();
++	cds_lfht_for_each_entry(mgr->tcps[tid], &iter, disp, ht_node) {
++		if (disp->state == DNS_DISPATCHSTATE_CONNECTED &&
++		    disp->handle != NULL && ISC_LIST_EMPTY(disp->active) &&
++		    isc_sockaddr_equal(&disp->peer, peer))
++		{
++			isc_nmhandle_settimeout(disp->handle,
++						mgr->reuse_timeout);
++		}
++	}
++	rcu_read_unlock();
++}
+diff --git a/lib/dns/include/dns/dispatch.h b/lib/dns/include/dns/dispatch.h
+index 402e59f..e44b59e 100644
+--- a/lib/dns/include/dns/dispatch.h
++++ b/lib/dns/include/dns/dispatch.h
+@@ -155,6 +155,13 @@ dns_dispatchmgr_setavailports(dns_dispatchmgr_t *mgr, isc_portset_t *v4portset,
+  *\li	v6portset is NULL or a valid port set
+  */
+ 
++void
++dns_dispatchmgr_touchtcp(dns_dispatchmgr_t *mgr, const isc_sockaddr_t *peer);
++/*%<
++ * Restart the idle (tcp-reuse-timeout) timer of every idle, connected TCP
++ * connection on the current loop to 'peer', so it stays open for reuse.
++ */
++
+ void
+ dns_dispatchmgr_setreusetimeout(dns_dispatchmgr_t *mgr, unsigned int timeout);
+ /*%<
+diff --git a/lib/dns/include/dns/rdataset.h b/lib/dns/include/dns/rdataset.h
+index 2f0c17a..fba7e85 100644
+--- a/lib/dns/include/dns/rdataset.h
++++ b/lib/dns/include/dns/rdataset.h
+@@ -147,6 +147,12 @@ struct dns_rdataset {
+ 		isc_stdtime_t expire;
+ 	};
+ 
++	/*%
++	 * Cache only: the TTL the RRset had when it was cached (0 if unknown),
++	 * for prefetch-percent.
++	 */
++	dns_ttl_t origttl;
++
+ 	/*%
+ 	 * Extra fields used by various rdataset implementations, that is, by
+ 	 * the code referred to in the rdataset methods table. The names of
+diff --git a/lib/dns/include/dns/resolver.h b/lib/dns/include/dns/resolver.h
+index e6021a5..4c08426 100644
+--- a/lib/dns/include/dns/resolver.h
++++ b/lib/dns/include/dns/resolver.h
+@@ -460,6 +460,21 @@ dns_resolver_setmustbesecure(dns_resolver_t *resolver, const dns_name_t *name,
+ bool
+ dns_resolver_getmustbesecure(dns_resolver_t *resolver, const dns_name_t *name);
+ 
++bool
++dns_resolver_networkdown(dns_resolver_t *resolver);
++/*%<
++ * Return true when no address family currently has a route: the most
++ * recent attempt in each family failed with "no route" and no reply has
++ * arrived since.
++ */
++
++void
++dns_resolver_networkchanged(dns_resolver_t *resolver);
++/*%<
++ * The routing table changed: retry every fetch that is waiting because there
++ * was no network.
++ */
++
+ void
+ dns_resolver_settimeout(dns_resolver_t *resolver, unsigned int timeout);
+ /*%<
+diff --git a/lib/dns/include/dns/view.h b/lib/dns/include/dns/view.h
+index 52726cb..c361c6f 100644
+--- a/lib/dns/include/dns/view.h
++++ b/lib/dns/include/dns/view.h
+@@ -159,6 +159,7 @@ struct dns_view {
+ 	char		     *nta_file;
+ 	dns_ttl_t	      prefetch_trigger;
+ 	dns_ttl_t	      prefetch_eligible;
++	unsigned int	      prefetch_percent;
+ 	in_port_t	      dstport;
+ 	dns_aclenv_t	     *aclenv;
+ 	dns_rdatatype_t	      preferred_glue;
+diff --git a/lib/dns/qpcache.c b/lib/dns/qpcache.c
+index b567fc6..e5ad8ac 100644
+--- a/lib/dns/qpcache.c
++++ b/lib/dns/qpcache.c
+@@ -1120,6 +1120,7 @@ bindrdataset(qpcache_t *qpdb, qpcnode_t *node, dns_slabheader_t *header,
+ 	rdataset->ttl = header->ttl - now;
+ 	rdataset->trust = header_trust(header);
+ 	rdataset->resign = 0;
++	rdataset->origttl = header->resign;
+ 
+ 	if (NEGATIVE(header)) {
+ 		rdataset->attributes |= DNS_RDATASETATTR_NEGATIVE;
+@@ -3474,6 +3475,8 @@ addrdataset(dns_db_t *db, dns_dbnode_t *node, dns_dbversion_t *version,
+ 
+ 	dns_slabheader_reset(newheader, db, node);
+ 	setttl(newheader, rdataset->ttl + now);
++	/* The cache never re-signs; keep the original TTL here for prefetch-percent. */
++	newheader->resign = rdataset->ttl;
+ 	if (rdataset->ttl == 0U) {
+ 		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_ZEROTTL);
+ 	}
+diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
+index 4dcfb09..2d5677d 100644
+--- a/lib/dns/resolver.c
++++ b/lib/dns/resolver.c
+@@ -379,6 +379,10 @@ struct fetchctx {
+ 	dns_rdataset_t nameservers;
+ 	atomic_uint_fast32_t attributes;
+ 	isc_timer_t *timer;
++	/* Waiting on res->netwaiters for a routing change (locked by netwaitlock). */
++	ISC_LINK(struct fetchctx) netwaitlink;
++	bool netwaiting;
++	unsigned int netretries;
+ 	isc_time_t expires;
+ 	isc_time_t next_timeout;
+ 	isc_interval_t interval;
+@@ -611,6 +615,16 @@ struct dns_resolver {
+ 	atomic_uint_fast32_t zspill; /* fetches-per-zone */
+ 	atomic_bool exiting;
+ 	atomic_bool priming;
++	/*
++	 * Per address family: true while the last thing seen for that family
++	 * was "no route" (the network is not there), false once any reply
++	 * arrives. Both true means there is no usable network at all.
++	 */
++	atomic_bool netdown4;
++	atomic_bool netdown6;
++	/* Fetches waiting for the network to change (fctx_netwait()). */
++	isc_mutex_t netwaitlock;
++	ISC_LIST(struct fetchctx) netwaiters;
+ 
+ 	atomic_uint_fast32_t maxvalidations;
+ 	atomic_uint_fast32_t maxvalidationfails;
+@@ -679,6 +693,12 @@ static void
+ resquery_connected(isc_result_t eresult, isc_region_t *region, void *arg);
+ static void
+ fctx_try(fetchctx_t *fctx, bool retrying);
++static bool
++fctx_netwait(fetchctx_t *fctx);
++static void
++fctx_netwait_cancel(fetchctx_t *fctx);
++static void
++fctx_netwake(void *arg);
+ static void
+ fctx_shutdown(void *arg);
+ static void
+@@ -1797,6 +1817,7 @@ fctx__done(fetchctx_t *fctx, isc_result_t result, const char *func,
+ 	fctx_cleanup(fctx);
+ 
+ 	isc_timer_destroy(&fctx->timer);
++	fctx_netwait_cancel(fctx);
+ 
+ 	return true;
+ }
+@@ -3116,6 +3137,24 @@ add_bad(fetchctx_t *fctx, dns_message_t *rmessage, dns_adbaddrinfo_t *addrinfo,
+ 	}
+ #endif /* ifdef ENABLE_AFL */
+ 
++	if (badtype == badns_unreachable) {
++		switch (reason) {
++		case ISC_R_NETUNREACH:
++		case ISC_R_HOSTUNREACH:
++		case ISC_R_NETDOWN:
++		case ISC_R_HOSTDOWN:
++		case ISC_R_ADDRNOTAVAIL:
++			atomic_store_release(
++				isc_sockaddr_pf(address) == PF_INET6
++					? &fctx->res->netdown6
++					: &fctx->res->netdown4,
++				true);
++			break;
++		default:
++			break;
++		}
++	}
++
+ 	if (reason == DNS_R_LAME) {
+ 		fctx->lamecount++;
+ 	} else {
+@@ -4236,6 +4275,9 @@ fctx_try(fetchctx_t *fctx, bool retrying) {
+ 
+ done:
+ 	if (result != ISC_R_SUCCESS) {
++		if (fctx_netwait(fctx)) {
++			return;
++		}
+ 		fctx_done_detach(&fctx, result);
+ 	}
+ }
+@@ -4501,6 +4543,83 @@ fctx_expired(void *arg) {
+ 	fctx_done_detach(&fctx, DNS_R_SERVFAIL);
+ }
+ 
++/*
++ * When there is no network at all, every server fails at once with "no route"
++ * and the fetch would SERVFAIL within milliseconds. Instead, park the fetch
++ * until the routing table changes (dns_resolver_networkchanged(), driven by
++ * the server's routing socket) and try again then. Retries are limited, and
++ * the fetch's lifetime timer still ends it at the resolver-query-timeout
++ * deadline if the network never comes.
++ */
++#define NETRETRY_MAX 5U
++
++static bool
++fctx_netwait(fetchctx_t *fctx) {
++	dns_resolver_t *res = fctx->res;
++	isc_time_t now;
++	isc_sockaddr_t *sa = NULL, *next_sa = NULL;
++
++	if (fctx->neterr == 0 || fctx->netretries >= NETRETRY_MAX ||
++	    !dns_resolver_networkdown(res) ||
++	    atomic_load_acquire(&res->exiting))
++	{
++		return false;
++	}
++
++	now = isc_time_now();
++	if (isc_time_microdiff(&fctx->expires, &now) == 0) {
++		return false;
++	}
++
++	fctx->netretries++;
++	isc_log_write(dns_lctx, DNS_LOGCATEGORY_RESOLVER,
++		      DNS_LOGMODULE_RESOLVER, ISC_LOG_INFO,
++		      "no network while resolving '%s'; "
++		      "waiting for a network change (retry %u of %u)",
++		      fctx->info, fctx->netretries, NETRETRY_MAX);
++
++	/* Forget the servers that were only bad because there was no route. */
++	for (sa = ISC_LIST_HEAD(fctx->bad); sa != NULL; sa = next_sa) {
++		next_sa = ISC_LIST_NEXT(sa, link);
++		ISC_LIST_UNLINK(fctx->bad, sa, link);
++		isc_mem_put(fctx->mctx, sa, sizeof(*sa));
++	}
++
++	LOCK(&res->netwaitlock);
++	ISC_LIST_APPEND(res->netwaiters, fctx, netwaitlink);
++	fctx->netwaiting = true;
++	UNLOCK(&res->netwaitlock);
++
++	return true;
++}
++
++static void
++fctx_netwait_cancel(fetchctx_t *fctx) {
++	dns_resolver_t *res = fctx->res;
++
++	LOCK(&res->netwaitlock);
++	if (fctx->netwaiting) {
++		ISC_LIST_UNLINK(res->netwaiters, fctx, netwaitlink);
++		fctx->netwaiting = false;
++	}
++	UNLOCK(&res->netwaitlock);
++}
++
++static void
++fctx_netwake(void *arg) {
++	fetchctx_t *fctx = (fetchctx_t *)arg;
++
++	REQUIRE(VALID_FCTX(fctx));
++	REQUIRE(fctx->tid == isc_tid());
++
++	if (fctx->state != fetchstate_done && !ADDRWAIT(fctx)) {
++		fctx_try(fctx, true);
++	}
++
++	/* Reference taken in dns_resolver_networkchanged(). */
++	fetchctx_detach(&fctx);
++}
++
+ static void
+ fctx_shutdown(void *arg) {
+ 	fetchctx_t *fctx = arg;
+@@ -4641,6 +4760,7 @@ fctx_create(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
+ 
+ 	fctx = isc_mem_get(mctx, sizeof(*fctx));
+ 	*fctx = (fetchctx_t){
++		.netwaitlink = ISC_LINK_INITIALIZER,
+ 		.type = type,
+ 		.qmintype = type,
+ 		.options = options,
+@@ -7584,6 +7704,14 @@ resquery_response(isc_result_t eresult, isc_region_t *region, void *arg) {
+ 
+ 	QTRACE("response");
+ 
++	if (eresult == ISC_R_SUCCESS) {
++		atomic_store_release(
++			isc_sockaddr_pf(&query->addrinfo->sockaddr) == PF_INET6
++				? &fctx->res->netdown6
++				: &fctx->res->netdown4,
++			false);
++	}
++
+ 	if (eresult == ISC_R_SUCCESS) {
+ 		if (isc_sockaddr_pf(&query->addrinfo->sockaddr) == PF_INET) {
+ 			inc_stats(fctx->res, dns_resstatscounter_responsev4);
+@@ -10249,6 +10377,7 @@ dns_resolver__destroy(dns_resolver_t *res) {
+ 	}
+ 
+ 	isc_mutex_destroy(&res->primelock);
++	isc_mutex_destroy(&res->netwaitlock);
+ 	isc_mutex_destroy(&res->lock);
+ 
+ 	INSIST(isc_hashmap_count(res->fctxs) == 0);
+@@ -10406,6 +10535,10 @@ dns_resolver_create(dns_view_t *view, isc_loopmgr_t *loopmgr, isc_nm_t *nm,
+ 					&res->rdspools[i]);
+ 	}
+ 
++	atomic_init(&res->netdown4, true);
++	atomic_init(&res->netdown6, true);
++	isc_mutex_init(&res->netwaitlock);
++	ISC_LIST_INIT(res->netwaiters);
+ 	res->magic = RES_MAGIC;
+ 
+ 	*resp = res;
+@@ -11546,3 +11679,27 @@ dns_resolver_freefresp(dns_fetchresponse_t **frespp) {
+ 	*frespp = NULL;
+ 	isc_mem_putanddetach(&fresp->mctx, fresp, sizeof(*fresp));
+ }
++
++bool
++dns_resolver_networkdown(dns_resolver_t *resolver) {
++	REQUIRE(VALID_RESOLVER(resolver));
++
++	return atomic_load_acquire(&resolver->netdown4) &&
++	       atomic_load_acquire(&resolver->netdown6);
++}
++
++void
++dns_resolver_networkchanged(dns_resolver_t *resolver) {
++	fetchctx_t *fctx = NULL;
++
++	REQUIRE(VALID_RESOLVER(resolver));
++
++	LOCK(&resolver->netwaitlock);
++	while ((fctx = ISC_LIST_HEAD(resolver->netwaiters)) != NULL) {
++		ISC_LIST_UNLINK(resolver->netwaiters, fctx, netwaitlink);
++		fctx->netwaiting = false;
++		fetchctx_ref(fctx);
++		isc_async_run(fctx->loop, fctx_netwake, fctx);
++	}
++	UNLOCK(&resolver->netwaitlock);
++}
+diff --git a/lib/isc/netmgr/udp.c b/lib/isc/netmgr/udp.c
+index 51fe20c..102f133 100644
+--- a/lib/isc/netmgr/udp.c
++++ b/lib/isc/netmgr/udp.c
+@@ -304,7 +304,8 @@ route_socket(uv_os_sock_t *fdp) {
+ 
+ #ifdef USE_NETLINK
+ 	sa.nl_family = PF_NETLINK;
+-	sa.nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR;
++	sa.nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR |
++		       RTMGRP_IPV4_ROUTE | RTMGRP_IPV6_ROUTE;
+ 	r = bind(fd, (struct sockaddr *)&sa, sizeof(sa));
+ 	if (r < 0) {
+ 		result = isc_errno_toresult(errno);
+diff --git a/lib/isccfg/namedconf.c b/lib/isccfg/namedconf.c
+index fce279f..c2c2f4d 100644
+--- a/lib/isccfg/namedconf.c
++++ b/lib/isccfg/namedconf.c
+@@ -2243,6 +2243,7 @@ static cfg_clausedef_t view_clauses[] = {
+ 	{ "nxdomain-redirect", &cfg_type_astring, 0 },
+ 	{ "preferred-glue", &cfg_type_astring, 0 },
+ 	{ "prefetch", &cfg_type_prefetch, 0 },
++	{ "prefetch-percent", &cfg_type_uint32, 0 },
+ 	{ "provide-ixfr", &cfg_type_boolean, 0 },
+ 	{ "qname-minimization", &cfg_type_qminmethod, 0 },
+ 	/*
+diff --git a/lib/ns/include/ns/interfacemgr.h b/lib/ns/include/ns/interfacemgr.h
+index 35cd8f7..de91227 100644
+--- a/lib/ns/include/ns/interfacemgr.h
++++ b/lib/ns/include/ns/interfacemgr.h
+@@ -115,6 +115,14 @@ ISC_REFCOUNT_DECL(ns_interfacemgr);
+ void
+ ns_interfacemgr_shutdown(ns_interfacemgr_t *mgr);
+ 
++void
++ns_interfacemgr_setnetchange(ns_interfacemgr_t *mgr, void (*cb)(void *arg),
++			     void *arg);
++/*%<
++ * Call 'cb(arg)' from the routing socket whenever an address or route
++ * changes (only while automatic-interface-scan has the socket open).
++ */
++
+ void
+ ns_interfacemgr_routeconnect(ns_interfacemgr_t *mgr);
+ /*%
+diff --git a/lib/ns/interfacemgr.c b/lib/ns/interfacemgr.c
+index 5a835f2..e0b8457 100644
+--- a/lib/ns/interfacemgr.c
++++ b/lib/ns/interfacemgr.c
+@@ -82,6 +82,9 @@ struct ns_interfacemgr {
+ 	atomic_bool shuttingdown;    /*%< Interfacemgr shutting down */
+ 	ns_clientmgr_t **clientmgrs; /*%< Client managers */
+ 	isc_nmhandle_t *route;
++	/* Called when the routing table changes; see ns_interfacemgr_setnetchange(). */
++	void (*netchange)(void *arg);
++	void *netchange_arg;
+ };
+ 
+ static void
+@@ -198,6 +201,35 @@ need_rescan(ns_interfacemgr_t *mgr, struct MSGHDR *rtm, size_t len) {
+ }
+ #endif /* if defined(RTM_NEWADDR) && defined(RTM_DELADDR) */
+ 
++#if defined(RTM_NEWADDR) && defined(RTM_DELADDR)
++/*
++ * Did this message change whether (or how) the network is reachable? Address
++ * changes, and on BSD/macOS routes through a gateway such as the default
++ * route. The gateway check skips the ARP/neighbour entries macOS also reports
++ * as RTM_ADD/RTM_DELETE, which come and go constantly.
++ */
++static bool
++is_netchange(struct MSGHDR *rtm) {
++	switch (rtm->MSGTYPE) {
++	case RTM_NEWADDR:
++	case RTM_DELADDR:
++		return true;
++#ifdef LINUX_NETLINK_AVAILABLE
++	case RTM_NEWROUTE:
++	case RTM_DELROUTE:
++		return true;
++#else  /* LINUX_NETLINK_AVAILABLE */
++	case RTM_ADD:
++	case RTM_DELETE:
++	case RTM_CHANGE:
++		return (rtm->rtm_flags & RTF_GATEWAY) != 0;
++#endif /* LINUX_NETLINK_AVAILABLE */
++	default:
++		return false;
++	}
++}
++#endif /* if defined(RTM_NEWADDR) && defined(RTM_DELADDR) */
++
+ static void
+ route_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
+ 	   void *arg) {
+@@ -249,6 +281,9 @@ route_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
+ 	if (need_rescan(mgr, rtm, rtmlen) && mgr->sctx->interface_auto) {
+ 		ns_interfacemgr_scan(mgr, false, false);
+ 	}
++	if (mgr->netchange != NULL && is_netchange(rtm)) {
++		mgr->netchange(mgr->netchange_arg);
++	}
+ #endif /* if defined(RTM_NEWADDR) && defined(RTM_DELADDR) */
+ 
+ 	isc_nm_read(handle, route_recv, mgr);
+@@ -1493,3 +1528,12 @@ ns_interfacemgr_dynamic_updates_are_reliable(void) {
+ 	return false;
+ #endif /* LINUX_NETLINK_AVAILABLE */
+ }
++
++void
++ns_interfacemgr_setnetchange(ns_interfacemgr_t *mgr, void (*cb)(void *arg),
++			     void *arg) {
++	REQUIRE(NS_INTERFACEMGR_VALID(mgr));
++
++	mgr->netchange = cb;
++	mgr->netchange_arg = arg;
++}
+diff --git a/lib/ns/query.c b/lib/ns/query.c
+index f272aea..3f73f7f 100644
+--- a/lib/ns/query.c
++++ b/lib/ns/query.c
+@@ -35,6 +35,7 @@
+ #include <isc/util.h>
+ 
+ #include <dns/adb.h>
++#include <dns/dispatch.h>
+ #include <dns/badcache.h>
+ #include <dns/byaddr.h>
+ #include <dns/cache.h>
+@@ -2677,9 +2678,17 @@ query_prefetch(ns_client_t *client, dns_name_t *qname,
+ 	       dns_rdataset_t *rdataset) {
+ 	CTRACE(ISC_LOG_DEBUG(3), "query_prefetch");
+ 
++	/* Due by the fixed trigger (seconds left)... */
++	bool trigger_due = client->view->prefetch_trigger != 0U &&
++			   rdataset->ttl <= client->view->prefetch_trigger;
++	/* ...or by prefetch-percent (share of the original TTL used up). */
++	unsigned int percent = client->view->prefetch_percent;
++	bool percent_due = percent != 0U && rdataset->origttl != 0U &&
++			   (uint64_t)rdataset->ttl * 100 <=
++				   (uint64_t)rdataset->origttl * (100 - percent);
++
+ 	if (FETCH_RECTYPE_PREFETCH(client) != NULL ||
+-	    client->view->prefetch_trigger == 0U ||
+-	    rdataset->ttl > client->view->prefetch_trigger ||
++	    !(trigger_due || percent_due) ||
+ 	    (rdataset->attributes & DNS_RDATASETATTR_PREFETCH) == 0)
+ 	{
+ 		/* maybe refresh stale data */
+@@ -7560,6 +7569,79 @@ query_usestale(query_ctx_t *qctx, isc_result_t result) {
+ 	return false;
+ }
+ 
++/*%
++ * A query was answered from the cache. Find the servers it would have been
++ * sent to (the cached delegation for the name, and those servers' cached
++ * addresses; nothing is looked up) and restart the idle timer on any open TCP
++ * connection to them, so the connection is still there for the next query
++ * that does need them. Mainly useful when each new connection is expensive,
++ * as when recursion goes through Tor.
++ */
++static void
++query_touchupstream(query_ctx_t *qctx) {
++	dns_view_t *view = qctx->client->view;
++	dns_adb_t *adb = NULL;
++	dns_dispatchmgr_t *dispatchmgr = NULL;
++	dns_fixedname_t ffixed;
++	dns_name_t *fname = dns_fixedname_initname(&ffixed);
++	dns_rdataset_t nameservers;
++	isc_stdtime_t now = isc_stdtime_now();
++	isc_result_t result;
++
++	dns_rdataset_init(&nameservers);
++	result = dns_view_findzonecut(view, qctx->client->query.qname, fname,
++				      NULL, now, 0, false, true, &nameservers,
++				      NULL);
++	if (result != ISC_R_SUCCESS) {
++		goto cleanup;
++	}
++
++	dns_view_getadb(view, &adb);
++	dispatchmgr = dns_view_getdispatchmgr(view);
++	if (adb == NULL || dispatchmgr == NULL) {
++		goto cleanup;
++	}
++
++	for (result = dns_rdataset_first(&nameservers); result == ISC_R_SUCCESS;
++	     result = dns_rdataset_next(&nameservers))
++	{
++		dns_rdata_t rdata = DNS_RDATA_INIT;
++		dns_rdata_ns_t ns;
++		dns_adbfind_t *find = NULL;
++
++		dns_rdataset_current(&nameservers, &rdata);
++		if (dns_rdata_tostruct(&rdata, &ns, NULL) != ISC_R_SUCCESS) {
++			continue;
++		}
++		(void)dns_adb_createfind(
++			adb, NULL, NULL, NULL, &ns.name, &ns.name,
++			dns_rdatatype_a,
++			DNS_ADBFIND_INET | DNS_ADBFIND_INET6 | DNS_ADBFIND_NOFETCH,
++			now, NULL, 53, 0, NULL, NULL, NULL, &find);
++		if (find != NULL) {
++			for (dns_adbaddrinfo_t *ai = ISC_LIST_HEAD(find->list);
++			     ai != NULL; ai = ISC_LIST_NEXT(ai, publink))
++			{
++				dns_dispatchmgr_touchtcp(dispatchmgr,
++							 &ai->sockaddr);
++			}
++			dns_adb_destroyfind(&find);
++		}
++		dns_rdata_freestruct(&ns);
++	}
++
++cleanup:
++	if (dns_rdataset_isassociated(&nameservers)) {
++		dns_rdataset_disassociate(&nameservers);
++	}
++	if (adb != NULL) {
++		dns_adb_detach(&adb);
++	}
++	if (dispatchmgr != NULL) {
++		dns_dispatchmgr_unref(dispatchmgr);
++	}
++}
++
+ /*%
+  * Continue after doing a database lookup or returning from
+  * recursion, and call out to the next function depending on the
+@@ -7573,6 +7655,24 @@ query_gotanswer(query_ctx_t *qctx, isc_result_t result) {
+ 
+ 	CALL_HOOK(NS_QUERY_GOT_ANSWER_BEGIN, qctx);
+ 
++	/*
++	 * Answered from the cache, without recursing: keep the connections to
++	 * the servers this would otherwise have gone to open for reuse.
++	 */
++	if (!qctx->is_zone && !qctx->resuming && RECURSIONOK(qctx->client)) {
++		switch (result) {
++		case ISC_R_SUCCESS:
++		case DNS_R_CNAME:
++		case DNS_R_DNAME:
++		case DNS_R_NCACHENXDOMAIN:
++		case DNS_R_NCACHENXRRSET:
++			query_touchupstream(qctx);
++			break;
++		default:
++			break;
++		}
++	}
++
+ 	if (query_checkrrl(qctx, result) != ISC_R_SUCCESS) {
+ 		return ns_query_done(qctx);
+ 	}
+@@ -11607,6 +11707,26 @@ ns_query_done(query_ctx_t *qctx) {
+ 		}
+ 	}
+ 
++
++	/*
++	 * A recursive query that failed because there is no network at all
++	 * (and had no stale answer to fall back on) is dropped rather than
++	 * answered with SERVFAIL, so the client times out and retries instead
++	 * of caching the failure.
++	 */
++	if (qctx->result != ISC_R_SUCCESS && qctx->result != DNS_R_DUPLICATE &&
++	    qctx->result != DNS_R_DROP && RECURSIONOK(qctx->client) &&
++	    qctx->client->view != NULL &&
++	    qctx->client->view->resolver != NULL &&
++	    dns_result_torcode(qctx->result) == dns_rcode_servfail &&
++	    dns_resolver_networkdown(qctx->client->view->resolver))
++	{
++		ns_client_log(qctx->client, NS_LOGCATEGORY_CLIENT,
++			      NS_LOGMODULE_QUERY, ISC_LOG_INFO,
++			      "no network; dropping query instead of SERVFAIL");
++		qctx->result = DNS_R_DROP;
++	}
++
+ 	if (qctx->result != ISC_R_SUCCESS &&
+ 	    (!PARTIALANSWER(qctx->client) ||
+ 	     (WANTRECURSION(qctx->client) && !partial_result_with_servfail) ||

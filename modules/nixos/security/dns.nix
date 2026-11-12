@@ -7,13 +7,17 @@
 
 let
   captivePortalConfig = "/run/named/captive-portal.conf";
+  dnsCfg = config.localDns;
+  fw = dnsCfg.firewall;
+  overTor = dnsCfg.recurseOverTor;
+  nftTable = "dns-over-tor";
   bindCaptivePortalWatcher = pkgs.writeShellApplication {
     name = "bind-captive-portal-watcher";
-    runtimeInputs = with pkgs; [ bind coreutils gawk iproute2 networkmanager ];
+    runtimeInputs = with pkgs; [ bind coreutils gawk iproute2 networkmanager nftables ];
     text = ''
       set -u
 
-      while true; do
+      update() {
         servers=$(nmcli -g IP4.DNS,IP6.DNS device show 2>/dev/null || true)
         if [ -z "$servers" ]; then
           servers=$(ip route show default 2>/dev/null |
@@ -41,10 +45,29 @@ $server" ;;
             done
             printf '  };\n};\n' >> "$temporary"
           done
+          # These servers are reached directly, not through Tor: plain UDP/TCP
+          # and IPv6 allowed (security/dns.nix sets the opposite for every
+          # other public server).
+          for server in $filtered; do
+            printf 'server %s { tcp-only no; bogus no; };\n' "$server" >> "$temporary"
+          done
         fi
         chmod 644 "$temporary"
         chown named:named "$temporary"
 
+        ${lib.optionalString overTor ''
+          # Let BIND reach exactly these servers past the firewall.
+          {
+            echo "flush set inet ${nftTable} direct4"
+            echo "flush set inet ${nftTable} direct6"
+            for server in $filtered; do
+              case "$server" in
+                *:*) echo "add element inet ${nftTable} direct6 { $server }" ;;
+                *) echo "add element inet ${nftTable} direct4 { $server }" ;;
+              esac
+            done
+          } | nft -f - || true
+        ''}
         if ! cmp -s "$temporary" ${captivePortalConfig}; then
           mv -f "$temporary" ${captivePortalConfig}
           rndc -k /etc/bind/rndc.key reconfig || true
@@ -52,8 +75,16 @@ $server" ;;
           rm -f "$temporary"
         fi
         trap - EXIT
-        sleep 10
-      done
+      }
+
+      update
+      # React to address, route and NetworkManager changes instead of
+      # polling. A burst of events is coalesced into one update.
+      { ip monitor address route & nmcli monitor & wait; } |
+        while IFS= read -r _; do
+          while IFS= read -r -t 1 _; do :; done
+          update
+        done
     '';
   };
 in
@@ -66,7 +97,8 @@ in
   services = {
     bind = {
       enable = true;
-      package = pkgs.bind;
+      package = pkgs.bind-resolver;
+      extraArgs = dnsCfg.namedArgs;
       configFile = config.localDns.bindConfig {
         directory = "/run/named";
         rndcKeyFile = "/etc/bind/rndc.key";
@@ -93,8 +125,47 @@ in
     client = {
       enable = true;
       dns.enable = true;
+      transparentProxy.enable = overTor;
     };
   };
+
+  # BIND's port-53 traffic (only BIND's, picked out by user) goes to private
+  # networks and the captive-portal DNS servers directly; TCP to anything else
+  # is redirected into Tor's transparent proxy, and the rest (UDP, IPv6) is
+  # dropped, so recursion fails rather than leaving outside Tor.
+  networking.nftables.tables.${nftTable} = lib.mkIf overTor {
+    family = "inet";
+    content = ''
+      set private4 {
+        type ipv4_addr
+        flags interval
+        elements = { ${lib.concatStringsSep ", " fw.privateRanges4} }
+      }
+      set private6 {
+        type ipv6_addr
+        flags interval
+        elements = { ${lib.concatStringsSep ", " fw.privateRanges6} }
+      }
+      # Filled in by bind-captive-portal from the network's DHCP DNS servers.
+      set direct4 { type ipv4_addr; }
+      set direct6 { type ipv6_addr; }
+
+      chain nat-output {
+        type nat hook output priority dstnat; policy accept;
+        meta skuid "named" tcp dport 53 ip daddr != @private4 ip daddr != @direct4 redirect to :${toString fw.torTransPort}
+      }
+
+      chain filter-output {
+        type filter hook output priority filter; policy accept;
+        meta skuid "named" udp dport 53 ip daddr != @private4 ip daddr != @direct4 drop
+        meta skuid "named" meta l4proto { tcp, udp } th dport 53 ip6 daddr != @private6 ip6 daddr != @direct6 drop
+      }
+    '';
+  };
+  # The build-time ruleset check runs where the named user doesn't exist.
+  networking.nftables.preCheckRuleset = lib.mkIf overTor ''
+    sed -i 's/skuid "named"/skuid root/g' ruleset.conf
+  '';
 
   systemd.tmpfiles.rules = [
     "d /run/named 0755 named named -"
