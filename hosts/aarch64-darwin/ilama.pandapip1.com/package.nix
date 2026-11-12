@@ -6,7 +6,13 @@
 {
   networking = {
     computerName = "Gavin’s MacBook Neo";
-    knownNetworkServices = [ "Wi-Fi" ];
+    # Every network service whose DNS nix-darwin should set (networking.dns).
+    # One left out uses its network's DNS servers, bypassing the local
+    # resolver and Tor.
+    knownNetworkServices = [
+      "Wi-Fi"
+      "USB 10/100/1000 LAN"
+    ];
     localHostName = "Gavins-MacBook-Neo";
   };
 

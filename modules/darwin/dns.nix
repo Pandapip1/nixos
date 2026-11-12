@@ -106,8 +106,24 @@ let
       set -u
       ${flushSystemCache}
 
+      # Point every network service's DNS at BIND. nix-darwin's networking.dns
+      # only covers the services listed in knownNetworkServices; any other
+      # (a new adapter, tethering) would use its network's DNS and bypass BIND
+      # and Tor. Disabled services are listed with a leading "*".
+      pin_dns() {
+        /usr/sbin/networksetup -listallnetworkservices | tail -n +2 |
+          while IFS= read -r service; do
+            service=''${service#\*}
+            current=$(/usr/sbin/networksetup -getdnsservers "$service" | tr '\n' ' ')
+            if [ "$current" != "127.0.0.1 ::1 " ]; then
+              /usr/sbin/networksetup -setdnsservers "$service" 127.0.0.1 ::1
+            fi
+          done
+      }
+
       update() {
         interface=$(/sbin/route -n get default 2>/dev/null |
+        pin_dns
           awk '$1 == "interface:" { print $2; exit }')
         servers=""
         if [ -n "$interface" ]; then
