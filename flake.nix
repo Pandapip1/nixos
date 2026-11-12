@@ -293,6 +293,8 @@
                     config = {
                       networking = {
                         inherit hostName;
+                        # darwin-rebuild picks darwinConfigurations.<LocalHostName>.
+                        localHostName = hostName;
                         search = lib.optional (domain != null) domain;
                       };
                       nixpkgs = {

@@ -13,7 +13,6 @@
       "Wi-Fi"
       "USB 10/100/1000 LAN"
     ];
-    localHostName = "Gavins-MacBook-Neo";
   };
 
   users.users.gavin = {
