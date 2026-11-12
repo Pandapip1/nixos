@@ -11,6 +11,15 @@
     enable = true;
     ephemeral = true;
     maxJobs = 4;
+    # The same ARM VM also builds x86_64 Linux, through QEMU user-mode
+    # emulation inside the guest. (Rosetta would be faster, but it is only
+    # offered to Virtualization.framework VMs; this builder runs under QEMU.)
+    # Slow, so meant for small builds whose dependencies come from the cache.
+    systems = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
+    config.boot.binfmt.emulatedSystems = [ "x86_64-linux" ];
     config.virtualisation = {
       cores = 6;
       darwin-builder = {
