@@ -158,6 +158,12 @@ ${lib.optionalString cfg.recurseOverTor ''
           # maximum, in tenths of a second) so repeat queries reuse them
           # instead of opening a new connection through Tor each time.
           tcp-reuse-timeout 1200;
+          # Tor carries only TCP, and some zones' servers can't be reached
+          # that way (videolan.org's refuse TCP), or not in time. When none
+          # of a zone's servers answered an A/AAAA/PTR lookup, ask Tor's
+          # DNSPort once (our BIND patch): the exit resolves the name, still
+          # over Tor. Its answers are DNSSEC-validated like any other.
+          fallback-forwarder 127.0.0.1 port 9053;
         ''}        };
 
         ${lib.concatMapStrings (zone: ''
