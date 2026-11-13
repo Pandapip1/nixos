@@ -90,11 +90,24 @@ let
       install -m 644 -o ${namedUser} -g ${namedUser} /dev/null ${captivePortalConfig}
       # -f keeps named in the foreground but, unlike -g, honours the logging
       # statement. It logs "running" once it is answering queries; flush then.
+      #
+      # It also logs every query it answers with SERVFAIL (query-errors).
+      # mDNSResponder caches a SERVFAIL as "no such record" (and lengthens
+      # that on repeats), so a lookup that failed once keeps failing for apps
+      # long after BIND can answer it. Flush shortly after a failure, once
+      # mDNSResponder has had a chance to cache it; at most every 5 s.
+      last_flush=-5
       ${pkgs.bind-resolver}/bin/named -f -u ${namedUser} ${lib.escapeShellArgs dnsCfg.namedArgs} -c ${bindConfig} 2>&1 |
         while IFS= read -r line; do
           printf '%s\n' "$line"
           case "$line" in
             *" running") flush_system_cache ;;
+            *"query-errors: "*"query failed"*)
+              if [ $((SECONDS - last_flush)) -ge 5 ]; then
+                last_flush=$SECONDS
+                (sleep 1; flush_system_cache) &
+              fi
+              ;;
           esac
         done
     '';
