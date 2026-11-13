@@ -17,12 +17,6 @@ pkgs.bind-resolver in flake.nix).
   (Route 53, which serves every CloudFront distribution, does), and that
   fails every query on it. With all recursion over TCP (Tor), concurrent
   A/AAAA/HTTPS lookups for one name then reliably SERVFAILed.
-- fallback-forwarder ADDR [port N]: once every server for a zone has been
-  tried without an answer, ask this forwarder (once) for an A, AAAA or PTR
-  lookup before giving up. Recursion over Tor is TCP-only, and some zones
-  cannot be reached that way: videolan.org's servers refuse TCP or are
-  down. Tor's DNSPort resolves the name at the exit (over UDP if need be).
-  Its answers are validated like any other; it is not used for referrals.
 
 diff --git a/bin/named/config.c b/bin/named/config.c
 index 3c2a505..a66c2ba 100644
@@ -37,9 +31,10 @@ index 3c2a505..a66c2ba 100644
  	recursing-file \"named.recursing\";\n\
  	recursive-clients 1000;\n\
 diff --git a/bin/named/server.c b/bin/named/server.c
+index e094c41..63573dc 100644
 --- a/bin/named/server.c
 +++ b/bin/named/server.c
-@@ -4922,7 +4922,7 @@
+@@ -4922,7 +4922,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
  	obj = NULL;
  	result = named_config_get(maps, "stale-answer-ttl", &obj);
  	INSIST(result == ISC_R_SUCCESS);
@@ -48,32 +43,11 @@ diff --git a/bin/named/server.c b/bin/named/server.c
  
  	/*
  	 * Resolver.
-@@ -5057,6 +5057,21 @@
- 	query_timeout = cfg_obj_asuint32(obj);
- 	dns_resolver_settimeout(view->resolver, query_timeout);
- 
-+	/*
-+	 * Fallback forwarder for A/AAAA/PTR lookups none of whose servers
-+	 * answered (port 53 unless given).
-+	 */
-+	obj = NULL;
-+	if (named_config_get(maps, "fallback-forwarder", &obj) == ISC_R_SUCCESS) {
-+		isc_sockaddr_t fallback = *cfg_obj_assockaddr(obj);
-+		if (isc_sockaddr_getport(&fallback) == 0) {
-+			isc_sockaddr_setport(&fallback, 53);
-+		}
-+		dns_resolver_setfallback(view->resolver, &fallback);
-+	} else {
-+		dns_resolver_setfallback(view->resolver, NULL);
-+	}
-+
- 	/* Specify whether to use 0-TTL for negative response for SOA query */
- 	dns_resolver_setzeronosoattl(view->resolver, zero_no_soattl);
- 
-@@ -5776,6 +5791,15 @@
+@@ -5775,6 +5775,15 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
+ 		view->prefetch_eligible = view->prefetch_trigger + 6;
  	}
  
- 	/*
++	/*
 +	 * Also refresh once a cached RRset is this far (in percent) through its
 +	 * original TTL; 0 turns it off.
 +	 */
@@ -82,11 +56,10 @@ diff --git a/bin/named/server.c b/bin/named/server.c
 +	INSIST(result == ISC_R_SUCCESS);
 +	view->prefetch_percent = ISC_MIN(cfg_obj_asuint32(obj), 100);
 +
-+	/*
+ 	/*
  	 * For now, there is only one kind of trusted keys, the
  	 * "security roots".
- 	 */
-@@ -10160,6 +10184,24 @@
+@@ -10160,6 +10169,24 @@ cleanup:
  	return result;
  }
  
@@ -111,7 +84,7 @@ diff --git a/bin/named/server.c b/bin/named/server.c
  static void
  run_server(void *arg) {
  	isc_result_t result;
-@@ -10185,6 +10227,8 @@
+@@ -10185,6 +10212,8 @@ run_server(void *arg) {
  					  named_g_dispatchmgr, geoip,
  					  &server->interfacemgr),
  		   "creating interface manager");
@@ -223,9 +196,10 @@ index 2f0c17a..fba7e85 100644
  	 * Extra fields used by various rdataset implementations, that is, by
  	 * the code referred to in the rdataset methods table. The names of
 diff --git a/lib/dns/include/dns/resolver.h b/lib/dns/include/dns/resolver.h
+index e6021a5..4c08426 100644
 --- a/lib/dns/include/dns/resolver.h
 +++ b/lib/dns/include/dns/resolver.h
-@@ -460,6 +460,28 @@
+@@ -460,6 +460,21 @@ dns_resolver_setmustbesecure(dns_resolver_t *resolver, const dns_name_t *name,
  bool
  dns_resolver_getmustbesecure(dns_resolver_t *resolver, const dns_name_t *name);
  
@@ -242,13 +216,6 @@ diff --git a/lib/dns/include/dns/resolver.h b/lib/dns/include/dns/resolver.h
 +/*%<
 + * The routing table changed: retry every fetch that is waiting because there
 + * was no network.
-+ */
-+
-+void
-+dns_resolver_setfallback(dns_resolver_t *resolver, const isc_sockaddr_t *addr);
-+/*%<
-+ * Set (or, with NULL, clear) the fallback forwarder: asked once for an A,
-+ * AAAA or PTR lookup when none of the zone's servers answered.
 + */
 +
  void
@@ -288,9 +255,10 @@ index b567fc6..e5ad8ac 100644
  		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_ZEROTTL);
  	}
 diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
+index 4dcfb09..2d5677d 100644
 --- a/lib/dns/resolver.c
 +++ b/lib/dns/resolver.c
-@@ -379,6 +379,10 @@
+@@ -379,6 +379,10 @@ struct fetchctx {
  	dns_rdataset_t nameservers;
  	atomic_uint_fast32_t attributes;
  	isc_timer_t *timer;
@@ -301,24 +269,7 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  	isc_time_t expires;
  	isc_time_t next_timeout;
  	isc_interval_t interval;
-@@ -423,6 +427,7 @@
- 	bool force_qmin_warning;
- 	bool ip6arpaskip;
- 	bool forwarding;
-+	bool fallback_tried; /* fallback-forwarder already used */
- 	dns_fixedname_t qminfname;
- 	dns_name_t *qminname;
- 	dns_rdatatype_t qmintype;
-@@ -596,6 +601,8 @@
- 	isc_timer_t *spillattimer;
- 	bool zero_no_soa_ttl;
- 	unsigned int query_timeout;
-+	bool have_fallback;
-+	isc_sockaddr_t fallback; /* fallback-forwarder */
- 	unsigned int maxdepth;
- 	unsigned int maxqueries;
- 	isc_result_t quotaresp[2];
-@@ -611,6 +618,16 @@
+@@ -611,6 +615,16 @@ struct dns_resolver {
  	atomic_uint_fast32_t zspill; /* fetches-per-zone */
  	atomic_bool exiting;
  	atomic_bool priming;
@@ -335,23 +286,7 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  
  	atomic_uint_fast32_t maxvalidations;
  	atomic_uint_fast32_t maxvalidationfails;
-@@ -641,6 +658,7 @@
- 	FCTX_ADDRINFO_BADCOOKIE = 1 << 4,
- 	FCTX_ADDRINFO_DUALSTACK = 1 << 5,
- 	FCTX_ADDRINFO_NOEDNS0 = 1 << 6,
-+	FCTX_ADDRINFO_FALLBACK = 1 << 7,
- };
- 
- #define UNMARKED(a)    (((a)->flags & FCTX_ADDRINFO_MARK) == 0)
-@@ -649,6 +667,7 @@
- #define EDNSOK(a)      (((a)->flags & FCTX_ADDRINFO_EDNSOK) != 0)
- #define BADCOOKIE(a)   (((a)->flags & FCTX_ADDRINFO_BADCOOKIE) != 0)
- #define ISDUALSTACK(a) (((a)->flags & FCTX_ADDRINFO_DUALSTACK) != 0)
-+#define ISFALLBACK(a)  (((a)->flags & FCTX_ADDRINFO_FALLBACK) != 0)
- 
- #define NXDOMAIN(r)   (((r)->attributes & DNS_RDATASETATTR_NXDOMAIN) != 0)
- #define NEGATIVE(r)   (((r)->attributes & DNS_RDATASETATTR_NEGATIVE) != 0)
-@@ -679,6 +698,12 @@
+@@ -679,6 +693,12 @@ static void
  resquery_connected(isc_result_t eresult, isc_region_t *region, void *arg);
  static void
  fctx_try(fetchctx_t *fctx, bool retrying);
@@ -364,7 +299,7 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  static void
  fctx_shutdown(void *arg);
  static void
-@@ -1797,6 +1822,7 @@
+@@ -1797,6 +1817,7 @@ fctx__done(fetchctx_t *fctx, isc_result_t result, const char *func,
  	fctx_cleanup(fctx);
  
  	isc_timer_destroy(&fctx->timer);
@@ -372,7 +307,7 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  
  	return true;
  }
-@@ -3116,6 +3142,24 @@
+@@ -3116,6 +3137,24 @@ add_bad(fetchctx_t *fctx, dns_message_t *rmessage, dns_adbaddrinfo_t *addrinfo,
  	}
  #endif /* ifdef ENABLE_AFL */
  
@@ -397,82 +332,7 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  	if (reason == DNS_R_LAME) {
  		fctx->lamecount++;
  	} else {
-@@ -4081,6 +4125,63 @@
- 	return result;
- }
- 
-+/*
-+ * Every server address for this fetch has been tried without an answer. For
-+ * an address or reverse lookup, ask the fallback forwarder (if configured)
-+ * once before starting over. With recursion over Tor, which carries only
-+ * TCP, a zone whose servers do not answer over TCP, or answer too slowly
-+ * through Tor, can otherwise never be resolved; Tor's DNSPort resolves the
-+ * name at the exit instead. Its answer is validated like any other.
-+ */
-+static dns_adbaddrinfo_t *
-+fctx_fallback(fetchctx_t *fctx) {
-+	dns_resolver_t *res = fctx->res;
-+	dns_adbaddrinfo_t *ai = NULL;
-+	char addrbuf[ISC_SOCKADDR_FORMATSIZE];
-+
-+	if (!res->have_fallback || fctx->fallback_tried ||
-+	    (fctx->options & DNS_FETCHOPT_NOFORWARD) != 0 ||
-+	    fctx->fwdpolicy == dns_fwdpolicy_only)
-+	{
-+		return NULL;
-+	}
-+	switch (fctx->type) {
-+	case dns_rdatatype_a:
-+	case dns_rdatatype_aaaa:
-+	case dns_rdatatype_ptr:
-+		break;
-+	default:
-+		return NULL;
-+	}
-+	if ((isc_sockaddr_pf(&res->fallback) == AF_INET &&
-+	     res->dispatches4 == NULL) ||
-+	    (isc_sockaddr_pf(&res->fallback) == AF_INET6 &&
-+	     res->dispatches6 == NULL))
-+	{
-+		return NULL;
-+	}
-+
-+	fctx->fallback_tried = true;
-+	fctx_cancelqueries(fctx, true, false);
-+	fctx_cleanup(fctx);
-+	if (dns_adb_findaddrinfo(fctx->adb, &res->fallback, &ai, 0) !=
-+	    ISC_R_SUCCESS)
-+	{
-+		return NULL;
-+	}
-+	ai->flags |= FCTX_ADDRINFO_FORWARDER | FCTX_ADDRINFO_FALLBACK;
-+	ISC_LIST_APPEND(fctx->forwaddrs, ai, publink);
-+
-+	isc_sockaddr_format(&res->fallback, addrbuf, sizeof(addrbuf));
-+	isc_log_write(dns_lctx, DNS_LOGCATEGORY_RESOLVER,
-+		      DNS_LOGMODULE_RESOLVER, ISC_LOG_INFO,
-+		      "no server answered for '%s'; asking fallback "
-+		      "forwarder %s",
-+		      fctx->info, addrbuf);
-+
-+	return fctx_nextaddress(fctx);
-+}
-+
- static void
- fctx_try(fetchctx_t *fctx, bool retrying) {
- 	isc_result_t result;
-@@ -4126,6 +4227,10 @@
- 	}
- 
- 	if (addrinfo == NULL) {
-+		addrinfo = fctx_fallback(fctx);
-+	}
-+
-+	if (addrinfo == NULL) {
- 		/* We have no more addresses.  Start over. */
- 		fctx_cancelqueries(fctx, true, false);
- 		fctx_cleanup(fctx);
-@@ -4236,6 +4341,9 @@
+@@ -4236,6 +4275,9 @@ fctx_try(fetchctx_t *fctx, bool retrying) {
  
  done:
  	if (result != ISC_R_SUCCESS) {
@@ -482,7 +342,7 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  		fctx_done_detach(&fctx, result);
  	}
  }
-@@ -4501,6 +4609,83 @@
+@@ -4501,6 +4543,83 @@ fctx_expired(void *arg) {
  	fctx_done_detach(&fctx, DNS_R_SERVFAIL);
  }
  
@@ -566,7 +426,7 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  static void
  fctx_shutdown(void *arg) {
  	fetchctx_t *fctx = arg;
-@@ -4641,6 +4826,7 @@
+@@ -4641,6 +4760,7 @@ fctx_create(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
  
  	fctx = isc_mem_get(mctx, sizeof(*fctx));
  	*fctx = (fetchctx_t){
@@ -574,44 +434,11 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  		.type = type,
  		.qmintype = type,
  		.options = options,
-@@ -6904,9 +7090,19 @@
- 	unsigned int labels;
- 	dns_namereln_t rel;
+@@ -7584,6 +7704,14 @@ resquery_response(isc_result_t eresult, isc_region_t *region, void *arg) {
  
--	apex = (ISDUALSTACK(fctx->addrinfo) || !ISFORWARDER(fctx->addrinfo))
--		       ? rctx->ns_name != NULL ? rctx->ns_name : fctx->domain
--		       : fctx->fwdname;
-+	if (ISFALLBACK(fctx->addrinfo)) {
-+		/*
-+		 * The fallback forwarder resolves any name, like a global
-+		 * forwarder; only a locally served zone in between matters.
-+		 */
-+		apex = UNCONST(dns_rootname);
-+	} else {
-+		apex = (ISDUALSTACK(fctx->addrinfo) ||
-+			!ISFORWARDER(fctx->addrinfo))
-+			       ? rctx->ns_name != NULL ? rctx->ns_name
-+						       : fctx->domain
-+			       : fctx->fwdname;
-+	}
- 
- 	/*
- 	 * The name is outside the queried namespace.
-@@ -6947,6 +7143,10 @@
- 		}
- 	}
- 
-+	if (ISFALLBACK(fctx->addrinfo)) {
-+		return false;
-+	}
-+
- 	/*
- 	 * Look for a forward declaration below 'name'.
- 	 */
-@@ -7585,6 +7785,14 @@
  	QTRACE("response");
  
- 	if (eresult == ISC_R_SUCCESS) {
++	if (eresult == ISC_R_SUCCESS) {
 +		atomic_store_release(
 +			isc_sockaddr_pf(&query->addrinfo->sockaddr) == PF_INET6
 +				? &fctx->res->netdown6
@@ -619,25 +446,10 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
 +			false);
 +	}
 +
-+	if (eresult == ISC_R_SUCCESS) {
+ 	if (eresult == ISC_R_SUCCESS) {
  		if (isc_sockaddr_pf(&query->addrinfo->sockaddr) == PF_INET) {
  			inc_stats(fctx->res, dns_resstatscounter_responsev4);
- 		} else {
-@@ -9597,6 +9805,13 @@
- 		return ISC_R_COMPLETE;
- 	}
- 
-+	/* Nor the fallback forwarder's (Tor's DNSPort sends none). */
-+	if (ISFALLBACK(fctx->addrinfo)) {
-+		log_formerr(fctx, "referral from fallback forwarder");
-+		rctx->result = DNS_R_FORMERR;
-+		return ISC_R_COMPLETE;
-+	}
-+
- 	/*
- 	 * If a global forwarder is in use, we don't want to cache its
- 	 * referrals. Dual-stack alternates are not treated as forwarders for
-@@ -10249,6 +10464,7 @@
+@@ -10249,6 +10377,7 @@ dns_resolver__destroy(dns_resolver_t *res) {
  	}
  
  	isc_mutex_destroy(&res->primelock);
@@ -645,7 +457,7 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  	isc_mutex_destroy(&res->lock);
  
  	INSIST(isc_hashmap_count(res->fctxs) == 0);
-@@ -10406,6 +10622,10 @@
+@@ -10406,6 +10535,10 @@ dns_resolver_create(dns_view_t *view, isc_loopmgr_t *loopmgr, isc_nm_t *nm,
  					&res->rdspools[i]);
  	}
  
@@ -656,24 +468,7 @@ diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
  	res->magic = RES_MAGIC;
  
  	*resp = res;
-@@ -11271,6 +11491,16 @@
- 	return resolver->options;
- }
- 
-+void
-+dns_resolver_setfallback(dns_resolver_t *resolver, const isc_sockaddr_t *addr) {
-+	REQUIRE(VALID_RESOLVER(resolver));
-+
-+	resolver->have_fallback = (addr != NULL);
-+	if (addr != NULL) {
-+		resolver->fallback = *addr;
-+	}
-+}
-+
- unsigned int
- dns_resolver_gettimeout(dns_resolver_t *resolver) {
- 	REQUIRE(VALID_RESOLVER(resolver));
-@@ -11546,3 +11776,27 @@
+@@ -11546,3 +11679,27 @@ dns_resolver_freefresp(dns_fetchresponse_t **frespp) {
  	*frespp = NULL;
  	isc_mem_putanddetach(&fresp->mctx, fresp, sizeof(*fresp));
  }
@@ -716,14 +511,14 @@ index 51fe20c..102f133 100644
  	if (r < 0) {
  		result = isc_errno_toresult(errno);
 diff --git a/lib/isccfg/namedconf.c b/lib/isccfg/namedconf.c
+index fce279f..c2c2f4d 100644
 --- a/lib/isccfg/namedconf.c
 +++ b/lib/isccfg/namedconf.c
-@@ -2243,6 +2243,8 @@
+@@ -2243,6 +2243,7 @@ static cfg_clausedef_t view_clauses[] = {
  	{ "nxdomain-redirect", &cfg_type_astring, 0 },
  	{ "preferred-glue", &cfg_type_astring, 0 },
  	{ "prefetch", &cfg_type_prefetch, 0 },
 +	{ "prefetch-percent", &cfg_type_uint32, 0 },
-+	{ "fallback-forwarder", &cfg_type_sockaddr, 0 },
  	{ "provide-ixfr", &cfg_type_boolean, 0 },
  	{ "qname-minimization", &cfg_type_qminmethod, 0 },
  	/*
