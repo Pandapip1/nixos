@@ -1,0 +1,108 @@
+qt: macOS fixes: quit cleanly, keep the bundle icon
+
+On macOS the Qt interface runs on the main thread, inside Open(), and
+quitting it deadlocked twice over:
+
+- The quit request arrives from libvlc_Quit, through the exit handler,
+  with libvlc's exit lock held. Handling it right away closed the
+  windows, whose close handler calls libvlc_Quit again, which waits for
+  that lock. Handle it through a queued connection instead.
+- Open() held the module's lock for the whole session, and the clean-up
+  after app.exec() takes it again. Release it while the session runs.
+
+And once the interface had quit, the launcher (bin/darwinvlc.m) entered
+its own main loop and waited forever: the Qt session runs inside
+libvlc_add_intf, and the interface replaces the launcher's exit handler,
+so nothing would stop that loop. Skip it when the application has
+already run.
+
+Also, QApplication::setWindowIcon sets the Dock icon on macOS, so the
+bare cone replaced the app's icon once it started. Leave it to the
+bundle there.
+
+--- a/modules/gui/qt/qt.cpp
++++ b/modules/gui/qt/qt.cpp
+@@ -487,7 +487,12 @@
+ #ifdef Q_OS_MAC
+     /* Run mainloop on the main thread as Cocoa requires */
+     libvlc_SetExitHandler( p_intf->obj.libvlc, Abort, p_intf );
++    /* The whole Qt session runs here, not on a thread of its own, and its
++     * clean-up takes this (non-recursive) lock again once app.exec()
++     * returns: holding it throughout made every quit hang. */
++    locker.unlock();
+     thread( (void *)p_intf );
++    locker.relock();
+ #else
+     if( vlc_clone( &p_sys->thread, thread, p_intf, VLC_THREAD_PRIORITY_LOW ) )
+     {
+@@ -600,10 +605,15 @@
+ #endif
+             QSettings::UserScope, "vlc", "vlc-qt-interface" );
+ 
++    /* On macOS this is the Dock icon, and it would replace the app's own
++     * (the bundle's, which the system draws with the platform's shape and
++     * materials) with the bare cone. */
++#ifndef Q_OS_MAC
+     if( QDate::currentDate().dayOfYear() >= QT_XMAS_JOKE_DAY && var_InheritBool( p_intf, "qt-icon-change" ) )
+         app.setWindowIcon( QIcon::fromTheme( "vlc-xmas", QIcon( ":/logo/vlc128-xmas.png" ) ) );
+     else
+         app.setWindowIcon( QIcon::fromTheme( "vlc", QIcon( ":/logo/vlc256.png" ) ) );
++#endif
+ 
+     /* Initialize the Dialog Provider and the Main Input Manager */
+     DialogsProvider::getInstance( p_intf );
+--- a/modules/gui/qt/util/qvlcapp.hpp
++++ b/modules/gui/qt/util/qvlcapp.hpp
+@@ -47,7 +47,13 @@
+ public:
+     QVLCApp( int & argc, char ** argv ) : QApplication( argc, argv, true )
+     {
+-        connect( this, &QVLCApp::quitSignal, this, &QVLCApp::doQuit );
++        /* Queued: on macOS the quit request comes from libvlc_Quit, through
++         * the exit handler, on this (the main) thread and with libvlc's exit
++         * lock held. Closing the windows from inside it asks libvlc_Quit to
++         * quit again (MainInterface::closeEvent), which then waits forever
++         * for the lock. Quit once the event loop next runs instead. */
++        connect( this, &QVLCApp::quitSignal, this, &QVLCApp::doQuit,
++                 Qt::QueuedConnection );
+     }
+ 
+     static void triggerQuit()
+--- a/bin/darwinvlc.m
++++ b/bin/darwinvlc.m
+@@ -43,6 +43,9 @@
+ #endif
+ 
+ 
++/* Set once the application has run: see main(). */
++static BOOL app_ran = NO;
++
+ /**
+  * Handler called when VLC asks to terminate the program.
+  */
+@@ -290,8 +293,25 @@
+ 
+     libvlc_add_intf(vlc, "hotkeys,none");
+ 
++    /*
++     * The Qt interface needs the main thread, so it runs its whole session
++     * inside libvlc_add_intf, and it replaces vlc_terminate as the exit
++     * handler. If the application has already run by the time that returns,
++     * it was quit: the main loop below would wait forever for a stop that
++     * never comes, so go straight to the clean-up.
++     */
++    id launched = [[NSNotificationCenter defaultCenter]
++        addObserverForName:NSApplicationDidFinishLaunchingNotification
++                    object:nil
++                     queue:nil
++                usingBlock:^(NSNotification *note) { (void)note; app_ran = YES; }];
+     if (libvlc_add_intf(vlc, NULL))
+         goto out;
++    [[NSNotificationCenter defaultCenter] removeObserver:launched];
++    if (app_ran) {
++        ret = 0;
++        goto out;
++    }
+     libvlc_playlist_play(vlc, -1, 0, NULL);
+ 
+     /*

@@ -8,5 +8,5 @@ let
 in
 {
   # nix-darwin links its VLC.app into /Applications/Nix Apps.
-  environment.systemPackages = [ vlc ];
+  environment.systemPackages = [ (pkgs.callPackage ../../packages/vlc/darwin-app.nix { inherit vlc; }) ];
 }

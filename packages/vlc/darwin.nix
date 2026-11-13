@@ -6,7 +6,7 @@
 # default on macOS. It uses Qt 6: nixpkgs' Qt 5 needs a sandbox exception on
 # macOS (read access to /usr/share/icu), which the strict sandbox refuses.
 # Audio and video output use VLC's macOS modules (auhal, caopengllayer).
-# A VLC.app wrapper makes it a normal Mac application.
+# darwin-app.nix wraps it as VLC.app, a normal Mac application.
 {
   lib,
   stdenv,
@@ -61,6 +61,10 @@
 stdenv.mkDerivation (finalAttrs: {
   pname = "vlc";
   inherit version src;
+
+  # The Qt interface on macOS: quitting deadlocked, and it replaced the
+  # app's icon in the Dock (see the patch).
+  patches = [ ./qt-macos.patch ];
 
   nativeBuildInputs = [
     autoreconfHook
@@ -182,37 +186,18 @@ stdenv.mkDerivation (finalAttrs: {
     if [ ! -e "$out/bin/vlc" ]; then
       (cd bin && ../doltlibtool --mode=install install -c vlc-osx "$out/bin/vlc")
     fi
-
-    app="$out/Applications/VLC.app/Contents"
-    mkdir -p "$app/MacOS"
-    cat > "$app/Info.plist" <<'PLIST'
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-    <dict>
-      <key>CFBundleExecutable</key><string>VLC</string>
-      <key>CFBundleIdentifier</key><string>org.videolan.vlc</string>
-      <key>CFBundleName</key><string>VLC</string>
-      <key>CFBundleDisplayName</key><string>VLC</string>
-      <key>CFBundlePackageType</key><string>APPL</string>
-      <key>CFBundleShortVersionString</key><string>${finalAttrs.version}</string>
-      <key>CFBundleVersion</key><string>${finalAttrs.version}</string>
-      <key>LSMinimumSystemVersion</key><string>11.0</string>
-      <key>NSHighResolutionCapable</key><true/>
-    </dict>
-    </plist>
-    PLIST
-    # Started from Finder, open the Qt interface rather than the CLI.
-    cat > "$app/MacOS/VLC" <<EOF
-    #!/bin/sh
-    exec "$out/bin/vlc" --intf qt "\$@"
-    EOF
-    chmod +x "$app/MacOS/VLC"
+    # VLC.app is assembled from this by darwin-app.nix, so the bundle (and
+    # its icon) can change without rebuilding VLC.
   '';
 
   # After fixup (stripping changes plugin sizes): the plugin cache is keyed
   # on file mtime and size, so pin the mtimes and generate it last.
   postFixup = ''
+    # vlc itself does not link Qt (its Qt interface is a plugin), so the Qt
+    # hook leaves it unwrapped and Qt never finds qtsvg's plugins: the
+    # interface's SVG icons came out blank. Wrap it explicitly.
+    wrapQtApp "$out/bin/vlc"
+
     find $out/lib/vlc/plugins -exec touch -d @1 '{}' ';'
     $out/lib/vlc/vlc-cache-gen $out/lib/vlc/plugins
   '';

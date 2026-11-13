@@ -1,0 +1,29 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "srgb:0.973,0.604,0.024,1.000",
+      "srgb:0.886,0.353,0.004,1.000"
+    ],
+    "orientation" : {
+      "start" : { "x" : 0.5, "y" : 0 },
+      "stop" : { "x" : 0.5, "y" : 1 }
+    }
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "cone.png",
+          "name" : "Cone",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [ 0, -17 ]
+          }
+        }
+      ]
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}
