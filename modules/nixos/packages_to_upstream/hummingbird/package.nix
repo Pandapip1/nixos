@@ -17,15 +17,7 @@
   nixpkgs.overlays = [
     (_: prev: {
       hummingbird-gtk = prev.callPackage ./hummingbird-gtk.nix {
-        version = "0-unstable-2026-10-19";
-        src = prev.fetchFromGitHub {
-          owner = "Pandapip1";
-          repo = "Hummingbird";
-          rev = "5182f70fce490ee4f9208d7ccbd2c78f948e33ff";
-          hash = "sha256-4hrBjM3YSV6/2k/FLJEJ/ctYd/yEopOsUc6LeMbksYg=";
-          # Vendor/SwiftOpenUI is a submodule; the GTK build needs its content.
-          fetchSubmodules = true;
-        };
+        inherit (prev.callPackage ./src.nix { }) version src;
         buildLibs = (import ./deps.nix { pkgs = prev; inherit (prev) lib; }).linuxBuildLibs;
       };
     })
