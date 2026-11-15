@@ -1,4 +1,5 @@
 {
+  pkgs,
   ...
 }:
 
@@ -11,17 +12,22 @@
     enable = true;
     ephemeral = true;
     maxJobs = 4;
-    # The same ARM VM also builds x86_64 Linux, through QEMU user-mode
-    # emulation inside the guest. (Rosetta would be faster, but it is only
-    # offered to Virtualization.framework VMs; this builder runs under QEMU.)
-    # Slow, so meant for small builds whose dependencies come from the cache.
+    # Run the guest on Virtualization.framework (vzvm) instead of QEMU, so that
+    # x86_64-linux builds go through Rosetta rather than QEMU user-mode
+    # emulation. QEMU user-mode could not run Quartus (segfault loading its
+    # device database), and its x86_64 bwrap cannot create user namespaces.
+    # Keeps the `<hostname>.qcow2` disk name, SSH port and host key, so the
+    # nix-darwin module (ephemeral wipe, buildMachines entry) works unchanged.
+    package = pkgs.darwin.linux-builder-vz;
     systems = [
       "aarch64-linux"
       "x86_64-linux"
     ];
-    config.boot.binfmt.emulatedSystems = [ "x86_64-linux" ];
     config.virtualisation = {
       cores = 6;
+      # Rosetta registers the x86_64-linux binfmt handler itself (on by
+      # default for the vz builder); no boot.binfmt.emulatedSystems.
+      vz.rosetta.enable = true;
       darwin-builder = {
         memorySize = 8 * 1024;
         diskSize = 40 * 1024;
