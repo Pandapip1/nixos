@@ -2,10 +2,13 @@
 # (packages/xtool) with nixpkgs' open-source Swift and the macOS SDK, without
 # Xcode. Hummingbird's xtool.yml describes the app: the same Info.plist, Icon
 # Composer icon (compiled with its Liquid Glass settings by xtool's CarKit)
-# and asset catalog the Xcode project uses.
+# and asset catalog the Xcode project uses. xtool's setup hook builds,
+# installs and signs it (ad hoc).
 #
-# The app is ad-hoc signed without the team's entitlements, so shared-keychain
-# access (ATProtoKeychainAccessGroup) won't work.
+# Without a team signature the app has no keychain entitlements, so it can't
+# use the data-protection keychain or the shared access group
+# (ATProtoKeychainAccessGroup); it asks before falling back to the login
+# keychain.
 {
   lib,
   stdenv,
@@ -15,7 +18,6 @@
   apple-sdk_26,
   sqlite,
   writableTmpDirAsHomeHook,
-  darwin,
   src,
   version,
   xtool ? callPackage ../../../../packages/xtool/package.nix { },
@@ -35,7 +37,6 @@ stdenv.mkDerivation {
     swift
     swiftpm
     writableTmpDirAsHomeHook
-    darwin.sigtool
   ];
 
   # The macOS 26 SDK: the newest whose SwiftUI @State is still a plain property
@@ -48,14 +49,8 @@ stdenv.mkDerivation {
     sqlite
   ];
 
-  configurePhase = ''
-    runHook preConfigure
+  postConfigure = ''
     ${deps.configure}
-    runHook postConfigure
-  '';
-
-  buildPhase = ''
-    runHook preBuild
     # The newest SDK among the inputs normally wins, and nixpkgs' Swift brings
     # the 27 SDK along; select 26 explicitly (xtool keeps SDKROOT).
     export DEVELOPER_DIR=${apple-sdk_26}
@@ -64,29 +59,8 @@ stdenv.mkDerivation {
     # SwiftPM itself, so these go through clang's environment, not flags.
     export CPATH=${lib.getDev sqlite}/include''${CPATH:+:$CPATH}
     export LIBRARY_PATH=${lib.getLib sqlite}/lib''${LIBRARY_PATH:+:$LIBRARY_PATH}
-    # xtool keeps its temporary files under the user's caches directory, which
-    # for the build user is /var/empty; keep them in the build's instead.
-    export XTL_TMPDIR="$TMPDIR"
-    # The dependencies are already in .build (configurePhase); without these,
-    # SwiftPM would try to clone them again, which it can't offline.
-    XTOOL_BUILD_SYSTEM=native xtool dev build --triple arm64-apple-macosx \
-      -Xswiftpm --disable-automatic-resolution -Xswiftpm --skip-update
-    runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-    mkdir -p "$out/Applications"
-    cp -R xtool/Hummingbird.app "$out/Applications/"
-    runHook postInstall
-  '';
-
-  # Stripping in the fixup phase invalidates the linker's ad-hoc signature, and
-  # Apple Silicon won't run an executable without a valid one. Re-sign it
-  # afterwards; nixpkgs' codesign (sigtool) signs binaries, not bundles,
-  # which is enough for a locally run app.
-  postFixup = ''
-    codesign --force --sign - "$out/Applications/Hummingbird.app/Contents/MacOS/Hummingbird"
+    # xtool's default is Swift Build; the native build system is used here.
+    export XTOOL_BUILD_SYSTEM=native
   '';
 
   meta = {

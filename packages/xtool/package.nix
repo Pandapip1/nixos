@@ -12,6 +12,7 @@
   lib,
   stdenv,
   callPackage,
+  replaceVars,
   runCommand,
   perl,
   swift,
@@ -26,6 +27,8 @@
   openssl,
   zlib,
   resvg,
+  rcodesign,
+  darwin,
 }:
 
 let
@@ -80,6 +83,12 @@ stdenv.mkDerivation {
 
   env.XTL_SYSTEM_LIBRARIES = "1";
 
+  # Adding xtool to a package's nativeBuildInputs builds it as an xtool app;
+  # see setup-hook.sh.
+  setupHook = replaceVars ./setup-hook.sh {
+    rcodesign = "${rcodesign}/bin/rcodesign";
+  };
+
   configurePhase = ''
     runHook preConfigure
     ${deps.configure}
@@ -101,9 +110,10 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
     install -Dm755 .build/release/xtool "$out/bin/xtool"
-    # xtool runs SwiftPM, and renders SVGs (asset catalogs, icons) with resvg.
+    # xtool runs SwiftPM, which signs what it links with codesign (here
+    # sigtool's), and renders SVGs (asset catalogs, icons) with resvg.
     wrapProgram "$out/bin/xtool" \
-      --suffix PATH : ${lib.makeBinPath [ swift swiftpm resvg ]}
+      --suffix PATH : ${lib.makeBinPath [ swift swiftpm resvg darwin.sigtool ]}
     runHook postInstall
   '';
 

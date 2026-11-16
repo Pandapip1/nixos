@@ -8,7 +8,7 @@
   src = fetchFromGitHub {
     owner = "Pandapip1";
     repo = "xtool";
-    rev = "a6a961852775f70830814238c7e3570c4b8fde9e";
-    hash = "sha256-bH9CW1lcozrrrKdWaH4z6TCj9ubdBSdWZxx1xxHLSDI=";
+    rev = "7d44346878ca033ed79ad2312c5b8ed3a16bf503";
+    hash = "sha256-rxR7SrnPhfXk1iGFAI7wzI5efbmt585rJzHl+iX2dp4=";
   };
 }

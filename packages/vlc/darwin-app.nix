@@ -19,15 +19,17 @@ stdenvNoCC.mkDerivation {
 
   dontUnpack = true;
   nativeBuildInputs = [ xtool ];
+  # Only xtool's asset compiler is used: the bundle is assembled below rather
+  # than built by xtool, and its executable is a shell script, not signed code.
+  # xtool's configure phase still keeps its temporary files in the build.
+  dontUseXtoolBuild = true;
+  dontUseXtoolSign = true;
 
   installPhase = ''
     runHook preInstall
 
     app="$out/Applications/VLC.app/Contents"
     mkdir -p "$app/MacOS" "$app/Resources"
-    # xtool keeps its temporary files under the user's caches directory,
-    # which for the build user is /var/empty; keep them in the build's.
-    export XTL_TMPDIR="$TMPDIR"
     # The icon is named after its file: VLC, not the store path's name.
     cp -r ${./VLC.icon} VLC.icon
     xtool assets compile --output "$app/Resources" --app-icon VLC.icon \
