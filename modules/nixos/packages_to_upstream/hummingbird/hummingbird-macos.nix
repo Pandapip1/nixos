@@ -16,6 +16,7 @@
   swift,
   swiftpm,
   apple-sdk_26,
+  darwinMinVersionHook,
   sqlite,
   writableTmpDirAsHomeHook,
   src,
@@ -45,6 +46,9 @@ stdenv.mkDerivation {
   # macOS 26 APIs (glassEffect, ToolbarSpacer), so 15 is too old.
   buildInputs = [
     apple-sdk_26
+    # Hummingbird's minimum (Package.swift platforms: macOS 15). Without it
+    # nixpkgs' compiler wrapper builds for its own default, 14.0.
+    (darwinMinVersionHook "15.0")
     # nixpkgs' SDK leaves out headers of libraries nixpkgs provides itself
     sqlite
   ];
