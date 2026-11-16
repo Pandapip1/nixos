@@ -7,8 +7,8 @@
   src = fetchFromGitHub {
     owner = "Pandapip1";
     repo = "Hummingbird";
-    rev = "377e37d0cc5e37b97357c1193ba523ca719ba661";
-    hash = "sha256-HRF+LrMdCJeVBuXPyx/aK662X6Nh4U9mNNUZj8sNheI=";
+    rev = "823c5bfe35eae5cd5855913594fd02cae70b1548";
+    hash = "sha256-S0a6CUcqIXaaXqcEBj5T9Bj+Y5v24Rp6clJyq6A689c=";
     # Vendor/SwiftOpenUI is a submodule; the builds need its content.
     fetchSubmodules = true;
   };
