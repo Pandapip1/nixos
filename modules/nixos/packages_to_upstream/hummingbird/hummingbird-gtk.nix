@@ -95,7 +95,7 @@ let
     gst-libav
   ];
   desktopItem = makeDesktopItem {
-    name = "com.eightybps.Hummingbird";
+    name = "com.eightybps.hummingbird";
     desktopName = "Hummingbird";
     exec = "hummingbird-gtk %u";
     terminal = false;
