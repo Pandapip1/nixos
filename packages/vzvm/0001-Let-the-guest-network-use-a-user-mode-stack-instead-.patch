@@ -1,0 +1,253 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 15 Nov 2026 14:51:31 -0500
+Subject: [PATCH] Let the guest network use a user-mode stack instead of NAT
+
+Virtualization.framework's NAT attachment is implemented by macOS
+Internet Sharing, which turns on IP forwarding and loads its own pf
+ruleset on the host, including `set skip on lo0`. That breaks hosts that
+rely on pf for loopback traffic, such as transparent proxying.
+
+Add a `network` config section. Mode "nat" (the default) is unchanged.
+Mode "unixgram" connects the guest's network device to a user-mode
+network stack over a Unix datagram socket, using vfkit's protocol, so
+gvproxy's `-listen-vfkit` can provide DHCP, DNS and outbound NAT without
+touching the host's network configuration.
+
+Also capture `self` weakly in the outer closure of VsockProxy's connect,
+which the inner `[weak self]` relied on; Swift warned that the outer
+strong capture made the inner weak one ineffective.
+---
+ vzvm/Sources/vzvm/Config.swift                | 29 ++++++-
+ vzvm/Sources/vzvm/UnixgramNetwork.swift       | 76 +++++++++++++++++++
+ vzvm/Sources/vzvm/VirtualMachineBuilder.swift | 38 +++++++++-
+ vzvm/Sources/vzvm/VsockProxy.swift            |  8 +-
+ 4 files changed, 147 insertions(+), 4 deletions(-)
+ create mode 100644 vzvm/Sources/vzvm/UnixgramNetwork.swift
+
+diff --git a/vzvm/Sources/vzvm/Config.swift b/vzvm/Sources/vzvm/Config.swift
+index 77b1853..231655f 100644
+--- a/vzvm/Sources/vzvm/Config.swift
++++ b/vzvm/Sources/vzvm/Config.swift
+@@ -16,6 +16,7 @@ struct Config: Decodable {
+   /// Boot the guest at EL2 so it gets a working /dev/kvm. macOS 15+ and M3 or newer.
+   var nestedVirtualization: Bool = false
+   var vsock: Vsock = Vsock()
++  var network: Network = Network()
+   var console: Console = Console()
+   /// Run the guest on demand, shut down after timeout seconds. None means guest runs always.
+   var idleTimeoutSeconds: Int?
+@@ -23,7 +24,7 @@ struct Config: Decodable {
+ 
+   enum CodingKeys: String, CodingKey, CaseIterable {
+     case cpuCount, memorySizeMiB, kernel, initrd, cmdline
+-    case disks, shares, rosetta, nestedVirtualization, vsock, console, idleTimeoutSeconds
++    case disks, shares, rosetta, nestedVirtualization, vsock, network, console, idleTimeoutSeconds
+   }
+ 
+   init(from decoder: Decoder) throws {
+@@ -40,6 +41,7 @@ struct Config: Decodable {
+     nestedVirtualization =
+       try container.decodeIfPresent(Bool.self, forKey: .nestedVirtualization) ?? false
+     vsock = try container.decodeIfPresent(Vsock.self, forKey: .vsock) ?? Vsock()
++    network = try container.decodeIfPresent(Network.self, forKey: .network) ?? Network()
+     console = try container.decodeIfPresent(Console.self, forKey: .console) ?? Console()
+     idleTimeoutSeconds = try container.decodeIfPresent(Int.self, forKey: .idleTimeoutSeconds)
+   }
+@@ -101,6 +103,31 @@ struct Config: Decodable {
+     }
+   }
+ 
++  /// How the guest's network device reaches the outside.
++  struct Network: Decodable {
++    /// "nat": Virtualization.framework's NAT. macOS implements it with
++    /// Internet Sharing, which enables IP forwarding and loads its own pf
++    /// ruleset (including `set skip on lo0`) on the host.
++    /// "unixgram": Ethernet frames, one per datagram, over a Unix datagram
++    /// socket to a user-mode network stack such as gvproxy's
++    /// `-listen-vfkit unixgram://<path>`. Leaves the host's network
++    /// configuration alone.
++    var mode: String = "nat"
++    /// The user-mode stack's listening socket, for "unixgram".
++    var path: String?
++
++    init() {}
++
++    enum CodingKeys: String, CodingKey, CaseIterable { case mode, path }
++
++    init(from decoder: Decoder) throws {
++      let container = try decoder.container(keyedBy: CodingKeys.self)
++      try decoder.rejectUnknownKeys(CodingKeys.self)
++      mode = try container.decodeIfPresent(String.self, forKey: .mode) ?? "nat"
++      path = try container.decodeIfPresent(String.self, forKey: .path)
++    }
++  }
++
+   struct Console: Decodable {
+     /// "stdio" | "file" | "log" (unified macOS log)
+     var mode: String = "stdio"
+diff --git a/vzvm/Sources/vzvm/UnixgramNetwork.swift b/vzvm/Sources/vzvm/UnixgramNetwork.swift
+new file mode 100644
+index 0000000..da61864
+--- /dev/null
++++ b/vzvm/Sources/vzvm/UnixgramNetwork.swift
+@@ -0,0 +1,76 @@
++import Darwin
++import Foundation
++
++/// The guest's network link to a user-mode network stack (gvproxy's
++/// `-listen-vfkit`, or anything speaking vfkit's protocol): one Ethernet frame
++/// per datagram over a connected Unix datagram socket.
++enum UnixgramNetwork {
++  /// Connects to the stack listening at `serverPath`. The returned handle is
++  /// meant for `VZFileHandleNetworkDeviceAttachment`, which keeps it open for
++  /// the life of the virtual machine.
++  static func connect(to serverPath: String) throws -> FileHandle {
++    let fd = socket(AF_UNIX, SOCK_DGRAM, 0)
++    guard fd >= 0 else { throw failure("socket") }
++    var connected = false
++    defer { if !connected { close(fd) } }
++
++    // The stack learns where to send frames from this socket's address, so it
++    // must be bound to a path. One vzvm per stack, so the name is fixed and a
++    // leftover from an earlier run is replaced.
++    let clientPath = serverPath + ".vzvm"
++    unlink(clientPath)
++    try withAddress(clientPath) { address, length in
++      guard bind(fd, address, length) == 0 else { throw failure("bind \(clientPath)") }
++    }
++    try withAddress(serverPath) { address, length in
++      guard Darwin.connect(fd, address, length) == 0 else {
++        throw failure("connect \(serverPath)")
++      }
++    }
++
++    // The sizes vfkit and gvproxy use: the receive side has to absorb bursts.
++    try setBufferSize(fd, SO_SNDBUF, 1 << 20)
++    try setBufferSize(fd, SO_RCVBUF, 4 << 20)
++
++    // vfkit's handshake: gvproxy takes the peer address from this first
++    // datagram and discards it.
++    let magic = Array("VFKT".utf8)
++    guard send(fd, magic, magic.count, 0) == magic.count else { throw failure("send handshake") }
++
++    connected = true
++    return FileHandle(fileDescriptor: fd, closeOnDealloc: true)
++  }
++
++  private static func setBufferSize(_ fd: Int32, _ option: Int32, _ size: Int32) throws {
++    var value = size
++    guard setsockopt(fd, SOL_SOCKET, option, &value, socklen_t(MemoryLayout<Int32>.size)) == 0
++    else { throw failure("setsockopt") }
++  }
++
++  private static func withAddress(
++    _ path: String, _ body: (UnsafePointer<sockaddr>, socklen_t) throws -> Void
++  ) throws {
++    var address = sockaddr_un()
++    let bytes = Array(path.utf8)
++    let capacity = MemoryLayout.size(ofValue: address.sun_path)
++    guard bytes.count < capacity else {
++      throw VZVMError.config(
++        "socket path is \(bytes.count) bytes, over the \(capacity - 1)-byte limit: \(path)")
++    }
++    address.sun_family = sa_family_t(AF_UNIX)
++    address.sun_len = UInt8(MemoryLayout<sockaddr_un>.size)
++    withUnsafeMutableBytes(of: &address.sun_path) { raw in
++      raw.copyBytes(from: bytes)
++      raw[bytes.count] = 0
++    }
++    try withUnsafePointer(to: &address) { pointer in
++      try pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
++        try body($0, socklen_t(MemoryLayout<sockaddr_un>.size))
++      }
++    }
++  }
++
++  private static func failure(_ what: String) -> VZVMError {
++    .runtime("network: \(what): \(String(cString: strerror(errno)))")
++  }
++}
+diff --git a/vzvm/Sources/vzvm/VirtualMachineBuilder.swift b/vzvm/Sources/vzvm/VirtualMachineBuilder.swift
+index 895e2ba..c09833d 100644
+--- a/vzvm/Sources/vzvm/VirtualMachineBuilder.swift
++++ b/vzvm/Sources/vzvm/VirtualMachineBuilder.swift
+@@ -54,6 +54,25 @@ enum VirtualMachineBuilder {
+       }
+     }
+ 
++    switch config.network.mode {
++    case "nat":
++      guard config.network.path == nil else {
++        throw VZVMError.config("network.path only applies to mode \"unixgram\"")
++      }
++    case "unixgram":
++      guard let path = config.network.path, !path.isEmpty else {
++        throw VZVMError.config("network mode \"unixgram\" needs network.path")
++      }
++      // The user-mode network stack must already be listening.
++      var info = stat()
++      guard stat(path, &info) == 0, info.st_mode & S_IFMT == S_IFSOCK else {
++        throw VZVMError.preflight("network socket not found: \(path)")
++      }
++    default:
++      throw VZVMError.config(
++        "network.mode must be \"nat\" or \"unixgram\", not \"\(config.network.mode)\"")
++    }
++
+     for share in config.shares {
+       var isDir: ObjCBool = false
+       guard FileManager.default.fileExists(atPath: share.path, isDirectory: &isDir), isDir.boolValue
+@@ -177,9 +196,9 @@ enum VirtualMachineBuilder {
+     }
+     vmc.directorySharingDevices = sharingDevices
+ 
+-    // NAT is the one attachment that needs no special entitlement.
++    // Neither attachment needs a special entitlement; bridging would.
+     let network = VZVirtioNetworkDeviceConfiguration()
+-    network.attachment = VZNATNetworkDeviceAttachment()
++    network.attachment = try networkAttachment(config.network)
+     vmc.networkDevices = [network]
+ 
+     if !config.vsock.forwards.isEmpty {
+@@ -194,6 +213,21 @@ enum VirtualMachineBuilder {
+     return vmc
+   }
+ 
++  private static func networkAttachment(
++    _ network: Config.Network
++  ) throws -> VZNetworkDeviceAttachment {
++    switch network.mode {
++    case "nat":
++      return VZNATNetworkDeviceAttachment()
++    case "unixgram":
++      // Preflight checked that the path is set.
++      return VZFileHandleNetworkDeviceAttachment(
++        fileHandle: try UnixgramNetwork.connect(to: network.path ?? ""))
++    default:
++      throw VZVMError.config("network.mode must be \"nat\" or \"unixgram\", not \"\(network.mode)\"")
++    }
++  }
++
+   private static func consoleDevice(
+     _ console: Config.Console
+   ) throws -> VZSerialPortConfiguration {
+diff --git a/vzvm/Sources/vzvm/VsockProxy.swift b/vzvm/Sources/vzvm/VsockProxy.swift
+index 995eab4..3d9ccde 100644
+--- a/vzvm/Sources/vzvm/VsockProxy.swift
++++ b/vzvm/Sources/vzvm/VsockProxy.swift
+@@ -141,7 +141,13 @@ final class VsockProxy {
+     let port = forward.vsockPort
+ 
+     // VZVirtioSocketDevice must be touched on the VM's queue.
+-    vmQueue.async {
++    // Weak in both closures: a proxy that goes away while the guest boots must
++    // not be kept alive by a pending connect.
++    vmQueue.async { [weak self] in
++      guard let self else {
++        close(client)
++        return
++      }
+       self.backend.connect(toPort: port) { [weak self] result in
+         guard let self else {
+           close(client)
