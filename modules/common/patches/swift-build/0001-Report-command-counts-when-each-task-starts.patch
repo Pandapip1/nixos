@@ -1,0 +1,290 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 15 Nov 2026 11:53:51 -0500
+Subject: [PATCH] Report command counts when each task starts
+
+The build's started and maximum command counts only reached clients
+inside throttled, pre-formatted status messages, so clients could not
+show which task each count belongs to. Snapshot them when a top-level
+task starts and send them with its BUILD_TASK_STARTED message, so
+clients can print ninja-style "[started/total] description" lines.
+---
+ .../BuildOperationMessages.swift              |  4 +-
+ Sources/SWBBuildSystem/BuildOperation.swift   | 13 ++++--
+ Sources/SWBBuildSystem/CleanOperation.swift   |  2 +-
+ .../SWBProtocol/BuildOperationMessages.swift  | 42 +++++++++++++++++--
+ .../SWBTestSupport/BuildOperationTester.swift |  3 +-
+ ...WBServiceConsoleBuildCommandProtocol.swift | 29 ++++++++++++-
+ .../SwiftBuild/SWBuildMessage+Protocol.swift  |  2 +-
+ 7 files changed, 83 insertions(+), 12 deletions(-)
+
+diff --git a/Sources/SWBBuildService/BuildOperationMessages.swift b/Sources/SWBBuildService/BuildOperationMessages.swift
+index fe78a31..79fffc3 100644
+--- a/Sources/SWBBuildService/BuildOperationMessages.swift
++++ b/Sources/SWBBuildService/BuildOperationMessages.swift
+@@ -1271,7 +1271,7 @@ final class OperationDelegate: BuildOperationDelegate {
+         }
+     }
+ 
+-    func taskStarted(_ operation: any BuildSystemOperation, taskIdentifier: TaskIdentifier, task: any ExecutableTask, dependencyInfo: CommandLineDependencyInfo?) -> any TaskOutputDelegate {
++    func taskStarted(_ operation: any BuildSystemOperation, taskIdentifier: TaskIdentifier, task: any ExecutableTask, dependencyInfo: CommandLineDependencyInfo?, progress: BuildOperationTaskProgress?) -> any TaskOutputDelegate {
+         guard !skipCommandLevelInformation else {
+             return DiscardingTaskOutputHandler()
+         }
+@@ -1307,7 +1307,7 @@ final class OperationDelegate: BuildOperationDelegate {
+         let serializedDiagnosticsPaths = task.type.serializedDiagnosticsInfo(task, operation.requestContext.fs).map(\.serializedDiagnosticsPath)
+         let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo, hostOS: workspaceContext.core.hostOperatingSystem) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
+ 
+-        request.send(BuildOperationTaskStarted(id: taskID, targetID: targetID, parentID: nil, info: info))
++        request.send(BuildOperationTaskStarted(id: taskID, targetID: targetID, parentID: nil, info: info, progress: progress))
+ 
+         // Create the output parser, if used.
+         //
+diff --git a/Sources/SWBBuildSystem/BuildOperation.swift b/Sources/SWBBuildSystem/BuildOperation.swift
+index 068eeb3..af2d6c8 100644
+--- a/Sources/SWBBuildSystem/BuildOperation.swift
++++ b/Sources/SWBBuildSystem/BuildOperation.swift
+@@ -14,6 +14,7 @@ package import Foundation
+ package import SWBCore
+ import SWBCAS
+ package import struct SWBProtocol.BuildOperationTaskStarted
++package import struct SWBProtocol.BuildOperationTaskProgress
+ package import struct SWBProtocol.BuildOperationTaskUpToDate
+ package import struct SWBProtocol.BuildOperationTaskEnded
+ package import SWBServiceCore
+@@ -61,9 +62,11 @@ package protocol BuildOperationDelegate {
+     /// Called when an individual task has been started.
+     ///
+     /// This method is responsible for returning an output delegate that can be used to communicate further task status.
++    ///
++    /// `progress` is the build's command counts as of this task starting, when the operation tracks them.
+     //
+     // FIXME: Should document requirements w.r.t. threading exposure of the delegate.
+-    func taskStarted(_ operation: any BuildSystemOperation, taskIdentifier: TaskIdentifier, task: any ExecutableTask, dependencyInfo: CommandLineDependencyInfo?) -> any TaskOutputDelegate
++    func taskStarted(_ operation: any BuildSystemOperation, taskIdentifier: TaskIdentifier, task: any ExecutableTask, dependencyInfo: CommandLineDependencyInfo?, progress: BuildOperationTaskProgress?) -> any TaskOutputDelegate
+ 
+     /// Called when a task requested dynamic tasks via the `DynamicTaskExecutionDelegate` API.
+     func taskRequestedDynamicTask(_ operation: any BuildSystemOperation, requestingTask: any ExecutableTask, dynamicTaskIdentifier: TaskIdentifier)
+@@ -2041,8 +2044,12 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
+                 dependencyInfo = nil
+             }
+ 
+-            // Notify the operation client.
+-            let outputDelegate = self.operation.delegate.taskStarted(self.operation, taskIdentifier: taskIdentifier, task: task, dependencyInfo: dependencyInfo)
++            // Notify the operation client, with the counts this task's start produced.
++            let progress = BuildOperationTaskProgress(
++                startedCount: self._progressStatistics.numCommandsStarted,
++                maxCount: self._progressStatistics.numPossibleMaxExecutedCommands
++            )
++            let outputDelegate = self.operation.delegate.taskStarted(self.operation, taskIdentifier: taskIdentifier, task: task, dependencyInfo: dependencyInfo, progress: progress)
+ 
+             // Record the active delegate.
+             self.commandOutputDelegates[command] = outputDelegate
+diff --git a/Sources/SWBBuildSystem/CleanOperation.swift b/Sources/SWBBuildSystem/CleanOperation.swift
+index 09ec2ee..8e01f0d 100644
+--- a/Sources/SWBBuildSystem/CleanOperation.swift
++++ b/Sources/SWBBuildSystem/CleanOperation.swift
+@@ -258,7 +258,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
+         let taskType = specLookupContext.getSpec("com.apple.commands.shell-script") as! ShellScriptToolSpec
+         let task = CleanExecutableTask(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, configuredTarget: configuredTarget, type: taskType)
+         let taskIdentifier = task.identifier
+-        let taskOutputDelegate = delegate.taskStarted(self, taskIdentifier: taskIdentifier, task: task, dependencyInfo: nil)
++        let taskOutputDelegate = delegate.taskStarted(self, taskIdentifier: taskIdentifier, task: task, dependencyInfo: nil, progress: nil)
+ 
+         let resolvedExecutable = StackedSearchPath(environment: .init(environment), fs: workspaceContext.fs).lookup(Path(executable)) ?? Path(executable)
+ 
+diff --git a/Sources/SWBProtocol/BuildOperationMessages.swift b/Sources/SWBProtocol/BuildOperationMessages.swift
+index c37a45f..a06b3be 100644
+--- a/Sources/SWBProtocol/BuildOperationMessages.swift
++++ b/Sources/SWBProtocol/BuildOperationMessages.swift
+@@ -645,6 +645,36 @@ public struct BuildOperationTaskUpToDate: Message, Equatable {
+     }
+ }
+ 
++/// The build's command counts at the moment a task started, for ninja-style
++/// `[started/total]` progress lines.
++public struct BuildOperationTaskProgress: Serializable, Equatable, Sendable {
++    /// The number of commands started so far, including this one.
++    public let startedCount: Int
++
++    /// The most commands the build could still need to execute. Like the
++    /// total in the build's status messages, it can grow as dependency
++    /// scanning discovers more work.
++    public let maxCount: Int
++
++    public init(startedCount: Int, maxCount: Int) {
++        self.startedCount = startedCount
++        self.maxCount = maxCount
++    }
++
++    public init(from deserializer: any Deserializer) throws {
++        try deserializer.beginAggregate(2)
++        self.startedCount = try deserializer.deserialize()
++        self.maxCount = try deserializer.deserialize()
++    }
++
++    public func serialize<T: Serializer>(to serializer: T) {
++        serializer.serializeAggregate(2) {
++            serializer.serialize(self.startedCount)
++            serializer.serialize(self.maxCount)
++        }
++    }
++}
++
+ public struct BuildOperationTaskStarted: Message, Equatable {
+     public static let name = "BUILD_TASK_STARTED"
+ 
+@@ -653,28 +683,34 @@ public struct BuildOperationTaskStarted: Message, Equatable {
+     public let targetID: Int?
+     public let parentID: Int?
+     public let info: BuildOperationTaskInfo
++    /// The build's progress when this task started, for top-level build
++    /// tasks. Subtasks and activities have none.
++    public let progress: BuildOperationTaskProgress?
+ 
+-    public init(id: Int, targetID: Int?, parentID: Int?, info: BuildOperationTaskInfo) {
++    public init(id: Int, targetID: Int?, parentID: Int?, info: BuildOperationTaskInfo, progress: BuildOperationTaskProgress? = nil) {
+         self.id = id
+         self.targetID = targetID
+         self.parentID = parentID
+         self.info = info
++        self.progress = progress
+     }
+ 
+     public init(from deserializer: any Deserializer) throws {
+-        try deserializer.beginAggregate(4)
++        try deserializer.beginAggregate(5)
+         self.id = try deserializer.deserialize()
+         self.targetID = try deserializer.deserialize()
+         self.parentID = try deserializer.deserialize()
+         self.info = try deserializer.deserialize()
++        self.progress = try deserializer.deserialize()
+     }
+ 
+     public func serialize<T: Serializer>(to serializer: T) {
+-        serializer.serializeAggregate(4) {
++        serializer.serializeAggregate(5) {
+             serializer.serialize(self.id)
+             serializer.serialize(self.targetID)
+             serializer.serialize(self.parentID)
+             serializer.serialize(self.info)
++            serializer.serialize(self.progress)
+         }
+     }
+ }
+diff --git a/Sources/SWBTestSupport/BuildOperationTester.swift b/Sources/SWBTestSupport/BuildOperationTester.swift
+index 85551af..39f2d5e 100644
+--- a/Sources/SWBTestSupport/BuildOperationTester.swift
++++ b/Sources/SWBTestSupport/BuildOperationTester.swift
+@@ -29,6 +29,7 @@ package import struct SWBProtocol.ArenaInfo
+ package import struct SWBProtocol.PreparedForIndexResultInfo
+ package import enum SWBProtocol.ExternalToolResult
+ package import struct SWBProtocol.BuildOperationTaskEnded
++package import struct SWBProtocol.BuildOperationTaskProgress
+ package import struct SWBProtocol.BuildOperationEnded
+ package import struct SWBProtocol.BuildOperationBacktraceFrameEmitted
+ package import enum SWBProtocol.BuildOperationTaskSignature
+@@ -2062,7 +2063,7 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
+         }
+     }
+ 
+-    func taskStarted(_ operation: any BuildSystemOperation, taskIdentifier: TaskIdentifier, task executableTask: any ExecutableTask, dependencyInfo: CommandLineDependencyInfo?) -> any TaskOutputDelegate {
++    func taskStarted(_ operation: any BuildSystemOperation, taskIdentifier: TaskIdentifier, task executableTask: any ExecutableTask, dependencyInfo: CommandLineDependencyInfo?, progress: BuildOperationTaskProgress?) -> any TaskOutputDelegate {
+         let task = self.cacheTask(for: taskIdentifier, executableTask)
+ 
+         queue.async {
+diff --git a/Sources/SwiftBuild/ConsoleCommands/SWBServiceConsoleBuildCommandProtocol.swift b/Sources/SwiftBuild/ConsoleCommands/SWBServiceConsoleBuildCommandProtocol.swift
+index 58ef62c..b3bf5e3 100644
+--- a/Sources/SwiftBuild/ConsoleCommands/SWBServiceConsoleBuildCommandProtocol.swift
++++ b/Sources/SwiftBuild/ConsoleCommands/SWBServiceConsoleBuildCommandProtocol.swift
+@@ -544,6 +544,23 @@ public enum SwiftBuildMessage {
+     ///
+     /// This task may be a top-level task within a target, or it may be a subtask of an existing task (if a parent ID is provided), or it may be a global task that is not associated with any target at all.
+     public struct TaskStartedInfo {
++        /// The build's command counts when a task started, for ninja-style
++        /// `[started/total]` progress lines.
++        public struct TaskProgress {
++            /// The number of commands started so far, including this one.
++            public let startedCount: Int
++
++            /// The most commands the build could still need to execute. It
++            /// can grow as dependency scanning discovers more work.
++            public let maxCount: Int
++
++            @_spi(Testing)
++            public init(startedCount: Int, maxCount: Int) {
++                self.startedCount = startedCount
++                self.maxCount = maxCount
++            }
++        }
++
+         /// An opaque ID to identify the task in subsequent events.
+         public let taskID: Int
+ 
+@@ -573,6 +590,10 @@ public enum SwiftBuildMessage {
+         /// The set of paths to clang-format serialized diagnostics files, if used.
+         public let serializedDiagnosticsPaths: [AbsolutePath]
+ 
++        /// The build's progress when this task started. Only top-level build
++        /// tasks have it; subtasks and activities don't.
++        public let progress: TaskProgress?
++
+         @_spi(Testing)
+         public init(
+             taskID: Int,
+@@ -583,7 +604,8 @@ public enum SwiftBuildMessage {
+             interestingPath: AbsolutePath? = nil,
+             commandLineDisplayString: String? = nil,
+             executionDescription: String,
+-            serializedDiagnosticsPaths: [AbsolutePath] = []
++            serializedDiagnosticsPaths: [AbsolutePath] = [],
++            progress: TaskProgress? = nil
+         ) {
+             self.taskID = taskID
+             self.targetID = targetID
+@@ -594,6 +616,7 @@ public enum SwiftBuildMessage {
+             self.commandLineDisplayString = commandLineDisplayString
+             self.executionDescription = executionDescription
+             self.serializedDiagnosticsPaths = serializedDiagnosticsPaths
++            self.progress = progress
+         }
+     }
+ 
+@@ -1008,6 +1031,8 @@ extension SwiftBuildMessage.TaskUpToDateInfo: Codable, Equatable, Sendable {
+     }
+ }
+ 
++extension SwiftBuildMessage.TaskStartedInfo.TaskProgress: Codable, Equatable, Sendable {}
++
+ extension SwiftBuildMessage.TaskStartedInfo: Codable, Equatable, Sendable {
+     enum CodingKeys: String, CodingKey {
+         case taskID = "id"
+@@ -1019,6 +1044,7 @@ extension SwiftBuildMessage.TaskStartedInfo: Codable, Equatable, Sendable {
+         case commandLineDisplayString
+         case executionDescription
+         case serializedDiagnosticsPaths
++        case progress
+     }
+ 
+     public init(from decoder: any Decoder) throws {
+@@ -1032,6 +1058,7 @@ extension SwiftBuildMessage.TaskStartedInfo: Codable, Equatable, Sendable {
+         commandLineDisplayString = try container.decodeIfPresent(String.self, forKey: .commandLineDisplayString)
+         executionDescription = try container.decode(String.self, forKey: .executionDescription)
+         serializedDiagnosticsPaths = try container.decodeIfPresent([AbsolutePath].self, forKey: .serializedDiagnosticsPaths) ?? []
++        progress = try container.decodeIfPresent(TaskProgress.self, forKey: .progress)
+     }
+ }
+ 
+diff --git a/Sources/SwiftBuild/SWBuildMessage+Protocol.swift b/Sources/SwiftBuild/SWBuildMessage+Protocol.swift
+index 65e59e1..99cce70 100644
+--- a/Sources/SwiftBuild/SWBuildMessage+Protocol.swift
++++ b/Sources/SwiftBuild/SWBuildMessage+Protocol.swift
+@@ -83,7 +83,7 @@ extension SwiftBuildMessage {
+     }
+ 
+     init(_ message: BuildOperationTaskStarted) {
+-        self = .taskStarted(.init(taskID: message.id, targetID: message.targetID, taskSignature: message.info.signature.unsafeStringValue, parentTaskID: message.parentID, ruleInfo: message.info.ruleInfo, interestingPath: try! message.info.interestingPath.map { try AbsolutePath(validating: $0.str) } ?? nil, commandLineDisplayString: message.info.commandLineDisplayString, executionDescription: message.info.executionDescription, serializedDiagnosticsPaths: try! message.info.serializedDiagnosticsPaths.map { try AbsolutePath(validating: $0.str) }))
++        self = .taskStarted(.init(taskID: message.id, targetID: message.targetID, taskSignature: message.info.signature.unsafeStringValue, parentTaskID: message.parentID, ruleInfo: message.info.ruleInfo, interestingPath: try! message.info.interestingPath.map { try AbsolutePath(validating: $0.str) } ?? nil, commandLineDisplayString: message.info.commandLineDisplayString, executionDescription: message.info.executionDescription, serializedDiagnosticsPaths: try! message.info.serializedDiagnosticsPaths.map { try AbsolutePath(validating: $0.str) }, progress: message.progress.map { .init(startedCount: $0.startedCount, maxCount: $0.maxCount) }))
+     }
+ 
+     init(_ message: BuildOperationTaskEnded) {

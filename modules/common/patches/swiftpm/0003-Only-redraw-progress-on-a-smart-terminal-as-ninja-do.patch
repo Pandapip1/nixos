@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 16 Nov 2026 12:21:10 -0500
+Subject: [PATCH] Only redraw progress on a smart terminal, as ninja does
+
+SwiftPM redrew its progress line whenever stdout was a TTY. CI jobs and
+Nix build sandboxes run builds on a pseudo-terminal without TERM, so
+their logs kept only the last state of each line ("[715/715] Applying
+...") instead of a line per step. With TERM=dumb it printed a
+percentage that only ended its line when the build finished.
+
+Follow ninja: redraw only on a smart terminal (a TTY whose TERM is set
+and isn't "dumb"); otherwise print one complete "[step/total] task"
+line per step.
+---
+ .../NinjaProgressAnimation.swift              |  5 ++++-
+ .../ProgressAnimationProtocol.swift           | 21 +++++++++++++------
+ 2 files changed, 19 insertions(+), 7 deletions(-)
+
+diff --git a/Sources/Basics/ProgressAnimation/NinjaProgressAnimation.swift b/Sources/Basics/ProgressAnimation/NinjaProgressAnimation.swift
+index 26b9690..05dbdf1 100644
+--- a/Sources/Basics/ProgressAnimation/NinjaProgressAnimation.swift
++++ b/Sources/Basics/ProgressAnimation/NinjaProgressAnimation.swift
+@@ -25,7 +25,10 @@ extension ProgressAnimation {
+             stream: stream,
+             verbose: verbose,
+             ttyTerminalAnimationFactory: { RedrawingNinjaProgressAnimation(terminal: $0, normalizeStep: normalizeStep) },
+-            dumbTerminalAnimationFactory: { SingleLinePercentProgressAnimation(stream: stream, header: nil) },
++            // Like ninja on a non-smart terminal: one complete line per step.
++            // A percentage that only ends its line when the build finishes
++            // shows nothing in line-based logs until then.
++            dumbTerminalAnimationFactory: { MultiLineNinjaProgressAnimation(stream: stream, normalizeStep: normalizeStep) },
+             defaultAnimationFactory: { MultiLineNinjaProgressAnimation(stream: stream, normalizeStep: normalizeStep) }
+         )
+     }
+diff --git a/Sources/Basics/ProgressAnimation/ProgressAnimationProtocol.swift b/Sources/Basics/ProgressAnimation/ProgressAnimationProtocol.swift
+index 2a59627..38187c1 100644
+--- a/Sources/Basics/ProgressAnimation/ProgressAnimationProtocol.swift
++++ b/Sources/Basics/ProgressAnimation/ProgressAnimationProtocol.swift
+@@ -12,6 +12,7 @@
+ 
+ import class TSCBasic.TerminalController
+ import class TSCBasic.LocalFileOutputByteStream
++import class TSCBasic.ThreadSafeOutputByteStream
+ import protocol TSCBasic.WritableByteStream
+ import protocol TSCUtility.ProgressAnimationProtocol
+ 
+@@ -45,15 +46,23 @@ public enum ProgressAnimation {
+         dumbTerminalAnimationFactory: () -> any ProgressAnimationProtocol,
+         defaultAnimationFactory: () -> any ProgressAnimationProtocol
+     ) -> any ProgressAnimationProtocol {
+-        if let terminal = TerminalController(stream: stream), !verbose {
++        // As ninja does, only redraw in place on a smart terminal: a TTY
++        // whose TERM is set and isn't "dumb". A TTY without TERM, such as the
++        // pseudo-terminal a CI job or a Nix build sandbox runs under, gets the
++        // dumb-terminal output, which never overwrites its own lines. A log
++        // of redrawn output would keep only the last state.
++        let term = Environment.current["TERM"] ?? ""
++        let smartTerminal = !term.isEmpty && term != "dumb"
++        if smartTerminal, !verbose, let terminal = TerminalController(stream: stream) {
+             return ttyTerminalAnimationFactory(terminal)
+-        } else if let fileStream = stream as? LocalFileOutputByteStream,
+-                  TerminalController.terminalType(fileStream) == .dumb
+-        {
++        }
++        let fileStream = ((stream as? ThreadSafeOutputByteStream)?.stream ?? stream)
++            as? LocalFileOutputByteStream
++        if !smartTerminal, let fileStream,
++           term == "dumb" || TerminalController.isTTY(fileStream) {
+             return dumbTerminalAnimationFactory()
+-        } else {
+-            return defaultAnimationFactory()
+         }
++        return defaultAnimationFactory()
+     }
+ }
+ 

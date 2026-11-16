@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Mon, 16 Nov 2026 12:23:49 -0500
+Subject: [PATCH] Look for resource bundles in the main bundle's resources
+ directory
+
+The native build system's Bundle.module accessor only looked next to
+the main bundle (Bundle.main.bundleURL) and in the build directory. In
+a macOS app that means resource bundles had to sit at the top level of
+the .app, outside Contents/, where codesign can't seal them: such an
+app can't carry a valid signature, so for example the keychain can't
+remember "Always Allow" for it.
+
+Check Bundle.main.resourceURL (Contents/Resources) first, as Swift
+Build's accessor does, then the existing locations.
+---
+ .../SwiftModuleBuildDescription.swift                | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/Sources/Build/BuildDescription/SwiftModuleBuildDescription.swift b/Sources/Build/BuildDescription/SwiftModuleBuildDescription.swift
+index 85ef4ed..d720942 100644
+--- a/Sources/Build/BuildDescription/SwiftModuleBuildDescription.swift
++++ b/Sources/Build/BuildDescription/SwiftModuleBuildDescription.swift
+@@ -405,6 +405,12 @@ public final class SwiftModuleBuildDescription {
+         guard let bundlePath else { return }
+ 
+         let mainPathSubstitution: String
++        // Where an app bundle keeps its resources (a macOS app's
++        // Contents/Resources), checked first, as Swift Build's accessor does,
++        // so a correctly laid out app needs nothing at its top level. Not
++        // for WASI, whose bundle path is fixed at compile time.
++        var resourcesPathDeclaration = ""
++        var resourcesBundleLookup = ""
+         if self.buildParameters.triple.isWASI() {
+             // We prefer compile-time evaluation of the bundle path here for WASI. There's no benefit in evaluating this
+             // at runtime, especially as `Bundle` support in WASI Foundation is partial. We expect all resource paths to
+@@ -418,6 +424,9 @@ public final class SwiftModuleBuildDescription {
+         } else {
+             mainPathSubstitution =
+                 #"Bundle.main.bundleURL.appendingPathComponent("\#(bundlePath.basename.asSwiftStringLiteralConstant)").path"#
++            resourcesPathDeclaration =
++                #"let resourcesPath = Bundle.main.resourceURL?.appendingPathComponent("\#(bundlePath.basename.asSwiftStringLiteralConstant)").path"#
++            resourcesBundleLookup = "resourcesPath.flatMap { Bundle(path: $0) } ?? "
+         }
+ 
+         let content =
+@@ -426,10 +435,11 @@ public final class SwiftModuleBuildDescription {
+ 
+             extension Foundation.Bundle {
+                 static nonisolated let module: Bundle = {
++                    \(resourcesPathDeclaration)
+                     let mainPath = \(mainPathSubstitution)
+                     let buildPath = "\(bundlePath.pathString.asSwiftStringLiteralConstant)"
+ 
+-                    let preferredBundle = Bundle(path: mainPath)
++                    let preferredBundle = \(resourcesBundleLookup)Bundle(path: mainPath)
+ 
+                     guard let bundle = preferredBundle ?? Bundle(path: buildPath) else {
+                         // Users can write a function called fatalError themselves, we should be resilient against that.

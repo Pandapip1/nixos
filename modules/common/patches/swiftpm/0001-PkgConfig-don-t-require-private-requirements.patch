@@ -1,0 +1,73 @@
+From: Gavin John <gavinnjohn@gmail.com>
+Subject: [PATCH] PkgConfig: don't require a package's private requirements
+
+SwiftPM failed a system library target outright, dropping even its own
+include paths, when any package in its Requires.private chain had no .pc
+file. pkg-config only needs a package's private requirements for static
+linking: for --cflags and --libs it uses them when present and ignores
+them when not. Distributions rely on that and don't ship every private
+requirement alongside a library (nixpkgs' libadwaita, GStreamer and
+libsecret, for example, privately require ministream, libunwind and
+gnutls, whose .pc files aren't propagated), so SwiftPM couldn't use
+those libraries at all without hand-added stand-ins.
+
+Treat a missing private requirement the way pkg-config does: skip it,
+keeping the package's own flags and those of everything it does find.
+A missing public requirement is still an error.
+
+--- a/Sources/PackageLoading/PkgConfig.swift
++++ b/Sources/PackageLoading/PkgConfig.swift
+@@ -92,7 +92,12 @@
+         var parser = try PkgConfigParser(pcFile: pcFile, fileSystem: fileSystem, sysrootDir: Environment.current["PKG_CONFIG_SYSROOT_DIR"])
+         try parser.parse()
+ 
+-        func getFlags(from dependencies: [String]) throws -> (cFlags: [String], libs: [String]) {
++        // `optional`: a dependency whose .pc file can't be found is skipped rather
++        // than failing the whole package. pkg-config only needs a package's
++        // Requires.private for static linking; for --cflags and --libs it uses
++        // them when present and ignores them when not, so distributions (Nix,
++        // for one) don't ship private requirements alongside every library.
++        func getFlags(from dependencies: [String], optional: Bool = false) throws -> (cFlags: [String], libs: [String]) {
+             var cFlags = [String]()
+             var libs = [String]()
+ 
+@@ -103,15 +108,21 @@
+                 }
+ 
+                 // FIXME: This is wasteful, we should be caching the PkgConfig result.
+-                let pkg = try PkgConfig(
+-                    name: dep,
+-                    additionalSearchPaths: additionalSearchPaths,
+-                    brewPrefix: brewPrefix,
+-                    sysrootDir: sysrootDir,
+-                    loadingContext: loadingContext,
+-                    fileSystem: fileSystem,
+-                    observabilityScope: observabilityScope
+-                )
++                let pkg: PkgConfig
++                do {
++                    pkg = try PkgConfig(
++                        name: dep,
++                        additionalSearchPaths: additionalSearchPaths,
++                        brewPrefix: brewPrefix,
++                        sysrootDir: sysrootDir,
++                        loadingContext: loadingContext,
++                        fileSystem: fileSystem,
++                        observabilityScope: observabilityScope
++                    )
++                } catch PkgConfigError.couldNotFindConfigFile(let missing) where optional {
++                    observabilityScope.emit(debug: "\(loadingContext.pkgConfigStack.last ?? name): private requirement '\(missing)' not found; skipping it, as pkg-config does")
++                    continue
++                }
+ 
+                 cFlags += pkg.cFlags
+                 libs += pkg.libs
+@@ -121,7 +132,7 @@
+         }
+ 
+         let dependencyFlags = try getFlags(from: parser.dependencies)
+-        let privateDependencyFlags = try getFlags(from: parser.privateDependencies)
++        let privateDependencyFlags = try getFlags(from: parser.privateDependencies, optional: true)
+ 
+         self.cFlags = parser.cFlags + dependencyFlags.cFlags + privateDependencyFlags.cFlags
+         self.libs = parser.libs + dependencyFlags.libs

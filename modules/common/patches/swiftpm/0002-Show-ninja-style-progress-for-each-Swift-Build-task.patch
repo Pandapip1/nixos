@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gavin John <gavinnjohn@gmail.com>
+Date: Sun, 15 Nov 2026 11:53:52 -0500
+Subject: [PATCH] Show ninja-style progress for each Swift Build task
+
+With Swift Build, progress only came from its throttled status
+messages, which name the target but not the task, so non-interactive
+logs showed sampled lines like "[17 / 884] NIOCore" with long gaps.
+Use the command counts Swift Build now sends with each started task to
+print "[started/total] Compiling NIOCore Channel.swift" for every task,
+as the native build system and ninja do, and stop repeating the
+sampled status once per-task counts arrive.
+---
+ .../SwiftBuildSystemMessageHandler.swift      | 21 +++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/Sources/SwiftBuildSupport/SwiftBuildSystemMessageHandler.swift b/Sources/SwiftBuildSupport/SwiftBuildSystemMessageHandler.swift
+index 81c5ed8..f96fa60 100644
+--- a/Sources/SwiftBuildSupport/SwiftBuildSystemMessageHandler.swift
++++ b/Sources/SwiftBuildSupport/SwiftBuildSystemMessageHandler.swift
+@@ -34,6 +34,11 @@ public final class SwiftBuildSystemMessageHandler {
+     public typealias BuildSystemCallback = (SwiftBuildSystem) -> Void
+ 
+     let progressAnimation: ProgressAnimationProtocol
++    /// Whether Swift Build reports per-task progress. Once it does, each task
++    /// gets its own ninja-style `[started/total] description` update, and the
++    /// build's periodic status messages, which only sample those counts, are
++    /// no longer shown.
++    private var hasTaskProgress = false
+     var serializedDiagnosticPathsByTargetID: [Int: [Basics.AbsolutePath]] = [:]
+     // FIXME: This eventually gets passed into the BuildResult, which expects a
+     // dictionary of [String: [AbsolutePath]]. Eventually, we should refactor it
+@@ -247,8 +252,9 @@ public final class SwiftBuildSystemMessageHandler {
+                 "[\(progressInfo.message)]"
+             }
+ 
+-            // Skip if message doesn't contain anything useful to display.
+-            if !message.isEmpty {
++            // Skip if message doesn't contain anything useful to display, or
++            // if per-task updates already show the same counts.
++            if !message.isEmpty && !hasTaskProgress {
+                 progressAnimation.update(step: -1, total: 100, text: message)
+             }
+ 
+@@ -274,6 +280,17 @@ public final class SwiftBuildSystemMessageHandler {
+             try buildState.started(task: info, self.logLevel)
+             self.traceEventsWriter?.taskStarted(info)
+ 
++            if let progress = info.progress {
++                hasTaskProgress = true
++                // The total is the most commands the build might still run,
++                // which can grow during the build; never show a step past it.
++                progressAnimation.update(
++                    step: progress.startedCount,
++                    total: max(progress.startedCount, progress.maxCount),
++                    text: info.executionDescription
++                )
++            }
++
+             let targetInfo = try buildState.target(for: info)
+             callback = { [weak self] buildSystem in
+                 self?.buildDelegate?.buildSystem(buildSystem, willStartCommand: BuildSystemCommand(info, targetInfo: targetInfo))
