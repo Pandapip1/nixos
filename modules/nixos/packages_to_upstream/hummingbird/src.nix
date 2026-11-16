@@ -3,12 +3,12 @@
 { fetchFromGitHub }:
 
 {
-  version = "0-unstable-2026-11-15";
+  version = "0-unstable-2026-11-16";
   src = fetchFromGitHub {
     owner = "Pandapip1";
     repo = "Hummingbird";
-    rev = "70b0d770c1d7adbc51853527e3b4d31394970761";
-    hash = "sha256-TZBRpVfIrUY5+ni1gTLUkTblejK1pN+fEtx5NucWUQo=";
+    rev = "377e37d0cc5e37b97357c1193ba523ca719ba661";
+    hash = "sha256-HRF+LrMdCJeVBuXPyx/aK662X6Nh4U9mNNUZj8sNheI=";
     # Vendor/SwiftOpenUI is a submodule; the builds need its content.
     fetchSubmodules = true;
   };
