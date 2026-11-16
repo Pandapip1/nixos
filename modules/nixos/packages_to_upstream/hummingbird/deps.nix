@@ -67,29 +67,12 @@ rec {
       webkitGTK # WebKitGTK 6 with upstream ICU routed to private ELF sonames
       libsoup_3 # WebKitGTK's public pkg-config dependency
       libsecret # Security.framework-compatible credential persistence
+      libsodium # SwiftOpenUI SecureBytes: guarded, mlock'd secret memory (no Requires)
       avahi-compat # dns_sd.h/libdns_sd for ATAppSync DNS-SD discovery
-
-      # Not linked against directly: these appear only in the
-      # Requires.private chains of glib, gio, pango, fontconfig and libX11.
-      # The pkg-config binary ignores those for a dynamic link, but SwiftPM
-      # parses .pc files itself, always walks the private chain, and drops
-      # *every* flag for the module if one entry is unresolvable.
-      pcre2
-      util-linux # provides mount.pc, required by gio
-      libselinux
-      libsepol # required by libselinux.pc
-      fribidi
-      libthai
-      libdatrie # provides datrie-0.2.pc, required by libthai.pc
-      libxdmcp
     ])
     ++ gstPlugins
-    # Satisfies glib's Requires.private on a .pc file no nixpkgs package ships;
-    # see nix/sysprof-capture-stub.nix. It lands on PKG_CONFIG_PATH through the
-    # ordinary pkg-config setup hook, like any other input.
     ++ [
       iconTheme # standard GTK icons in minimal/package-only sessions
-      (pkgs.callPackage ./sysprof-capture-stub.nix { })
     ];
 
   # Everything the Linux build of the GTK app links against.

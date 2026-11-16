@@ -158,8 +158,15 @@ stdenv.mkDerivation {
   swiftpmFlags = [
     "--product Hummingbird-gtk"
     "--disable-automatic-resolution"
-    "--skip-update"
   ];
+
+  # Nix runs builders on a pseudo-terminal with TERM=xterm-256color, so
+  # SwiftPM would redraw its progress line in place and the log would keep
+  # only the last state. The log can't redraw: with TERM=dumb SwiftPM prints
+  # a "[step/total] task" line per step.
+  preBuild = ''
+    export TERM=dumb
+  '';
 
   # The media backend loads these at run time, and GSK/GdkPixbuf want their own data.
   preFixup = ''
