@@ -5,6 +5,15 @@ pkgs.bind-resolver in flake.nix).
   change (woken by the routing socket) instead of failing at once, and a
   recursive query that still fails is dropped rather than answered SERVFAIL,
   so clients retry instead of caching the failure.
+  Only a "no route" failure counts: a connection that is closed, refused
+  or reset proves a route exists and clears the no-network state, which
+  otherwise outlived the outage whenever no server answered afterwards
+  (every SERVFAIL was then dropped and fetches kept waiting).
+  "No network" also needs the kernel to agree: before treating the failures
+  as an outage, a UDP connect() (a route lookup that sends nothing) checks
+  for a route to a.root-servers.net. A firewall or proxy on the way can fail
+  connections with "host unreachable" while the network is up; that is then
+  reported as SERVFAIL instead of being waited out in silence.
 - stale-answer-ttl may be 0, so stale answers aren't cached by clients.
 - Answering from the cache restarts the idle timer of open TCP connections to
   the servers the query would otherwise have gone to (tcp-reuse-timeout), so
@@ -17,12 +26,28 @@ pkgs.bind-resolver in flake.nix).
   (Route 53, which serves every CloudFront distribution, does), and that
   fails every query on it. With all recursion over TCP (Tor), concurrent
   A/AAAA/HTTPS lookups for one name then reliably SERVFAILed.
+- resolver-tcp-allowance N: the extra time (ms; upstream's fixed 1 s by
+  default) a query over TCP may take beyond the server's estimated RTT.
+  Through Tor's transparent proxy the connection to the server is made
+  only after the query is sent, so a new connection's first answer takes
+  the whole stream (and maybe circuit) setup. Servers made TCP-only by
+  "server { tcp-only yes; }" now get the allowance too: upstream applies
+  that setting after computing the timeout, so their queries got the UDP
+  timeout (800 ms for a server not yet measured), shorter than Tor ever
+  takes to connect a stream.
+- A TCP connection on which a query timed out before any answer ever
+  arrived is closed, and one whose queries were all abandoned unanswered is
+  not kept for reuse. Through Tor's transparent proxy the connection is
+  accepted locally whether or not the server can be reached; kept open (for
+  up to tcp-reuse-timeout), Tor went on trying to reach the dead server for
+  its full 120 s, spoiling a circuit every CircuitStreamTimeout, and with a
+  few dead servers at once every other query waited for circuits.
 
 diff --git a/bin/named/config.c b/bin/named/config.c
-index 3c2a505..a66c2ba 100644
+index 3c2a505..e7aa6dd 100644
 --- a/bin/named/config.c
 +++ b/bin/named/config.c
-@@ -96,6 +96,7 @@ options {\n\
+@@ -96,11 +96,13 @@ options {\n\
  #endif
  			    "\
  	prefetch 2 9;\n\
@@ -30,8 +55,14 @@ index 3c2a505..a66c2ba 100644
  #	querylog <boolean>;\n\
  	recursing-file \"named.recursing\";\n\
  	recursive-clients 1000;\n\
+ 	request-nsid false;\n\
+ 	resolver-query-timeout 10;\n\
++	resolver-tcp-allowance 1000;\n\
+ #	responselog <boolean>;\n\
+ 	rrset-order { order random; };\n\
+ 	secroots-file \"named.secroots\";\n\
 diff --git a/bin/named/server.c b/bin/named/server.c
-index e094c41..63573dc 100644
+index e094c41..afeb649 100644
 --- a/bin/named/server.c
 +++ b/bin/named/server.c
 @@ -4922,7 +4922,7 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
@@ -43,7 +74,22 @@ index e094c41..63573dc 100644
  
  	/*
  	 * Resolver.
-@@ -5775,6 +5775,15 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
+@@ -5057,6 +5057,14 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
+ 	query_timeout = cfg_obj_asuint32(obj);
+ 	dns_resolver_settimeout(view->resolver, query_timeout);
+ 
++	/*
++	 * Extra time for a query over TCP to set up its connection.
++	 */
++	obj = NULL;
++	result = named_config_get(maps, "resolver-tcp-allowance", &obj);
++	INSIST(result == ISC_R_SUCCESS);
++	dns_resolver_settcpallowance(view->resolver, cfg_obj_asuint32(obj));
++
+ 	/* Specify whether to use 0-TTL for negative response for SOA query */
+ 	dns_resolver_setzeronosoattl(view->resolver, zero_no_soattl);
+ 
+@@ -5775,6 +5783,15 @@ configure_view(dns_view_t *view, dns_viewlist_t *viewlist, cfg_obj_t *config,
  		view->prefetch_eligible = view->prefetch_trigger + 6;
  	}
  
@@ -59,7 +105,7 @@ index e094c41..63573dc 100644
  	/*
  	 * For now, there is only one kind of trusted keys, the
  	 * "security roots".
-@@ -10160,6 +10169,24 @@ cleanup:
+@@ -10160,6 +10177,24 @@ cleanup:
  	return result;
  }
  
@@ -84,7 +130,7 @@ index e094c41..63573dc 100644
  static void
  run_server(void *arg) {
  	isc_result_t result;
-@@ -10185,6 +10212,8 @@ run_server(void *arg) {
+@@ -10185,6 +10220,8 @@ run_server(void *arg) {
  					  named_g_dispatchmgr, geoip,
  					  &server->interfacemgr),
  		   "creating interface manager");
@@ -94,9 +140,61 @@ index e094c41..63573dc 100644
  	isc_timer_create(named_g_mainloop, interface_timer_tick, server,
  			 &server->interface_timer);
 diff --git a/lib/dns/dispatch.c b/lib/dns/dispatch.c
+index 277a96b..e4095bd 100644
 --- a/lib/dns/dispatch.c
 +++ b/lib/dns/dispatch.c
-@@ -1256,14 +1256,23 @@
+@@ -143,6 +143,12 @@ struct dns_dispatch {
+ 
+ 	unsigned int timedout;
+ 
++	/*%
++	 * TCP: an answer has arrived on this connection, so it reaches its
++	 * server (see tcp_recv()).
++	 */
++	bool answered;
++
+ 	struct cds_lfht_node ht_node;
+ 	struct rcu_head rcu_head;
+ };
+@@ -693,6 +699,7 @@ tcp_recv_success(dns_dispatch_t *disp, isc_region_t *region,
+ 			     "got DNS query instead of answer");
+ 		return ISC_R_UNEXPECTED;
+ 	}
++	disp->answered = true;
+ 
+ 	/*
+ 	 * We have a valid response; find the associated dispentry by
+@@ -916,6 +923,29 @@ tcp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
+ 		break;
+ 	}
+ 
++	/*
++	 * A query timed out on a connection that has never carried an
++	 * answer: close it instead of keeping it open for reuse. Through a
++	 * proxy that accepts connections locally (Tor's transparent proxy),
++	 * the connection being up says nothing about the server, and Tor
++	 * keeps trying to reach a dead server for as long as the connection
++	 * stays open (two minutes with tcp-reuse-timeout), building a new
++	 * circuit every CircuitStreamTimeout and leaving each one it tried
++	 * unusable for new streams; with several dead servers at once that
++	 * starves every other query of circuits.
++	 */
++	if (eresult == ISC_R_TIMEDOUT && !disp->answered &&
++	    disp->state == DNS_DISPATCHSTATE_CONNECTED)
++	{
++		if (isc_log_wouldlog(dns_lctx, ISC_LOG_DEBUG(90))) {
++			isc_sockaddr_format(&peer, buf, sizeof(buf));
++			dispatch_log(disp, ISC_LOG_DEBUG(90),
++				     "shutting down TCP: %s: never answered",
++				     buf);
++		}
++		tcp_recv_shutdown(disp, &resps, ISC_R_TIMEDOUT);
++	}
++
+ 	/*
+ 	 * Phase 5: Resume reading if there are still active responses
+ 	 */
+@@ -1256,14 +1286,23 @@ dispatch_gettcp(dns_dispatchmgr_t *mgr, const isc_sockaddr_t *localaddr,
  			/* A dispatch in indeterminate state, skip it */
  			break;
  		case DNS_DISPATCHSTATE_CONNECTED:
@@ -126,7 +224,22 @@ diff --git a/lib/dns/dispatch.c b/lib/dns/dispatch.c
  			break;
  		case DNS_DISPATCHSTATE_CANCELED:
  			/* A canceled dispatch, skip it. */
-@@ -2448,3 +2457,33 @@
+@@ -1805,8 +1844,13 @@ tcp_dispentry_cancel(dns_dispentry_t *resp, isc_result_t result) {
+ 			 * leaving the socket stuck in CLOSE-WAIT.  If the
+ 			 * dispatch is already shutting down, leave it alone so
+ 			 * it can be torn down.
++			 *
++			 * Only a connection that has carried an answer is
++			 * kept: one that never did may not reach its server
++			 * at all (see tcp_recv()), so it is closed as when
++			 * connections aren't reused.
+ 			 */
+-			if (disp->mgr->reuse_timeout > 0) {
++			if (disp->mgr->reuse_timeout > 0 && disp->answered) {
+ 				tcp_startrecv_idle(disp);
+ 			} else if (disp->reading) {
+ 				dispentry_log(resp, ISC_LOG_DEBUG(90),
+@@ -2448,3 +2492,33 @@ dns_dispatch_checkperm(dns_dispatch_t *disp) {
  
  	return isc_nm_xfr_checkperm(disp->handle);
  }
@@ -196,7 +309,7 @@ index 2f0c17a..fba7e85 100644
  	 * Extra fields used by various rdataset implementations, that is, by
  	 * the code referred to in the rdataset methods table. The names of
 diff --git a/lib/dns/include/dns/resolver.h b/lib/dns/include/dns/resolver.h
-index e6021a5..4c08426 100644
+index e6021a5..8c4cd10 100644
 --- a/lib/dns/include/dns/resolver.h
 +++ b/lib/dns/include/dns/resolver.h
 @@ -460,6 +460,21 @@ dns_resolver_setmustbesecure(dns_resolver_t *resolver, const dns_name_t *name,
@@ -220,6 +333,25 @@ index e6021a5..4c08426 100644
 +
  void
  dns_resolver_settimeout(dns_resolver_t *resolver, unsigned int timeout);
+ /*%<
+@@ -474,6 +489,18 @@ dns_resolver_settimeout(dns_resolver_t *resolver, unsigned int timeout);
+  * \li  resolver to be valid.
+  */
+ 
++void
++dns_resolver_settcpallowance(dns_resolver_t *resolver, unsigned int ms);
++/*%<
++ * Set the extra time, in milliseconds, a query sent over TCP may take
++ * beyond the server's estimated round-trip time (resolver-tcp-allowance;
++ * 1000 by default), for setting up the connection. At most 9000 (the
++ * longest a single query may take).
++ *
++ * Requires:
++ * \li  resolver to be valid.
++ */
++
+ unsigned int
+ dns_resolver_gettimeout(dns_resolver_t *resolver);
  /*%<
 diff --git a/lib/dns/include/dns/view.h b/lib/dns/include/dns/view.h
 index 52726cb..c361c6f 100644
@@ -255,10 +387,26 @@ index b567fc6..e5ad8ac 100644
  		DNS_SLABHEADER_SETATTR(newheader, DNS_SLABHEADERATTR_ZEROTTL);
  	}
 diff --git a/lib/dns/resolver.c b/lib/dns/resolver.c
-index 4dcfb09..2d5677d 100644
+index 4dcfb09..aa62a3d 100644
 --- a/lib/dns/resolver.c
 +++ b/lib/dns/resolver.c
-@@ -379,6 +379,10 @@ struct fetchctx {
+@@ -13,10 +13,15 @@
+ 
+ /*! \file */
+ 
++#include <arpa/inet.h>
+ #include <ctype.h>
+ #include <inttypes.h>
+ #include <stdbool.h>
+ #include <stdint.h>
++#include <sys/socket.h>
++#include <unistd.h>
++#include <errno.h>
++#include <netinet/in.h>
+ 
+ #include <isc/ascii.h>
+ #include <isc/async.h>
+@@ -379,6 +384,10 @@ struct fetchctx {
  	dns_rdataset_t nameservers;
  	atomic_uint_fast32_t attributes;
  	isc_timer_t *timer;
@@ -269,7 +417,24 @@ index 4dcfb09..2d5677d 100644
  	isc_time_t expires;
  	isc_time_t next_timeout;
  	isc_interval_t interval;
-@@ -611,6 +615,16 @@ struct dns_resolver {
+@@ -489,6 +498,8 @@ struct fetchctx {
+ 	unsigned int lamecount;
+ 	unsigned int quotacount;
+ 	unsigned int neterr;
++	/* Failures that were "no route" (no network), a subset of neterr. */
++	unsigned int noroute;
+ 	unsigned int badresp;
+ 	unsigned int adberr;
+ 	unsigned int findfail;
+@@ -605,12 +616,24 @@ struct dns_resolver {
+ 	/* Additions for serve-stale feature. */
+ 	unsigned int retryinterval; /* in milliseconds */
+ 	unsigned int nonbackofftries;
++	/* Extra time allowed for a query over TCP (resolver-tcp-allowance). */
++	unsigned int tcpallowance; /* in milliseconds */
+ 
+ 	/* Atomic */
+ 	isc_refcount_t references;
  	atomic_uint_fast32_t zspill; /* fetches-per-zone */
  	atomic_bool exiting;
  	atomic_bool priming;
@@ -286,7 +451,7 @@ index 4dcfb09..2d5677d 100644
  
  	atomic_uint_fast32_t maxvalidations;
  	atomic_uint_fast32_t maxvalidationfails;
-@@ -679,6 +693,12 @@ static void
+@@ -679,6 +702,12 @@ static void
  resquery_connected(isc_result_t eresult, isc_region_t *region, void *arg);
  static void
  fctx_try(fetchctx_t *fctx, bool retrying);
@@ -299,7 +464,7 @@ index 4dcfb09..2d5677d 100644
  static void
  fctx_shutdown(void *arg);
  static void
-@@ -1797,6 +1817,7 @@ fctx__done(fetchctx_t *fctx, isc_result_t result, const char *func,
+@@ -1797,6 +1826,7 @@ fctx__done(fetchctx_t *fctx, isc_result_t result, const char *func,
  	fctx_cleanup(fctx);
  
  	isc_timer_destroy(&fctx->timer);
@@ -307,7 +472,55 @@ index 4dcfb09..2d5677d 100644
  
  	return true;
  }
-@@ -3116,6 +3137,24 @@ add_bad(fetchctx_t *fctx, dns_message_t *rmessage, dns_adbaddrinfo_t *addrinfo,
+@@ -1957,6 +1987,7 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
+ 	bool have_addr = false;
+ 	unsigned int srtt;
+ 	isc_tlsctx_cache_t *tlsctx_cache = NULL;
++	bool forcetcp = false;
+ 
+ 	FCTXTRACE("query");
+ 
+@@ -1980,12 +2011,34 @@ fctx_query(fetchctx_t *fctx, dns_adbaddrinfo_t *addrinfo,
+ 	}
+ 
+ 	/*
+-	 * Allow an additional second for the kernel to resend the SYN
+-	 * (or SYN without ECN in the case of stupid firewalls blocking
+-	 * ECN negotiation) over the current RTT estimate.
++	 * Allow additional time (resolver-tcp-allowance; 1 s by default) for
++	 * the kernel to resend the SYN (or SYN without ECN in the case of
++	 * stupid firewalls blocking ECN negotiation) over the current RTT
++	 * estimate. Through a proxy that accepts the connection locally (Tor's
++	 * transparent proxy), the connection to the server is only made once
++	 * the query has been sent, so the first answer on a new connection
++	 * takes the whole setup time; the allowance must cover that.
++	 *
++	 * Servers made TCP-only by "server { tcp-only yes; }" count too. That
++	 * is only applied to the query further down, so unless it is looked up
++	 * here their queries got the UDP timeout (800 ms for a new server).
+ 	 */
+-	if ((options & DNS_FETCHOPT_TCP) != 0) {
+-		srtt += US_PER_SEC;
++	if ((options & DNS_FETCHOPT_TCP) == 0 && res->view->peers != NULL) {
++		dns_peer_t *peer = NULL;
++		isc_netaddr_t dstip;
++		bool usetcp = false;
++
++		isc_netaddr_fromsockaddr(&dstip, &addrinfo->sockaddr);
++		if (dns_peerlist_peerbyaddr(res->view->peers, &dstip, &peer) ==
++			    ISC_R_SUCCESS &&
++		    dns_peer_getforcetcp(peer, &usetcp) == ISC_R_SUCCESS &&
++		    usetcp)
++		{
++			forcetcp = true;
++		}
++	}
++	if ((options & DNS_FETCHOPT_TCP) != 0 || forcetcp) {
++		srtt += res->tcpallowance * US_PER_MS;
+ 	}
+ 
+ 	/*
+@@ -3116,6 +3169,44 @@ add_bad(fetchctx_t *fctx, dns_message_t *rmessage, dns_adbaddrinfo_t *addrinfo,
  	}
  #endif /* ifdef ENABLE_AFL */
  
@@ -323,6 +536,26 @@ index 4dcfb09..2d5677d 100644
 +					? &fctx->res->netdown6
 +					: &fctx->res->netdown4,
 +				true);
++			fctx->noroute++;
++			break;
++		/*
++		 * The server (or something on the path to it, such as Tor's
++		 * transparent proxy) answered the connection: there is a route,
++		 * whatever went wrong. Without this, "no network" set by an
++		 * earlier outage stayed set for as long as no server answered
++		 * successfully; when every connection was being closed, fetches
++		 * kept waiting for a network change and failures were dropped
++		 * silently, though the network was up.
++		 */
++		case ISC_R_EOF:
++		case ISC_R_CONNREFUSED:
++		case ISC_R_CONNECTIONRESET:
++		case ISC_R_INVALIDPROTO:
++			atomic_store_release(
++				isc_sockaddr_pf(address) == PF_INET6
++					? &fctx->res->netdown6
++					: &fctx->res->netdown4,
++				false);
 +			break;
 +		default:
 +			break;
@@ -332,7 +565,7 @@ index 4dcfb09..2d5677d 100644
  	if (reason == DNS_R_LAME) {
  		fctx->lamecount++;
  	} else {
-@@ -4236,6 +4275,9 @@ fctx_try(fetchctx_t *fctx, bool retrying) {
+@@ -4236,6 +4327,9 @@ fctx_try(fetchctx_t *fctx, bool retrying) {
  
  done:
  	if (result != ISC_R_SUCCESS) {
@@ -342,7 +575,7 @@ index 4dcfb09..2d5677d 100644
  		fctx_done_detach(&fctx, result);
  	}
  }
-@@ -4501,6 +4543,83 @@ fctx_expired(void *arg) {
+@@ -4501,6 +4595,84 @@ fctx_expired(void *arg) {
  	fctx_done_detach(&fctx, DNS_R_SERVFAIL);
  }
  
@@ -362,7 +595,8 @@ index 4dcfb09..2d5677d 100644
 +	isc_time_t now;
 +	isc_sockaddr_t *sa = NULL, *next_sa = NULL;
 +
-+	if (fctx->neterr == 0 || fctx->netretries >= NETRETRY_MAX ||
++	/* Only when this fetch's servers failed for want of a route. */
++	if (fctx->noroute == 0 || fctx->netretries >= NETRETRY_MAX ||
 +	    !dns_resolver_networkdown(res) ||
 +	    atomic_load_acquire(&res->exiting))
 +	{
@@ -426,7 +660,7 @@ index 4dcfb09..2d5677d 100644
  static void
  fctx_shutdown(void *arg) {
  	fetchctx_t *fctx = arg;
-@@ -4641,6 +4760,7 @@ fctx_create(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
+@@ -4641,6 +4813,7 @@ fctx_create(dns_resolver_t *res, isc_loop_t *loop, const dns_name_t *name,
  
  	fctx = isc_mem_get(mctx, sizeof(*fctx));
  	*fctx = (fetchctx_t){
@@ -434,7 +668,7 @@ index 4dcfb09..2d5677d 100644
  		.type = type,
  		.qmintype = type,
  		.options = options,
-@@ -7584,6 +7704,14 @@ resquery_response(isc_result_t eresult, isc_region_t *region, void *arg) {
+@@ -7584,6 +7757,14 @@ resquery_response(isc_result_t eresult, isc_region_t *region, void *arg) {
  
  	QTRACE("response");
  
@@ -449,7 +683,15 @@ index 4dcfb09..2d5677d 100644
  	if (eresult == ISC_R_SUCCESS) {
  		if (isc_sockaddr_pf(&query->addrinfo->sockaddr) == PF_INET) {
  			inc_stats(fctx->res, dns_resstatscounter_responsev4);
-@@ -10249,6 +10377,7 @@ dns_resolver__destroy(dns_resolver_t *res) {
+@@ -9707,6 +9888,7 @@ rctx_referral(respctx_t *rctx) {
+ 		rctx->fctx->lamecount = 0;
+ 		rctx->fctx->quotacount = 0;
+ 		rctx->fctx->neterr = 0;
++		rctx->fctx->noroute = 0;
+ 		rctx->fctx->badresp = 0;
+ 		rctx->fctx->adberr = 0;
+ 	}
+@@ -10249,6 +10431,7 @@ dns_resolver__destroy(dns_resolver_t *res) {
  	}
  
  	isc_mutex_destroy(&res->primelock);
@@ -457,7 +699,15 @@ index 4dcfb09..2d5677d 100644
  	isc_mutex_destroy(&res->lock);
  
  	INSIST(isc_hashmap_count(res->fctxs) == 0);
-@@ -10406,6 +10535,10 @@ dns_resolver_create(dns_view_t *view, isc_loopmgr_t *loopmgr, isc_nm_t *nm,
+@@ -10342,6 +10525,7 @@ dns_resolver_create(dns_view_t *view, isc_loopmgr_t *loopmgr, isc_nm_t *nm,
+ 		.spillat = 10,
+ 		.spillatmax = 100,
+ 		.retryinterval = 800,
++		.tcpallowance = 1000,
+ 		.nonbackofftries = 3,
+ 		.query_timeout = DEFAULT_QUERY_TIMEOUT,
+ 		.maxdepth = DEFAULT_RECURSION_DEPTH,
+@@ -10406,6 +10590,10 @@ dns_resolver_create(dns_view_t *view, isc_loopmgr_t *loopmgr, isc_nm_t *nm,
  					&res->rdspools[i]);
  	}
  
@@ -468,17 +718,80 @@ index 4dcfb09..2d5677d 100644
  	res->magic = RES_MAGIC;
  
  	*resp = res;
-@@ -11546,3 +11679,27 @@ dns_resolver_freefresp(dns_fetchresponse_t **frespp) {
+@@ -11546,3 +11734,97 @@ dns_resolver_freefresp(dns_fetchresponse_t **frespp) {
  	*frespp = NULL;
  	isc_mem_putanddetach(&fresp->mctx, fresp, sizeof(*fresp));
  }
++
++/*
++ * Does the kernel have a route to a.root-servers.net in this family?
++ * connect() on a UDP socket only looks the route up; nothing is sent, so a
++ * firewall or proxy on the way (which can itself make connections fail with
++ * "host unreachable") does not affect the answer. Anything other than a
++ * clear "no route" counts as having one.
++ */
++static bool
++have_route(int family) {
++	isc_sockaddr_t sa;
++	int fd;
++	bool route = true;
++
++	if (family == AF_INET) {
++		struct in_addr in4;
++		RUNTIME_CHECK(inet_pton(AF_INET, "198.41.0.4", &in4) == 1);
++		isc_sockaddr_fromin(&sa, &in4, 53);
++	} else {
++		struct in6_addr in6;
++		RUNTIME_CHECK(inet_pton(AF_INET6, "2001:503:ba3e::2:30", &in6) == 1);
++		isc_sockaddr_fromin6(&sa, &in6, 53);
++	}
++
++	fd = socket(family, SOCK_DGRAM, 0);
++	if (fd < 0) {
++		return true;
++	}
++	if (connect(fd, &sa.type.sa, sa.length) < 0) {
++		switch (errno) {
++		case ENETUNREACH:
++		case EHOSTUNREACH:
++		case ENETDOWN:
++		case EADDRNOTAVAIL:
++			route = false;
++			break;
++		default:
++			break;
++		}
++	}
++	close(fd);
++	return route;
++}
 +
 +bool
 +dns_resolver_networkdown(dns_resolver_t *resolver) {
 +	REQUIRE(VALID_RESOLVER(resolver));
 +
-+	return atomic_load_acquire(&resolver->netdown4) &&
-+	       atomic_load_acquire(&resolver->netdown6);
++	if (!atomic_load_acquire(&resolver->netdown4) ||
++	    !atomic_load_acquire(&resolver->netdown6))
++	{
++		return false;
++	}
++
++	/*
++	 * Every family's last attempt failed with "no route". Check with the
++	 * kernel: the same errors also come from a firewall or proxy on the way
++	 * while the network is up, and treating that as "no network" made
++	 * fetches wait for a network change that never came and every failure
++	 * a silent drop. With a route, the failure is reported (SERVFAIL).
++	 */
++	if (have_route(AF_INET)) {
++		atomic_store_release(&resolver->netdown4, false);
++		return false;
++	}
++	if (have_route(AF_INET6)) {
++		atomic_store_release(&resolver->netdown6, false);
++		return false;
++	}
++	return true;
 +}
 +
 +void
@@ -496,6 +809,13 @@ index 4dcfb09..2d5677d 100644
 +	}
 +	UNLOCK(&resolver->netwaitlock);
 +}
++
++void
++dns_resolver_settcpallowance(dns_resolver_t *resolver, unsigned int ms) {
++	REQUIRE(VALID_RESOLVER(resolver));
++
++	resolver->tcpallowance = ISC_MIN(ms, MAX_SINGLE_QUERY_TIMEOUT);
++}
 diff --git a/lib/isc/netmgr/udp.c b/lib/isc/netmgr/udp.c
 index 51fe20c..102f133 100644
 --- a/lib/isc/netmgr/udp.c
@@ -511,7 +831,7 @@ index 51fe20c..102f133 100644
  	if (r < 0) {
  		result = isc_errno_toresult(errno);
 diff --git a/lib/isccfg/namedconf.c b/lib/isccfg/namedconf.c
-index fce279f..c2c2f4d 100644
+index fce279f..236a7df 100644
 --- a/lib/isccfg/namedconf.c
 +++ b/lib/isccfg/namedconf.c
 @@ -2243,6 +2243,7 @@ static cfg_clausedef_t view_clauses[] = {
@@ -522,6 +842,14 @@ index fce279f..c2c2f4d 100644
  	{ "provide-ixfr", &cfg_type_boolean, 0 },
  	{ "qname-minimization", &cfg_type_qminmethod, 0 },
  	/*
+@@ -2262,6 +2263,7 @@ static cfg_clausedef_t view_clauses[] = {
+ 	  CFG_CLAUSEFLAG_ANCIENT },
+ 	{ "resolver-query-timeout", &cfg_type_uint32, 0 },
+ 	{ "resolver-retry-interval", &cfg_type_uint32, CFG_CLAUSEFLAG_ANCIENT },
++	{ "resolver-tcp-allowance", &cfg_type_uint32, 0 },
+ 	{ "response-padding", &cfg_type_resppadding, 0 },
+ 	{ "response-policy", &cfg_type_rpz, 0 },
+ 	{ "rfc2308-type1", NULL, CFG_CLAUSEFLAG_ANCIENT },
 diff --git a/lib/ns/include/ns/interfacemgr.h b/lib/ns/include/ns/interfacemgr.h
 index 35cd8f7..de91227 100644
 --- a/lib/ns/include/ns/interfacemgr.h

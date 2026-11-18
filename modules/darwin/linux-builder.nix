@@ -40,7 +40,8 @@ in
       "x86_64-linux"
     ];
     config.virtualisation = {
-      cores = 6;
+      # Leave cores for the host's UI while the guest builds.
+      cores = 4;
       # Rosetta registers the x86_64-linux binfmt handler itself (on by
       # default for the vz builder); no boot.binfmt.emulatedSystems.
       vz.rosetta.enable = true;
@@ -55,7 +56,11 @@ in
         path = gvproxySocket;
       };
       darwin-builder = {
-        memorySize = 8 * 1024;
+        # ilama has 8 GB of RAM in total. A guest that size can never be
+        # resident alongside macOS, so a busy build made the host thrash
+        # (kernel_task compressing and swapping the guest's pages) and
+        # stalled the whole display. 4 GB leaves room for the host.
+        memorySize = 4 * 1024;
         diskSize = 40 * 1024;
       };
     };

@@ -318,5 +318,18 @@
           ) hosts.${system}
         ) darwinSystems
       );
+
+      checks =
+        lib.genAttrs linuxSystems (system: {
+          gpg-authorized-keys = import ./tests/gpg-authorized-keys.nix {
+            pkgs = nixpkgs.legacyPackages.${system};
+          };
+        })
+        // {
+          # The VMs run on macOS itself (qemu, hvf), with aarch64-linux guests.
+          aarch64-darwin.gpg-authorized-keys = import ./tests/gpg-authorized-keys.nix {
+            pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+          };
+        };
     };
 }

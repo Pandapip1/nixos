@@ -5,7 +5,7 @@
 
 {
   networking = {
-    computerName = "Gavin’s MacBook Neo";
+    computerName = "ilama";
     # Every network service whose DNS nix-darwin should set (networking.dns).
     # One left out uses its network's DNS servers, bypassing the local
     # resolver and Tor.

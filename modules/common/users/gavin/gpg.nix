@@ -15,4 +15,12 @@
 
     programs.git.signing.key = "F11A59B7C2694772B43CD531EFDD7A7049E20963";
   };
+
+  # SSH logins (on hosts running sshd) with the authentication subkeys of
+  # this key, refreshed from the keyserver: a new subkey works without a
+  # rebuild. See modules/common/security/gpg-authorized-keys.nix.
+  users.users.gavin.gpgAuthorizedKeys = {
+    primary = "F11A59B7C2694772B43CD531EFDD7A7049E20963";
+    seedKeys = [ ./gpg-public-key.asc ];
+  };
 }

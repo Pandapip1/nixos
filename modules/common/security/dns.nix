@@ -23,6 +23,8 @@ let
     "fe80::/10"
   ];
   torTransPort = 9040;
+  # Tor's DNSPort, for .onion only (see the "onion" zone).
+  torDnsPort = 9053;
   openNicZones = [
     "bbs" "chan" "cyb" "dyn" "epic" "geek" "gopher" "indy" "libre"
     "neo" "o" "opennic.glue" "oss" "oz" "parody"
@@ -72,8 +74,12 @@ let
     {
       directory,
       rndcKeyFile ? null,
-      # Where named logs: "syslog daemon" (journal on NixOS) or "stderr".
+      # Where named logs: "syslog daemon" (journal on NixOS), "stderr", or a
+      # file clause (file "path" versions N size S).
       logDestination ? "syslog daemon",
+      # Where the query-errors channel goes; a file channel needs a file of
+      # its own, since each file channel rotates independently.
+      errorLogDestination ? logDestination,
     }:
     let
       unchecked = pkgs.writeText "named.conf.unchecked" ''
@@ -98,7 +104,7 @@ let
           # Why each SERVFAIL happened. BIND logs these at debug level 1, so
           # they get their own channel; nothing else is logged at debug.
           channel errors {
-            ${logDestination};
+            ${errorLogDestination};
             severity debug 1;
             print-time yes;
             print-category yes;
@@ -144,6 +150,11 @@ let
           # only accepts 0 here anyway; 0 for the TTL needs our patch.
           stale-answer-client-timeout 0;
           stale-answer-ttl 0;
+          # Don't synthesise answers from cached NSEC ranges. With stale
+          # answers served immediately, a stale covering NSEC under an expired
+          # delegation made BIND report "recursion loop detected" and SERVFAIL
+          # every retry without resolving again (js.hcaptcha.com, 2026-11-16).
+          synth-from-dnssec no;
           # Don't remember SERVFAILs; retry recursion on the next query.
           servfail-ttl 0;
           max-stale-ttl 1d;
@@ -154,6 +165,14 @@ ${lib.optionalString cfg.recurseOverTor ''
           # resolution (with its DNSSEC lookups) can take well over the default
           # 10 s. Allow the maximum.
           resolver-query-timeout 30000;
+          # Each query to a server is given its measured RTT plus this long
+          # (ms) before BIND tries the next server. Tor accepts BIND's TCP
+          # connection at once and only then connects to the server, so the
+          # first answer on a new connection takes Tor's stream setup: over
+          # a warm circuit 0.7 s typically and 2 s for 90% (measured
+          # 2026-11-17; the rest never connect). Upstream allows 1 s, and
+          # tcp-only servers got none (an 800 ms timeout; our BIND patch).
+          resolver-tcp-allowance 3000;
           # Keep TCP connections to each server open for up to 2 minutes (the
           # maximum, in tenths of a second) so repeat queries reuse them
           # instead of opening a new connection through Tor each time.
@@ -200,10 +219,12 @@ ${lib.optionalString cfg.recurseOverTor ''
           ${lib.concatMapStrings (r: "server ${r} { bogus no; };\n") privateRanges6}
         ''}
 
+        # .onion only: Tor resolves onion names itself. Never a fallback for
+        # other names, which BIND resolves itself.
         zone "onion" {
           type forward;
           forward only;
-          forwarders { 127.0.0.1 port 9053; };
+          forwarders { 127.0.0.1 port ${toString torDnsPort}; };
         };
       '';
     in
@@ -272,7 +293,7 @@ in
     bindConfig = makeBindConfig;
     inherit captivePortalZones;
     firewall = {
-      inherit privateRanges4 privateRanges6 torTransPort;
+      inherit privateRanges4 privateRanges6 torTransPort torDnsPort;
     };
     # Reusable upstream TCP connections are kept per worker thread, so with
     # one worker every query shares them; that matters when each new
