@@ -1,6 +1,6 @@
 {
   tor,
-  apple-sdk,
+  darwin,
   runCommand,
 }:
 
@@ -10,7 +10,7 @@
 # Tor's configure turns TransPort off ("TransPort is disabled in this build").
 # The header is in XNU's published source, so build against that copy.
 let
-  xnu = apple-sdk.sourceRelease "xnu";
+  xnu = darwin.sourceRelease "xnu";
   pfHeaders = runCommand "xnu-pf-headers" { } ''
     install -Dm444 ${xnu}/bsd/net/pfvar.h $out/include/net/pfvar.h
     install -Dm444 ${xnu}/bsd/net/radix.h $out/include/net/radix.h
