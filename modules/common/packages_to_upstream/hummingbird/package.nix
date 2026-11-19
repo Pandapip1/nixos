@@ -16,7 +16,7 @@
 {
   nixpkgs.overlays = [
     (
-      _: prev:
+      final: prev:
       let
         pinData = # SwiftPM dependency pins, mirroring Package.resolved (which is gitignored, so it
           # cannot be read from the flake source) and .build/workspace-state.json.
@@ -116,7 +116,7 @@
           lib.mapAttrs
             (
               _: pin:
-              fetchgit {
+              final.fetchgit {
                 inherit (pin) url rev hash;
                 fetchSubmodules = true;
               }
@@ -172,17 +172,7 @@
           );
         };
 
-        gstPlugins = with gst_all_1; [
-          gstreamer
-          gstreamer.dev
-          gst-plugins-base
-          gst-plugins-base.dev
-          gst-plugins-good
-          gst-plugins-bad
-          gst-plugins-ugly
-          gst-libav
-        ];
-        desktopItem = makeDesktopItem {
+        desktopItem = final.makeDesktopItem {
           name = "com.eightybps.hummingbird";
           desktopName = "Hummingbird";
           exec = "hummingbird-gtk %u";
@@ -193,101 +183,10 @@
           ];
           mimeTypes = [ "x-scheme-handler/com.eightybps.hummingbird" ];
         };
-        pinData = # SwiftPM dependency pins, mirroring Package.resolved (which is gitignored, so it
-          # cannot be read from the flake source) and .build/workspace-state.json.
-          #
-          # nixpkgs' swiftpm2nix helpers are not used: they assert the workspace-state
-          # format is version 5 or 6, and SwiftPM 6.2 writes version 7. The generator also
-          # assumes every dependency is a git checkout, which is not true here --
-          # SwiftOpenUI is a path dependency and comes from the submodule in the source
-          # tree, with no revision to pin.
-          #
-          # To refresh after changing a dependency, run `swift build` and then, for each
-          # entry below, read the identity/location/revision/version out of
-          # .build/workspace-state.json and get the hash with:
-          #
-          #   nurl <location> <revision> --json --submodules=true --fetcher=fetchgit
-          {
-            originHash = "c9e9bf887623a73593611384b2e1272e0e5d1efadc40e946523f5bd336ed3f2f";
-            deps = {
-              swift-asn1 = {
-                subpath = "swift-asn1";
-                identity = "swift-asn1";
-                name = "swift-asn1";
-                location = "https://github.com/apple/swift-asn1.git";
-                revision = "917b472dbe53ba699cbb0495f9a95a084bc6364d";
-                version = "1.7.4";
-                hash = "sha256-oCy/c6UXUgM/dLf054kvkOtVtUXMCdFDRJwWIfhdlGc=";
-              };
-              swift-atomics = {
-                subpath = "swift-atomics";
-                identity = "swift-atomics";
-                name = "swift-atomics";
-                location = "https://github.com/apple/swift-atomics.git";
-                revision = "0442cb5a3f98ab802acb777929fdb446bda11a34";
-                version = "1.3.1";
-                hash = "sha256-ltWzlf0+XxMCR9xiFVGnQ35DueAp22mPRLadbTfnEPA=";
-              };
-              swift-collections = {
-                subpath = "swift-collections";
-                identity = "swift-collections";
-                name = "swift-collections";
-                location = "https://github.com/apple/swift-collections.git";
-                revision = "88754449ab766a739610b660e117762115fabc9c";
-                version = "1.7.6";
-                hash = "sha256-uqToq9UXZn9no3JaWuF3/ouClG1r0f02mFnayWdqk0Y=";
-              };
-              swift-crypto = {
-                subpath = "swift-crypto";
-                identity = "swift-crypto";
-                name = "swift-crypto";
-                location = "https://github.com/apple/swift-crypto.git";
-                revision = "95ba0316a9b733e92bb6b071255ff46263bbe7dc";
-                version = "3.15.1";
-                hash = "sha256-RzoUBx4l12v0ZamSIAEpHHCRQXxJkXJCwVBEj7Qwg9I=";
-              };
-              swift-nio = {
-                subpath = "swift-nio";
-                identity = "swift-nio";
-                name = "swift-nio";
-                location = "https://github.com/apple/swift-nio.git";
-                revision = "2f58d8ef84438d6517fc78bcea2f8527e3c72936";
-                version = "2.105.0";
-                hash = "sha256-yrvHFodrFofHfh2PZ2O+/Guqq9dVEDpPAYoNwcOk9eY=";
-              };
-              swift-qrcode-generator = {
-                subpath = "swift-qrcode-generator";
-                identity = "swift-qrcode-generator";
-                name = "swift-qrcode-generator";
-                location = "https://github.com/fwcd/swift-qrcode-generator.git";
-                revision = "5ca09b6a2ad190f94aa3d6ddef45b187f8c0343b";
-                version = "1.0.3";
-                hash = "sha256-WTIn+AYbazzU5xr78H43Pp1OQYmTp9IkTvezBaiXm9M=";
-              };
-              swift-system = {
-                subpath = "swift-system";
-                identity = "swift-system";
-                name = "swift-system";
-                location = "https://github.com/apple/swift-system.git";
-                revision = "869129b7bf4ecc57b97d0193ad29690ca2134750";
-                version = "1.8.1";
-                hash = "sha256-mnQcCHYW0oCadmIE9ayjs3aZiCVQRuliQ0qWpQ22OFQ=";
-              };
-              swiftsoup = {
-                subpath = "SwiftSoup";
-                identity = "swiftsoup";
-                name = "SwiftSoup";
-                location = "https://github.com/scinfu/SwiftSoup.git";
-                revision = "e7f85f4d3dd91ca9a1e94d3328aa1ed5120a8c0f";
-                version = "2.14.3";
-                hash = "sha256-EFgzS4Lr3vAKMt/kRaMrSqezCTlFe7MTGM3o3nFzzp4=";
-              };
-            };
-          };
         # The system libraries the SwiftPM build needs, shared by the dev shell and the
         # packaged GTK app so the two cannot drift.
         inherit (final) pkgs lib;
-        webkitGTK = pkgs.callPackage ./webkitgtk-swift.nix { };
+        webkitGTK = final.webkitgtk-swift-compatible;
         # The direct media backend decodes through GStreamer, so these are needed at run time (on
         # GST_PLUGIN_SYSTEM_PATH_1_0), not just at link time.
         gstPlugins = with pkgs.gst_all_1; [
@@ -321,7 +220,6 @@
           gst-libav
           darwinGstHLS
         ];
-        inherit gstPlugins darwinGstPlugins webkitGTK;
         iconTheme = pkgs.adwaita-icon-theme;
 
         # Used by HummingbirdKit, SwiftSoup on every platform.
@@ -359,9 +257,6 @@
           ++ [
             iconTheme # standard GTK icons in minimal/package-only sessions
           ];
-
-        # Everything the Linux build of the GTK app links against.
-        linuxBuildLibs = baseLibs ++ gtkLibs;
 
         # Development-only GTK backend on macOS. WebKitGTK is intentionally absent:
         # nixpkgs marks it broken on Darwin, and SwiftOpenUI excludes that adapter.
@@ -413,10 +308,10 @@ writeTextDir "lib/pkgconfig/sysprof-capture-4.pc" ''
           ++ darwinGstPlugins;
       in
       {
-        hummingbird-gtk = stdenv.mkDerivation {
+        hummingbird-gtk = final.stdenv.mkDerivation {
           pname = "hummingbird-gtk";
   version = "0-unstable-2026-11-16";
-  src = fetchFromGitHub {
+  src = final.fetchFromGitHub {
     owner = "Pandapip1";
     repo = "Hummingbird";
     rev = "694566cd6f74de7914b39a15573ea5e9efed63df";
@@ -425,7 +320,7 @@ writeTextDir "lib/pkgconfig/sysprof-capture-4.pc" ''
     fetchSubmodules = true;
   };
 
-          nativeBuildInputs = [
+          nativeBuildInputs = with final; [
             swift
             swiftpm
             pkg-config
@@ -438,14 +333,14 @@ writeTextDir "lib/pkgconfig/sysprof-capture-4.pc" ''
             wrapGAppsHook4
           ];
 
-          buildInputs = buildLibs;
+          buildInputs = baseLibs ++ gtkLibs;
 
           # SwiftPM's system-library importer does not consume pkg-config include
           # flags for transitive C headers. CGStreamer includes these directly.
-          CPATH = lib.makeSearchPath "include/gstreamer-1.0" [
+          CPATH = lib.makeSearchPath "include/gstreamer-1.0" (with final; [
             gst_all_1.gstreamer.dev
             gst_all_1.gst-plugins-base.dev
-          ];
+          ]);
 
           # Pre-populate the dependency checkouts so swift-build never reaches the
           # network, which it cannot do inside the sandbox anyway.
@@ -496,9 +391,9 @@ writeTextDir "lib/pkgconfig/sysprof-capture-4.pc" ''
               --prefix GST_PLUGIN_SYSTEM_PATH_1_0 : "${
                 lib.makeSearchPathOutput "lib" "lib/gstreamer-1.0" gstPlugins
               }"
-              --set-default GDK_PIXBUF_MODULE_FILE "${librsvg}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
-              --prefix GIO_EXTRA_MODULES : "${glib-networking}/lib/gio/modules"
-              --prefix XDG_DATA_DIRS : "${adwaita-icon-theme}/share"
+              --set-default GDK_PIXBUF_MODULE_FILE "${final.librsvg}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+              --prefix GIO_EXTRA_MODULES : "${final.glib-networking}/lib/gio/modules"
+              --prefix XDG_DATA_DIRS : "${final.adwaita-icon-theme}/share"
             )
           '';
 
@@ -531,10 +426,10 @@ writeTextDir "lib/pkgconfig/sysprof-capture-4.pc" ''
             license = lib.licenses.agpl3Plus;
           };
         };
-        hummingbird-macos = stdenv.mkDerivation {
+        hummingbird-macos = final.stdenv.mkDerivation {
           pname = "hummingbird-macos";
   version = "0-unstable-2026-11-16";
-  src = fetchFromGitHub {
+  src = final.fetchFromGitHub {
     owner = "Pandapip1";
     repo = "Hummingbird";
     rev = "694566cd6f74de7914b39a15573ea5e9efed63df";
@@ -543,7 +438,7 @@ writeTextDir "lib/pkgconfig/sysprof-capture-4.pc" ''
     fetchSubmodules = true;
   };
 
-          nativeBuildInputs = [
+          nativeBuildInputs = with final; [
             xtool
             swift
             swiftpm
@@ -554,7 +449,7 @@ writeTextDir "lib/pkgconfig/sysprof-capture-4.pc" ''
           # wrapper. From 27 it is a macro whose implementation (SwiftUIMacros) is a
           # closed compiler plugin that ships only with Xcode. The app also uses
           # macOS 26 APIs (glassEffect, ToolbarSpacer), so 15 is too old.
-          buildInputs = [
+          buildInputs = with final; [
             apple-sdk_26
             # Hummingbird's minimum (Package.swift platforms: macOS 15). Without it
             # nixpkgs' compiler wrapper builds for its own default, 14.0.
@@ -564,22 +459,22 @@ writeTextDir "lib/pkgconfig/sysprof-capture-4.pc" ''
           ];
 
           postConfigure = ''
-            ${deps.configure}
+            ${pinData.deps.configure}
             # The newest SDK among the inputs normally wins, and nixpkgs' Swift brings
             # the 27 SDK along; select 26 explicitly (xtool keeps SDKROOT).
-            export DEVELOPER_DIR=${apple-sdk_26}
-            export SDKROOT=${apple-sdk_26.sdkroot}
+            export DEVELOPER_DIR=${final.apple-sdk_26}
+            export SDKROOT=${final.apple-sdk_26.sdkroot}
             # sqlite3.h and libsqlite3, for Hummingbird's CSQLite module. xtool runs
             # SwiftPM itself, so these go through clang's environment, not flags.
-            export CPATH=${lib.getDev sqlite}/include''${CPATH:+:$CPATH}
-            export LIBRARY_PATH=${lib.getLib sqlite}/lib''${LIBRARY_PATH:+:$LIBRARY_PATH}
+            export CPATH=${lib.getDev final.sqlite}/include''${CPATH:+:$CPATH}
+            export LIBRARY_PATH=${lib.getLib final.sqlite}/lib''${LIBRARY_PATH:+:$LIBRARY_PATH}
             # xtool's default is Swift Build; the native build system is used here.
             export XTOOL_BUILD_SYSTEM=native
           '';
 
           meta = {
             description = "Hummingbird, the native SwiftUI app for macOS";
-            platforms = lib.platforms.darwin;
+            platforms = final.lib.platforms.darwin;
             mainProgram = "Hummingbird";
           };
         };
