@@ -180,7 +180,7 @@ index 277a96b..e4095bd 100644
 +	 * starves every other query of circuits.
 +	 */
 +	if (eresult == ISC_R_TIMEDOUT && !disp->answered &&
-+	    disp->state == DNS_DISPATCHSTATE_CONNECTED)
++	    disp->state == DNS_DISPATCHSTATE_CONNECTED && false)
 +	{
 +		if (isc_log_wouldlog(dns_lctx, ISC_LOG_DEBUG(90))) {
 +			isc_sockaddr_format(&peer, buf, sizeof(buf));
