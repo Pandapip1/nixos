@@ -164,6 +164,36 @@ index 277a96b..e4095bd 100644
  
  	/*
  	 * We have a valid response; find the associated dispentry by
+@@ -916,6 +923,29 @@ tcp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
+ 		break;
+ 	}
+ 
++	/*
++	 * A query timed out on a connection that has never carried an
++	 * answer: close it instead of keeping it open for reuse. Through a
++	 * proxy that accepts connections locally (Tor's transparent proxy),
++	 * the connection being up says nothing about the server, and Tor
++	 * keeps trying to reach a dead server for as long as the connection
++	 * stays open (two minutes with tcp-reuse-timeout), building a new
++	 * circuit every CircuitStreamTimeout and leaving each one it tried
++	 * unusable for new streams; with several dead servers at once that
++	 * starves every other query of circuits.
++	 */
++	if (eresult == ISC_R_TIMEDOUT && !disp->answered &&
++	    disp->state == DNS_DISPATCHSTATE_CONNECTED)
++	{
++		if (isc_log_wouldlog(dns_lctx, ISC_LOG_DEBUG(90))) {
++			isc_sockaddr_format(&peer, buf, sizeof(buf));
++			dispatch_log(disp, ISC_LOG_DEBUG(90),
++				     "shutting down TCP: %s: never answered",
++				     buf);
++		}
++		tcp_recv_shutdown(disp, &resps, ISC_R_TIMEDOUT);
++	}
++
+ 	/*
+ 	 * Phase 5: Resume reading if there are still active responses
+ 	 */
 @@ -1256,14 +1286,23 @@ dispatch_gettcp(dns_dispatchmgr_t *mgr, const isc_sockaddr_t *localaddr,
  			/* A dispatch in indeterminate state, skip it */
  			break;
