@@ -7,17 +7,6 @@ let
   # gvproxy's socket for the guest's network link. Inside the builder's
   # working directory, so it is root's and short enough for sockaddr_un.
   gvproxySocket = "/var/lib/linux-builder/gvproxy.sock";
-
-  # vzvm with a "unixgram" network mode, so the guest's network can come from
-  # gvproxy instead of Virtualization.framework's NAT (see below).
-  vzvm = pkgs.vzvm.overrideAttrs (prevAttrs: {
-    patches = (prevAttrs.patches or [ ]) ++ [
-      ../../packages/vzvm/0001-Let-the-guest-network-use-a-user-mode-stack-instead-.patch
-    ];
-    # The package builds from the repository's vzvm/ directory; the patch's
-    # paths start at the repository root.
-    patchFlags = [ "-p2" ];
-  });
 in
 {
   # A small aarch64-linux NixOS VM that nix-daemon offloads Linux builds to,
@@ -45,7 +34,7 @@ in
       # Rosetta registers the x86_64-linux binfmt handler itself (on by
       # default for the vz builder); no boot.binfmt.emulatedSystems.
       vz.rosetta.enable = true;
-      vz.package = vzvm;
+      vz.package = pkgs.vzvm;
       # Virtualization.framework's NAT is macOS Internet Sharing, which turns
       # on IP forwarding and loads its own pf ruleset with `set skip on lo0`.
       # That disables the pf redirect that carries BIND's DNS through Tor
