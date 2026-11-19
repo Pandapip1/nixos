@@ -164,13 +164,6 @@ index 277a96b..e4095bd 100644
  
  	/*
  	 * We have a valid response; find the associated dispentry by
-@@ -916,6 +923,6 @@ tcp_recv(isc_nmhandle_t *handle, isc_result_t eresult, isc_region_t *region,
- 		break;
- 	}
- 
- 	/*
- 	 * Phase 5: Resume reading if there are still active responses
- 	 */
 @@ -1256,14 +1286,23 @@ dispatch_gettcp(dns_dispatchmgr_t *mgr, const isc_sockaddr_t *localaddr,
  			/* A dispatch in indeterminate state, skip it */
  			break;
