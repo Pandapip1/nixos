@@ -235,7 +235,7 @@ index 277a96b..e4095bd 100644
 +			 * connections aren't reused.
  			 */
 -			if (disp->mgr->reuse_timeout > 0) {
-+			if (disp->mgr->reuse_timeout > 0 && disp->answered) {
++			if (disp->mgr->reuse_timeout > 0 && (true || disp->answered)) {
  				tcp_startrecv_idle(disp);
  			} else if (disp->reading) {
  				dispentry_log(resp, ISC_LOG_DEBUG(90),
