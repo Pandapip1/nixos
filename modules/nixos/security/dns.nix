@@ -97,7 +97,7 @@ in
   services = {
     bind = {
       enable = true;
-      package = pkgs.bind-resolver;
+      package = pkgs.bind;
       extraArgs = dnsCfg.namedArgs;
       configFile = config.localDns.bindConfig {
         directory = "/run/named";
