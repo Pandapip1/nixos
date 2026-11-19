@@ -22,8 +22,8 @@ in
       # the tests that hold the lot in place. Each commit on the branch says
       # what it changed and what was measured.
       vlc =
-        if stdenv.hostPlatform.isDarwin then
-          prev.vlc.overrideAttrs (prevAttrs: {
+        if prev.stdenv.hostPlatform.isDarwin then
+          with prev; vlc.overrideAttrs (prevAttrs: {
             version = "3.0.23-unstable-2026-09-16";
 
             src = fetchFromGitHub {
@@ -282,7 +282,7 @@ in
       # 4.0, and tracking it means nixpkgs' fixes keep arriving. Only the
       # genuinely 3.0-specific parts are replaced below, each one checked
       # against the 4.0 configure.ac.
-      vlc_4 =
+      vlc_4 = with prev;
         (prev.vlc.override {
           # 4.0 dropped the Qt5 interface entirely; the GUI is Qt6/QML now.
           withQt5 = false;
