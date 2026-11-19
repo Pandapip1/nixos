@@ -7,7 +7,7 @@
 {
   nixpkgs.overlays = [
     (_: prev: {
-      monado-sbs-pnp = prev.monado.overrideAttrs (prevAttrs: {
+      monado = prev.monado.overrideAttrs (prevAttrs: {
         pname = "${prevAttrs.pname}-sbs-pnp";
         version = "0-unstable-2026-07-15";
         src = prev.fetchFromGitLab {
@@ -22,6 +22,4 @@
       });
     })
   ];
-  services.monado.package = pkgs.monado-sbs-pnp;
-  services.monado.highPriority = lib.mkForce true;
 }
