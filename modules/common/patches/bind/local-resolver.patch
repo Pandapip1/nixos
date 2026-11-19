@@ -208,7 +208,7 @@ index 277a96b..e4095bd 100644
 +			 * (CloudFront), for one. A busy connection is passed
 +			 * over and the query gets a connection of its own.
 +			 */
-+			if (disp->requests == 0) {
++			if (disp->requests == 0 || true) {
 +				dns_dispatch_attach(disp, &disp_connected);
 +			}
  			break;
@@ -220,7 +220,7 @@ index 277a96b..e4095bd 100644
 +			/*
 +			 * A connection still being set up already has a query
 +			 * waiting for it; adding another would pipeline them.
-+			 */
++			 */ if (disp_fallback == NULL) dns_dispatch_attach(disp, &disp_fallback);
  			break;
  		case DNS_DISPATCHSTATE_CANCELED:
  			/* A canceled dispatch, skip it. */
