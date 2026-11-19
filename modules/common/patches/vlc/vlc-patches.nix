@@ -22,7 +22,7 @@ in
       # the tests that hold the lot in place. Each commit on the branch says
       # what it changed and what was measured.
       vlc =
-        if prev.stdenv.hostPlatform.isDarwin then
+        if (!prev.stdenv.hostPlatform.isDarwin) then
           with prev; vlc.overrideAttrs (prevAttrs: {
             version = "3.0.23-unstable-2026-09-16";
 

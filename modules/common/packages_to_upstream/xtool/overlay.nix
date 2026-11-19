@@ -39,7 +39,84 @@
         #   the checkout's manifest is patched to use it.
 
         let
-          deps = callPackage ../swiftpm-deps.nix { } {
+          swiftPmDeps =
+            let
+              inherit (final)
+                lib
+                fetchgit
+                ;
+            in
+            {
+              pinData,
+              overrides ? { },
+              # Where SwiftPM keeps its state: .build, or a package's --scratch-path.
+              scratchPath ? ".build",
+              # Where Package.resolved goes: the package's root.
+              packageRoot ? ".",
+            }:
+
+            let
+              pins = pinData.deps;
+              checkouts = lib.mapAttrs (
+                name: pin:
+                (overrides.${name} or lib.id) (fetchgit {
+                  url = pin.location;
+                  rev = pin.revision;
+                  inherit (pin) hash;
+                  fetchSubmodules = true;
+                })
+              ) pins;
+
+              workspaceState = {
+                version = 7;
+                object = {
+                  artifacts = [ ];
+                  prebuilts = [ ];
+                  dependencies = lib.mapAttrsToList (_: pin: {
+                    basedOn = null;
+                    packageRef = {
+                      inherit (pin) identity name location;
+                      kind = "remoteSourceControl";
+                    };
+                    state = {
+                      name = "sourceControlCheckout";
+                      checkoutState = { inherit (pin) revision version; };
+                    };
+                    inherit (pin) subpath;
+                  }) pins;
+                };
+              };
+
+              packageResolved = {
+                version = 3;
+                inherit (pinData) originHash;
+                pins = lib.sortOn (p: p.identity) (
+                  lib.mapAttrsToList (_: pin: {
+                    inherit (pin) identity location;
+                    kind = "remoteSourceControl";
+                    state = { inherit (pin) revision version; };
+                  }) pins
+                );
+              };
+            in
+            {
+              inherit checkouts;
+
+              # Shell commands that put the dependencies in place.
+              configure = ''
+                mkdir -p '${scratchPath}/checkouts'
+                ${lib.concatStringsSep "\n" (
+                  lib.mapAttrsToList (
+                    name: pin: "ln -s ${checkouts.${name}} '${scratchPath}/checkouts/${pin.subpath}'"
+                  ) pins
+                )}
+                install -m 0600 ${builtins.toFile "workspace-state.json" (builtins.toJSON workspaceState)} \
+                  '${scratchPath}/workspace-state.json'
+                install -m 0600 ${builtins.toFile "Package.resolved" (builtins.toJSON packageResolved)} \
+                  '${packageRoot}/Package.resolved'
+              '';
+            };
+          deps = swiftPmDeps {
             pinData = # xtool's SwiftPM dependency pins, mirroring its Package.resolved and
               # .build/workspace-state.json (see ../swiftpm-deps.nix for how they are used).
               #
@@ -514,7 +591,7 @@
             overrides.swift-rcodesign =
               checkout:
               let
-                library = callPackage ./rcodesign.nix { src = checkout; };
+                library = final.rcodesign;
               in
               runCommand "swift-rcodesign-from-source" { nativeBuildInputs = [ perl ]; } ''
                 cp -r ${checkout} $out

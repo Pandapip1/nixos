@@ -203,7 +203,7 @@ ${lib.optionalString overTor ''
       # -f keeps named in the foreground but, unlike -g, honours the logging
       # statement. Its stderr (launchd's log) only gets what it prints before
       # reading the configuration, and crashes.
-      exec ${pkgs.bind-resolver}/bin/named -f -u ${namedUser} ${lib.escapeShellArgs dnsCfg.namedArgs} -c ${bindConfig}
+      exec ${lib.getExe' pkgs.bind "named"} -f -u ${namedUser} ${lib.escapeShellArgs dnsCfg.namedArgs} -c ${bindConfig}
     '';
   };
   bindCaptivePortalWatcher = pkgs.writeShellApplication {

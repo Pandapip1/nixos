@@ -459,7 +459,8 @@ writeTextDir "lib/pkgconfig/sysprof-capture-4.pc" ''
           ];
 
           postConfigure = ''
-            ${pinData.deps.configure}
+            # TODO: Gone missing?
+            #''${pinData.deps.configure}
             # The newest SDK among the inputs normally wins, and nixpkgs' Swift brings
             # the 27 SDK along; select 26 explicitly (xtool keeps SDKROOT).
             export DEVELOPER_DIR=${final.apple-sdk_26}

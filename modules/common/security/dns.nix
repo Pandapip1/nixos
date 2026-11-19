@@ -229,7 +229,7 @@ ${lib.optionalString cfg.recurseOverTor ''
       '';
     in
     # Check against the patched BIND that will run it (it has extra options).
-    pkgs.runCommand "named.conf" { nativeBuildInputs = [ pkgs.bind-resolver ]; } ''
+    pkgs.runCommand "named.conf" { nativeBuildInputs = [ pkgs.bind ]; } ''
       cp ${unchecked} named.conf.check
       substituteInPlace named.conf.check \
         --replace-fail '${directory}' "$TMPDIR"
